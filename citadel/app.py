@@ -1,48 +1,49 @@
-# -*- coding: utf-8 -*-
-from celery import Celery
-from flask import jsonify, Flask
+# coding: utf-8
+
+from flask import Flask, g, request, session
+from werkzeug.utils import import_string
+
+from citadel.config import DEBUG, SENTRY_DSN
+from citadel.ext import db, mako
+from citadel.sentry import SentryCollector
+from citadel.models.user import get_current_user
+# from citadel.utils import DateConverter
 
 
-def make_celery(app):
-    celery = Celery(app.import_name,
-                    backend=app.config['CELERY_BACKEND'],
-                    broker=app.config['CELERY_BROKER_URL'])
-    celery.conf.update(app.config)
-    TaskBase = celery.Task
-
-    class ContextTask(TaskBase):
-        abstract = True
-
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return TaskBase.__call__(self, *args, **kwargs)
-
-    celery.Task = ContextTask
-    return celery
+blueprints = [
+    'core',
+]
 
 
-def create_app_with_celery():
-    app = Flask('citadel')
+def create_app():
+    app = Flask(__name__, static_url_path='/citadel/static')
+    # app.url_map.converters['date'] = DateConverter
     app.config.from_object('citadel.config')
+    app.secret_key = app.config['SECRET_KEY']
 
-    # should be initialized before other imports
-    celery = make_celery(app)
+    app.url_map.strict_slashes = False
 
-    return app, celery
+    db.init_app(app)
+    mako.init_app(app)
 
-app, celery = create_app_with_celery()
+    if not DEBUG:
+        sentry = SentryCollector(dsn=SENTRY_DSN)
+        sentry.init_app(app)
 
+    for bp in blueprints:
+        import_name = '%s.views.%s:bp' % (__package__, bp)
+        app.register_blueprint(import_string(import_name))
 
-@app.errorhandler(422)
-def handle_unprocessable_entity(err):
-    # webargs attaches additional metadata to the `data` attribute
-    data = getattr(err, 'data')
-    if data:
-        # Get validations from the ValidationError object
-        messages = data['exc'].messages
-    else:
-        messages = ['Invalid request']
+    @app.before_request
+    def init_global_vars():
+        g.user = get_current_user() if 'sso' in session or DEBUG else None
+        if g.user is None:
+            session.pop('id', None)
+            session.pop('name', None)
+            session.pop('sso', None)
 
-    return jsonify({
-        'messages': messages,
-    }), 422
+        g.websocket = request.environ.get('wsgi.websocket', None)
+        g.start = request.args.get('start', type=int, default=0)
+        g.limit = request.args.get('limit', type=int, default=20)
+
+    return app
