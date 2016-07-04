@@ -1,7 +1,42 @@
-from functools import wraps
-from webargs import ValidationError
+# coding:utf-8
 
-from flask import jsonify
+import json
+from datetime import datetime
+from decimal import Decimal
+from functools import wraps
+
+from flask import session, Response
+from werkzeug.routing import BaseConverter, ValidationError
+
+
+def with_appcontext(f):
+    @wraps(f)
+    def _(*args, **kwargs):
+        from karazhan.app import create_app
+        app = create_app()
+        with app.app_context():
+            return f(*args, **kwargs)
+    return _
+
+
+class Jsonized(object):
+
+    _raw = {}
+
+    def to_dict(self):
+        return self._raw
+
+
+class JSONEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj, Jsonized):
+            return obj.to_dict()
+        if isinstance(obj, datetime):
+            return obj.strftime('%Y-%m-%d %H:%M:%S')
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(JSONEncoder, self).default(obj)
 
 
 def jsonize(f):
@@ -9,21 +44,37 @@ def jsonize(f):
     def _(*args, **kwargs):
         r = f(*args, **kwargs)
         data, code = r if isinstance(r, tuple) else (r, 200)
-        return jsonify(data)
+        return Response(json.dumps(data, cls=JSONEncoder), status=code, mimetype='application/json')
     return _
 
 
-def require_one_of(*field_groups):
-    """one of each group must be present"""
-    def checker(args):
-        for fields in field_groups:
-            fields_ok = any(
-                field in args and bool(args[field])
-                for field in fields
-            )
-            if not fields_ok:
-                raise ValidationError(
-                    'Missing one of the required fields: {}'.format(fields)
-                )
+def handle_exception(exceptions, default=None):
+    def _handle_exception(f):
+        @wraps(f)
+        def _(*args, **kwargs):
+            try:
+                return f(*args, **kwargs)
+            except exceptions:
+                return default
+        return _
+    return _handle_exception
 
-    return checker
+
+def login_user(user):
+    session['id'] = user.id
+    session['name'] = user.name
+
+
+class DateConverter(BaseConverter):
+    """Extracts a ISO8601 date from the path and validates it."""
+
+    regex = r'\d{4}-\d{2}-\d{2}'
+
+    def to_python(self, value):
+        try:
+            return datetime.strptime(value, '%Y-%m-%d').date()
+        except ValueError:
+            raise ValidationError()
+
+    def to_url(self, value):
+        return value.strftime('%Y-%m-%d')
