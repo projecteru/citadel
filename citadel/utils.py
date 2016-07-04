@@ -55,6 +55,8 @@ def handle_exception(exceptions, default=None):
             try:
                 return f(*args, **kwargs)
             except exceptions:
+                if callable(default):
+                    return default()
                 return default
         return _
     return _handle_exception
