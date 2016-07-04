@@ -6,7 +6,7 @@ from grpc.framework.interfaces.face.face import AbortionError
 
 import citadel.rpc.core_pb2 as pb
 from citadel.rpc.exceptions import NoStubError
-from citadel.models.core import Pod, Node
+from citadel.rpc.core import Pod, Node
 from citadel.utils import handle_exception
 
 

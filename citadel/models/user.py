@@ -1,5 +1,6 @@
 # coding: utf-8
 
+from citadel.ext import sso
 from citadel.config import DEBUG
 
 
@@ -15,7 +16,6 @@ _DEBUG_USER_DICT = {
 
 
 def get_current_user():
-    from citadel.ext import sso
     if DEBUG:
         return User.from_dict(_DEBUG_USER_DICT)
     resp = sso.get('me')
@@ -23,7 +23,6 @@ def get_current_user():
 
 
 def get_user(identifier):
-    from citadel.ext import sso
     if DEBUG:
         return User.from_dict(_DEBUG_USER_DICT)
     resp = sso.get('user/%s' % identifier)
@@ -31,7 +30,6 @@ def get_user(identifier):
 
 
 def get_users(start=0, limit=20, q=None):
-    from citadel.ext import sso
     if DEBUG:
         return [User.from_dict(_DEBUG_USER_DICT)]
     data = {'start': start, 'limit': limit}
