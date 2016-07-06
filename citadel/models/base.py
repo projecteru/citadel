@@ -1,22 +1,19 @@
 # coding: utf-8
 
 import json
-from sqlalchemy.ext.declarative import declared_attr
+from datetime import datetime
 
-from citadel.ext import db, rds
 from citadel.utils import Jsonized
+from citadel.ext import db, rds
 
 
-class Base(db.Model, Jsonized):
+class BaseModelMixin(db.Model, Jsonized):
+
     __abstract__ = True
 
-    @declared_attr
-    def id(cls):
-        return db.Column('id', db.Integer, primary_key=True, autoincrement=True)
-
-    @declared_attr
-    def __tablename__(cls):
-        return cls.__name__.lower()
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    created = db.Column(db.DateTime, default=datetime.now)
+    updated = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
     @classmethod
     def get(cls, id):
@@ -26,9 +23,24 @@ class Base(db.Model, Jsonized):
     def get_multi(cls, ids):
         return [cls.get(i) for i in ids]
 
+    @classmethod
+    def get_all(cls, start=0, limit=20):
+        q = cls.query.order_by(cls.id.desc())
+        return q[start:start+limit]
+
     def delete(self):
         db.session.delete(self)
         db.session.commit()
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.id == other.id
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'created': self.created,
+            'updated': self.updated,
+        }
 
 
 class PropsMixin(object):
