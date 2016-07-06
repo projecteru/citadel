@@ -3,21 +3,27 @@
 from flask import Flask, g, request, session
 from werkzeug.utils import import_string
 
-from citadel.config import DEBUG, SENTRY_DSN
 from citadel.ext import db, mako
+from citadel.config import DEBUG, SENTRY_DSN
 from citadel.sentry import SentryCollector
 from citadel.models.user import get_current_user
-# from citadel.utils import DateConverter
+from citadel.utils import DateConverter
 
 
 blueprints = [
     'core',
 ]
 
+api_blueprints = [
+    'app',
+    'pod',
+    'container',
+]
+
 
 def create_app():
     app = Flask(__name__, static_url_path='/citadel/static')
-    # app.url_map.converters['date'] = DateConverter
+    app.url_map.converters['date'] = DateConverter
     app.config.from_object('citadel.config')
     app.secret_key = app.config['SECRET_KEY']
 
@@ -32,6 +38,10 @@ def create_app():
 
     for bp in blueprints:
         import_name = '%s.views.%s:bp' % (__package__, bp)
+        app.register_blueprint(import_string(import_name))
+
+    for bp in api_blueprints:
+        import_name = '%s.api.v1.%s:bp' % (__package__, bp)
         app.register_blueprint(import_string(import_name))
 
     @app.before_request
