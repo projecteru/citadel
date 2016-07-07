@@ -23,7 +23,7 @@ OAUTH2_BASE_URL = getenv('OAUTH2_BASE_URL', default='')
 OAUTH2_CLIENT_ID = getenv('OAUTH2_CLIENT_ID', default='')
 OAUTH2_CLIENT_SECRET = getenv('OAUTH2_CLIENT_SECRET', default='')
 OAUTH2_ACCESS_TOKEN_URL = getenv('OAUTH2_ACCESS_TOKEN_URL', default='')
-OAUTH2_AUTHOURIZE_URL = getenv('OAUTH2_AUTHOURIZE_URL', default='')
+OAUTH2_AUTHORIZE_URL = getenv('OAUTH2_AUTHORIZE_URL', default='')
 
 try:
     from .local_config import *
