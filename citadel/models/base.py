@@ -3,8 +3,8 @@
 import json
 from datetime import datetime
 
-from citadel.utils import Jsonized
 from citadel.ext import db, rds
+from citadel.libs.json import Jsonized
 
 
 class BaseModelMixin(db.Model, Jsonized):

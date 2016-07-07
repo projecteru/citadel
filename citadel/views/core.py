@@ -1,7 +1,7 @@
 # coding: utf-8
 
 from citadel.ext import core
-from citadel.views.helper import create_ajax_blueprint
+from citadel.libs.view import create_ajax_blueprint
 
 
 bp = create_ajax_blueprint('core', __name__, url_prefix='/core')

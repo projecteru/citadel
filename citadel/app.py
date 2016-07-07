@@ -4,10 +4,9 @@ from flask import Flask, g, request, session
 from werkzeug.utils import import_string
 
 from citadel.ext import db, mako
-from citadel.config import DEBUG, SENTRY_DSN
 from citadel.sentry import SentryCollector
 from citadel.models.user import get_current_user
-from citadel.utils import DateConverter
+from citadel.libs.datastructure import DateConverter
 
 
 blueprints = [
@@ -32,8 +31,10 @@ def create_app():
     db.init_app(app)
     mako.init_app(app)
 
-    if not DEBUG:
-        sentry = SentryCollector(dsn=SENTRY_DSN)
+    debug = app.config['DEBUG']
+
+    if not debug:
+        sentry = SentryCollector(dsn=app.config['SENTRY_DSN'])
         sentry.init_app(app)
 
     for bp in blueprints:
@@ -46,7 +47,7 @@ def create_app():
 
     @app.before_request
     def init_global_vars():
-        g.user = get_current_user() if 'sso' in session or DEBUG else None
+        g.user = get_current_user() if 'sso' in session or debug else None
         if g.user is None:
             session.pop('id', None)
             session.pop('name', None)
