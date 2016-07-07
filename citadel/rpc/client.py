@@ -72,9 +72,9 @@ class CoreRPC(object):
         return n and Node(n)
 
     @handle_rpc_exception(default=list)
-    def build_image(self, repo, version, uid):
+    def build_image(self, repo, version, uid, artifact=''):
         stub = self._get_stub()
-        opts = pb.BuildImageOptions(repo=repo, version=version, uid=uid)
+        opts = pb.BuildImageOptions(repo=repo, version=version, uid=uid, artifact=artifact)
     
         for m in stub.BuildImage(opts, 3600):
             yield m
