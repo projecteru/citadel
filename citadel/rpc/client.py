@@ -7,7 +7,7 @@ from grpc.framework.interfaces.face.face import AbortionError
 import citadel.rpc.core_pb2 as pb
 from citadel.rpc.exceptions import NoStubError
 from citadel.rpc.core import Pod, Node
-from citadel.utils import handle_exception
+from citadel.libs.utils import handle_exception
 
 
 handle_rpc_exception = partial(handle_exception, (NoStubError, AbortionError))

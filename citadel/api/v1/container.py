@@ -2,7 +2,7 @@
 
 from flask import abort
 
-from citadel.api.helper import create_api_blueprint
+from citadel.libs.view import create_api_blueprint
 from citadel.models.container import Container
 
 

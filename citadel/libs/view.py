@@ -1,10 +1,11 @@
 # coding: utf-8
-from functools import partial, wraps
 
+import os
+from functools import partial, wraps
 from flask import Blueprint, jsonify, abort, g
 from flask_mako import render_template
 
-from citadel.utils import jsonize
+from citadel.libs.json import jsonize
 
 
 ERROR_CODES = [400, 401, 403, 404]
@@ -64,4 +65,26 @@ def create_page_blueprint(name, import_name, url_prefix=None):
     for code in ERROR_CODES:
         bp.errorhandler(code)(_error_hanlder)
 
+    return bp
+
+
+class URLPrefixError(Exception):
+    pass
+
+
+def create_api_blueprint(name, import_name, url_prefix=None, version='v1'):
+    if url_prefix.startswith('/'):
+        raise URLPrefixError('url_prefix ("%s") must not start with /' % url_prefix)
+
+    bp_name = '_'.join([name, version])
+    bp_url_prefix = os.path.join('/api', version, url_prefix)
+    bp = Blueprint(bp_name, import_name, url_prefix=bp_url_prefix)
+
+    def _error_hanlder(error):
+        return jsonify({'error': error.description}), error.code
+
+    for code in ERROR_CODES:
+        bp.errorhandler(code)(_error_hanlder)
+
+    patch_blueprint_route(bp)
     return bp

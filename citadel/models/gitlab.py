@@ -7,7 +7,7 @@ from gitlab import GitlabError
 from functools import partial
 
 from citadel.ext import gitlab
-from citadel.utils import handle_exception
+from citadel.libs.utils import handle_exception
 
 
 handle_gitlab_exception = partial(handle_exception, (GitlabError,))

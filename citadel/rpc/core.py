@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from citadel.utils import Jsonized
+from citadel.libs.json import Jsonized
 
 """一些通过grpc从core那边回来的东西, 因为需要被JSON序列化, 所以额外再包一层."""
 
