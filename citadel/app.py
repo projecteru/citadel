@@ -17,6 +17,7 @@ api_blueprints = [
     'app',
     'pod',
     'container',
+    'action',
 ]
 
 

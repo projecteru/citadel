@@ -1,13 +1,12 @@
 # coding: utf-8
 
 import yaml
-from urlparse import urlparse
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
 
 from citadel.ext import db
 from citadel.models.base import BaseModelMixin
-from citadel.models.gitlab import get_file_content, get_commit
+from citadel.models.gitlab import get_project_name, get_file_content, get_commit
 
 
 class App(BaseModelMixin):
@@ -42,13 +41,7 @@ class App(BaseModelMixin):
 
     @property
     def project_name(self):
-        """for gitlab API"""
-        # git@gitlab.ricebook.net:ricebook/prometheus.git
-        if self.git.startswith('git@'):
-            return self.git.split(':', 1)[1][:-4]
-        # http://gitlab.ricebook.net/ricebook/prometheus.git
-        u = urlparse(self.git)
-        return u.path[1:-4]
+        return get_project_name(self.git)
 
     def to_dict(self):
         d = super(App, self).to_dict()
@@ -81,7 +74,7 @@ class Release(BaseModelMixin):
             r = cls(sha=commit.id, app_id=app.id)
             db.session.add(r)
             db.session.commit()
-            return r.load_specs()
+            return r
         except IntegrityError:
             db.session.rollback()
             return None

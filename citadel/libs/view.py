@@ -72,12 +72,21 @@ class URLPrefixError(Exception):
     pass
 
 
-def create_api_blueprint(name, import_name, url_prefix=None, version='v1'):
-    if url_prefix.startswith('/'):
+def create_api_blueprint(name, import_name, url_prefix=None, version='v1', jsonize=True):
+    """
+    幺蛾子, 就是因为flask写API挂路由太累了, 搞了这么个东西.
+    会把url_prefix挂到/api/:version/下.
+    比如url_prefix是test, 那么route全部在/api/v1/test下
+    """
+    if url_prefix and url_prefix.startswith('/'):
         raise URLPrefixError('url_prefix ("%s") must not start with /' % url_prefix)
+    if version.startswith('/'):
+        raise URLPrefixError('version ("%s") must not start with /' % version)
 
     bp_name = '_'.join([name, version])
-    bp_url_prefix = os.path.join('/api', version, url_prefix)
+    bp_url_prefix = '/api/' + version
+    if url_prefix:
+        bp_url_prefix = os.path.join(bp_url_prefix, url_prefix)
     bp = Blueprint(bp_name, import_name, url_prefix=bp_url_prefix)
 
     def _error_hanlder(error):
@@ -86,5 +95,8 @@ def create_api_blueprint(name, import_name, url_prefix=None, version='v1'):
     for code in ERROR_CODES:
         bp.errorhandler(code)(_error_hanlder)
 
-    patch_blueprint_route(bp)
+    # 如果不需要自动帮忙jsonize, 就不要
+    # 可能的场景比如返回一个stream
+    if jsonize:
+        patch_blueprint_route(bp)
     return bp
