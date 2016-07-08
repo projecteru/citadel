@@ -5,12 +5,21 @@ from __future__ import absolute_import
 from base64 import b64decode
 from gitlab import GitlabError
 from functools import partial
+from urlparse import urlparse
 
 from citadel.ext import gitlab
 from citadel.libs.utils import handle_exception
 
 
 handle_gitlab_exception = partial(handle_exception, (GitlabError,))
+
+
+def get_project_name(repo):
+    if repo.startswith('git@'):
+        return repo.split(':', 1)[1][:-4]
+
+    u = urlparse(repo)
+    return u.path[1:-4]
 
 
 @handle_gitlab_exception(default='')
