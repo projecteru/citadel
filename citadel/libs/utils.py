@@ -9,7 +9,7 @@ from werkzeug.routing import BaseConverter, ValidationError
 def with_appcontext(f):
     @wraps(f)
     def _(*args, **kwargs):
-        from karazhan.app import create_app
+        from citadel.app import create_app
         app = create_app()
         with app.app_context():
             return f(*args, **kwargs)
