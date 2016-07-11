@@ -93,7 +93,8 @@ class Release(BaseModelMixin):
         if not app:
             return []
 
-        return cls.query.filter_by(app_id=app.id).order_by(cls.id.desc())
+        q = cls.query.filter_by(app_id=app.id).order_by(cls.id.desc())
+        return q[start:start+limit]
 
     @classmethod
     def get_by_app_and_sha(cls, name, sha):
@@ -120,6 +121,7 @@ class Release(BaseModelMixin):
     def update_image(self, image):
         self.image = image
         db.session.add(self)
+        db.session.commit()
 
     def to_dict(self):
         d = super(Release, self).to_dict()

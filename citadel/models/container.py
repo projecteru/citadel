@@ -23,12 +23,15 @@ class Container(BaseModelMixin):
     entrypoint = db.Column(db.String(50), nullable=False)
     env = db.Column(db.String(50), nullable=False)
     cpu_quota = db.Column(db.Numeric(12, 3), nullable=False, default=1)
+    podname = db.Column(db.String(50), nullable=False)
+    nodename = db.Column(db.String(50), nullable=False)
 
     @classmethod
-    def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota):
+    def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, podname, nodename):
         try:
             c = cls(appname=appname, sha=sha, container_id=container_id,
-                    entrypoint=entrypoint, env=env, cpu_quota=cpu_quota)
+                    entrypoint=entrypoint, env=env, cpu_quota=cpu_quota,
+                    podname=podname, nodename=nodename)
             db.session.add(c)
             db.session.commit()
             return c.inspect()
@@ -66,6 +69,11 @@ class Container(BaseModelMixin):
         cs = super(Container, cls).get_all(start, limit)
         return [c.inspect() for c in cs]
 
+    @classmethod
+    def delete_by_container_id(cls, container_id):
+        cls.query.filter_by(container_id=container_id).delete()
+        db.session.commit()
+
     def inspect(self):
         """must be called after get / create"""
         cs = core.get_containers([self.container_id])
@@ -73,8 +81,6 @@ class Container(BaseModelMixin):
             raise ContainerInspectError()
 
         c = cs[0]
-        self.podname = c.podname
-        self.nodename = c.nodename
         self.name = c.name
         self.info = json.loads(c.info)
         return self

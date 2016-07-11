@@ -6,8 +6,9 @@ from grpc.framework.interfaces.face.face import AbortionError
 
 import citadel.rpc.core_pb2 as pb
 from citadel.libs.utils import handle_exception
-from citadel.rpc.core import Pod, Node, BuildImageMessage, CreateContainerMessage, UpgradeContainerMessage
 from citadel.rpc.exceptions import NoStubError
+from citadel.rpc.core import (Pod, Node, BuildImageMessage,
+        CreateContainerMessage, UpgradeContainerMessage, RemoveContainerMessage)
 
 
 handle_rpc_exception = partial(handle_exception, (NoStubError, AbortionError))
@@ -102,7 +103,7 @@ class CoreRPC(object):
         ids = pb.ContainerIDs(ids=[pb.ContainerID(id=i) for i in ids])
 
         for m in stub.RemoveContainer(ids, 3600):
-            yield m
+            yield RemoveContainerMessage(m)
 
     @handle_rpc_exception(default=list)
     def upgrade_container(self, ids, image):
