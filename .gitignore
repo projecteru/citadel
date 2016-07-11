@@ -1,4 +1,7 @@
 *.py[co]
+.ipynb_checkpoints
+test.ipynb
+.env
 local_config.py
 tests/__pycache__/*
 .ropeproject

@@ -1,9 +1,8 @@
 # coding: utf-8
-
 from flask import abort, g, request
 
-from citadel.libs.view import create_api_blueprint
 from citadel.libs.datastructure import AbortDict
+from citadel.libs.view import create_api_blueprint
 from citadel.models.app import App, Release
 from citadel.models.container import Container
 
@@ -66,4 +65,5 @@ def register_release():
     release = Release.create(app, sha)
     if not release:
         abort(400, 'error during create a release (%s, %s, %s)' % (name, git, sha))
+
     return release

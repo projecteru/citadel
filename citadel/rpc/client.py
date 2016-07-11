@@ -1,13 +1,13 @@
 # coding: utf-8
-
 from functools import partial
+
 from grpc.beta import implementations
 from grpc.framework.interfaces.face.face import AbortionError
 
 import citadel.rpc.core_pb2 as pb
 from citadel.libs.utils import handle_exception
-from citadel.rpc.exceptions import NoStubError
 from citadel.rpc.core import Pod, Node, BuildImageMessage, CreateContainerMessage, UpgradeContainerMessage
+from citadel.rpc.exceptions import NoStubError
 
 
 handle_rpc_exception = partial(handle_exception, (NoStubError, AbortionError))
@@ -67,7 +67,7 @@ class CoreRPC(object):
                                  endpoint=endpoint,
                                  podname=podname,
                                  public=public)
-    
+
         n = stub.AddNode(opts, 5)
         return n and Node(n)
 
@@ -75,13 +75,13 @@ class CoreRPC(object):
     def build_image(self, repo, version, uid, artifact=''):
         stub = self._get_stub()
         opts = pb.BuildImageOptions(repo=repo, version=version, uid=uid, artifact=artifact)
-    
+
         for m in stub.BuildImage(opts, 3600):
             yield BuildImageMessage(m)
 
     @handle_rpc_exception(default=list)
     def create_container(self, specs, appname, image, podname, entrypoint,
-            cpu_quota, count, networks, env):
+                         cpu_quota, count, networks, env):
         stub = self._get_stub()
         opts = pb.DeployOptions(specs=specs,
                                 appname=appname,
@@ -92,7 +92,7 @@ class CoreRPC(object):
                                 count=count,
                                 networks=networks,
                                 env=env)
-    
+
         for m in stub.CreateContainer(opts, 3600):
             yield CreateContainerMessage(m)
 
@@ -100,7 +100,7 @@ class CoreRPC(object):
     def remove_container(self, ids):
         stub = self._get_stub()
         ids = pb.ContainerIDs(ids=[pb.ContainerID(id=i) for i in ids])
-    
+
         for m in stub.RemoveContainer(ids, 3600):
             yield m
 
@@ -108,7 +108,7 @@ class CoreRPC(object):
     def upgrade_container(self, ids, image):
         stub = self._get_stub()
         opts = pb.UpgradeOptions(ids=[pb.ContainerID(id=i) for i in ids], image=image)
-    
+
         for m in stub.UpgradeContainer(opts, 3600):
             yield UpgradeContainerMessage(m)
 
@@ -116,6 +116,6 @@ class CoreRPC(object):
     def get_containers(self, ids):
         stub = self._get_stub()
         ids = pb.ContainerIDs(ids=[pb.ContainerID(id=i) for i in ids])
-    
+
         cs = stub.GetContainers(ids, 3600)
         return [c for c in cs.containers]
