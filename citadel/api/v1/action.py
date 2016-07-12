@@ -9,6 +9,7 @@ from Queue import Queue, Empty
 from grpc.framework.interfaces.face import face
 
 from citadel.ext import core
+from citadel.publish import publisher
 from citadel.libs.json import JSONEncoder
 from citadel.libs.view import create_api_blueprint
 from citadel.libs.datastructure import AbortDict
@@ -150,7 +151,9 @@ def deploy():
             if not m.success:
                 continue
 
-            Container.create(release.app.name, release.sha, m.id, entrypoint, 'env', cpu, m.podname, m.nodename)
+            container = Container.create(release.app.name, release.sha, m.id,
+                                         entrypoint, 'env', cpu, m.podname, m.nodename)
+            publisher.add_container(container)
         q.put(_eof)
 
     t = Thread(target=_stream_producer)
@@ -163,8 +166,15 @@ def deploy():
 @bp.route('/remove', methods=['POST'])
 def remove_container():
     data = AbortDict(request.get_json())
-
     ids = data['ids']
+
+    # publish backends
+    containers = [Container.get_by_container_id(i) for i in ids]
+    for container in containers:
+        if not container:
+            continue
+        publisher.remove_container(container)
+
     ms = _peek_grpc(core.remove_container(ids))
     q = Queue()
 
@@ -188,7 +198,6 @@ def remove_container():
 @bp.route('/upgrade', methods=['POST'])
 def upgrade_container():
     data = AbortDict(request.get_json())
-
     ids = data['ids']
     repo = data['repo']
     sha = data['sha']
@@ -207,6 +216,13 @@ def upgrade_container():
     if not release.image:
         abort(400, 'repo %s, %s has not been built yet' % (repo, sha))
 
+    # publish backends
+    containers = [Container.get_by_container_id(i) for i in ids]
+    for container in containers:
+        if not container:
+            continue
+        publisher.remove_container(container)
+
     ms = _peek_grpc(core.upgrade_container(ids, release.image))
     q = Queue()
 
@@ -221,9 +237,11 @@ def upgrade_container():
             if not old:
                 continue
 
-            c = Container.create(old.appname, sha, m.new_id, old.entrypoint, old.env, old.cpu_quota, old.podname, old.nodename)
+            c = Container.create(old.appname, sha, m.new_id, old.entrypoint,
+                                 old.env, old.cpu_quota, old.podname, old.nodename)
             if not c:
                 continue
+            publisher.add_container(c)
 
             old.delete()
 
