@@ -18,17 +18,6 @@ _APP_DISCOVERY_KEY = 'eru:discovery:published'
 handle_etcd_exception = partial(handle_exception, (EtcdException, ValueError, KeyError))
 
 
-def squash_dict(d):
-    return d
-    # r = {}
-    # for sha, version in d.iteritems():
-    #     for entry_name, entrypoint in version.iteritems():
-    #         if entrypoint['addresses'] or entrypoint['backends']:
-    #             r.setdefault(sha, {}).setdefault(entry_name, {})['addresses'] = entrypoint['addresses']
-    #             r.setdefault(sha, {}).setdefault(entry_name, {})['backends'] = entrypoint['backends']
-    # return r
-
-
 class EtcdPublisher(object):
     """
     完整路径是 /eru/service-nodes/:podname/:appname
@@ -68,7 +57,7 @@ class EtcdPublisher(object):
         entrypoint['backends'] = new_backends
 
         path = self.APP_PATH % (container.podname, container.appname)
-        self.write(path, json.dumps(squash_dict(app)))
+        self.write(path, json.dumps(app))
 
     def remove_container(self, container):
         app = self.get_app(container.appname, container.podname)
@@ -89,7 +78,7 @@ class EtcdPublisher(object):
         entrypoint['backends'] = new_backends
 
         path = self.APP_PATH % (container.podname, container.appname)
-        self.write(path, json.dumps(squash_dict(app)))
+        self.write(path, json.dumps(app))
 
     def publish_app(self, appname):
         app = App.get_by_name(appname)
@@ -111,7 +100,7 @@ class EtcdPublisher(object):
                 data.setdefault(c.sha, {}).setdefault('_all', {}).setdefault('backends', []).extend(c.get_backends())
 
             path = self.APP_PATH % (podname, appname)
-            self.write(path, json.dumps(squash_dict(data)))
+            self.write(path, json.dumps(data))
 
 
 publisher = EtcdPublisher()

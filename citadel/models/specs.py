@@ -64,13 +64,13 @@ class Entrypoint(object):
         command = data['cmd']
         ports = [Port.from_string(p) for p in data.get('ports', [])]
         exposes = [Expose.from_string(e) for e in data.get('exposes', [])]
-        network_mode = data.get('network_mode', None)
-        mem_limit = data.get('mem_limit', None)
-        restart = data.get('restart', None)
-        health_check = data.get('health_check', None)
+        network_mode = data.get('network_mode')
+        mem_limit = data.get('mem_limit')
+        restart = data.get('restart')
+        health_check = data.get('health_check')
         hosts = data.get('hosts', [])
-        permdir = bool(data.get('permdir', None))
-        privileged = bool(data.get('privileged', None))
+        permdir = bool(data.get('permdir'))
+        privileged = bool(data.get('privileged'))
         log_config = data.get('log_config', 'json-file')
         return cls(command, ports, exposes, network_mode, mem_limit, restart,
                 health_check, hosts, permdir, privileged, log_config)
@@ -97,7 +97,7 @@ class Specs(Jsonized):
         volumes = data.get('volumes', [])
         binds = {key: Bind.from_dict(value) for key, value in data.get('binds', {}).iteritems()}
         meta = data.get('meta', {})
-        base = data.get('base', None)
+        base = data.get('base')
         return cls(appname, entrypoints, build, volumes, binds, meta, base, data)
 
     @classmethod
