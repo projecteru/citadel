@@ -1,14 +1,12 @@
 # coding: utf-8
 
 import json
+import itertools
 from sqlalchemy.exc import IntegrityError
 
 from citadel.ext import db, core
 from citadel.models.base import BaseModelMixin
-
-
-class ContainerInspectError(Exception):
-    pass
+from citadel.network.plugin import get_ips_by_container
 
 
 class Container(BaseModelMixin):
@@ -36,6 +34,7 @@ class Container(BaseModelMixin):
             db.session.commit()
             return c.inspect()
         except IntegrityError:
+            print 'error'
             db.session.rollback()
             return None
 
@@ -60,6 +59,12 @@ class Container(BaseModelMixin):
         return [c.inspect() for c in cs[start:start+limit]]
 
     @classmethod
+    def get_by_pod(cls, podname, start=0, limit=20):
+        """get by podname"""
+        cs = cls.query.filter_by(podname=podname).order_by(cls.id.desc())
+        return [c.inspect() for c in cs[start:start+limit]]
+
+    @classmethod
     def get(cls, id):
         c = super(Container, cls).get(id)
         return c.inspect()
@@ -78,12 +83,36 @@ class Container(BaseModelMixin):
         """must be called after get / create"""
         cs = core.get_containers([self.container_id])
         if len(cs) != 1:
-            raise ContainerInspectError()
+            self.name = 'unknown'
+            self.info = {}
+            return self
 
         c = cs[0]
         self.name = c.name
         self.info = json.loads(c.info)
         return self
+
+    def status(self):
+        return self.info.get('State', {}).get('Status', 'unknown')
+
+    def get_ips(self):
+        return get_ips_by_container(self)
+
+    def get_backends(self):
+        from .app import Release
+        ips = self.get_ips()
+        release = Release.get_by_app_and_sha(self.appname, self.sha)
+        if not release:
+            return []
+
+        specs = release.specs
+        entrypoint = specs.entrypoints[self.entrypoint]
+        ports = entrypoint.ports
+        if not ports:
+            return []
+
+        ports = [p.port for p in ports]
+        return ['%s:%s' % (ip, port) for ip, port in itertools.product(ips, ports)]
 
     def to_dict(self):
         d = super(Container, self).to_dict()
@@ -98,5 +127,6 @@ class Container(BaseModelMixin):
             'nodename': self.nodename,
             'name': self.name,
             'info': self.info,
+            'backends': self.get_backends(),
         })
         return d

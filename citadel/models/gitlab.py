@@ -9,6 +9,7 @@ from urlparse import urlparse
 
 from citadel.ext import gitlab
 from citadel.libs.utils import handle_exception
+from citadel.libs.cache import cache, ONE_DAY
 
 
 handle_gitlab_exception = partial(handle_exception, (GitlabError,))
@@ -22,11 +23,16 @@ def get_project_name(repo):
     return u.path[1:-4]
 
 
-@handle_gitlab_exception(default='')
+@cache('core-api:filecontent:{project_name}:{file_path}:{ref}', ttl=ONE_DAY)
 def get_file_content(project_name, file_path, ref):
-    p = gitlab.projects.get(project_name)
-    f = p.files.get(file_path=file_path, ref=ref)
-    return b64decode(f.content)
+
+    @handle_gitlab_exception(default=None)
+    def _get_file_content(project_name, file_path, ref):
+        p = gitlab.projects.get(project_name)
+        f = p.files.get(file_path=file_path, ref=ref)
+        return b64decode(f.content)
+
+    return _get_file_content(project_name, file_path, ref)
 
 
 @handle_gitlab_exception(default=None)

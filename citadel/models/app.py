@@ -1,12 +1,12 @@
 # coding: utf-8
 
-import yaml
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
 
 from citadel.ext import db
 from citadel.models.base import BaseModelMixin
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
+from citadel.models.specs import Specs
 
 
 class App(BaseModelMixin):
@@ -70,6 +70,10 @@ class Release(BaseModelMixin):
         if not commit:
             return None
 
+        content = get_file_content(app.project_name, 'app.yaml', sha)
+        if not content:
+            return None
+
         try:
             r = cls(sha=commit.id, app_id=app.id)
             db.session.add(r)
@@ -116,7 +120,7 @@ class Release(BaseModelMixin):
     def specs(self):
         """load app.yaml from GitLab"""
         content = get_file_content(self.app.project_name, 'app.yaml', self.sha)
-        return content and yaml.load(content) or {}
+        return content and Specs.from_string(content) or None
 
     def update_image(self, image):
         self.image = image
