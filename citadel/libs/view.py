@@ -38,7 +38,8 @@ def create_ajax_blueprint(name, import_name, url_prefix=None):
     def _error_hanlder(error):
         return jsonify({'error': error.description}), error.code
 
-    for code in ERROR_CODES:
+    # 加多一个500, ajax里会有用
+    for code in ERROR_CODES + [500]:
         bp.errorhandler(code)(_error_hanlder)
 
     patch_blueprint_route(bp)
@@ -92,7 +93,8 @@ def create_api_blueprint(name, import_name, url_prefix=None, version='v1', jsoni
     def _error_hanlder(error):
         return jsonify({'error': error.description}), error.code
 
-    for code in ERROR_CODES:
+    # 加多一个500, API里会有用
+    for code in ERROR_CODES + [500]:
         bp.errorhandler(code)(_error_hanlder)
 
     # 如果不需要自动帮忙jsonize, 就不要

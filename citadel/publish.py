@@ -2,20 +2,15 @@
 
 import json
 import logging
-from functools import partial
-from etcd import EtcdException
 
 from citadel.ext import rds, etcd
-from citadel.libs.utils import handle_exception
+from citadel.libs.utils import handle_etcd_exception
 from citadel.models.app import App
 from citadel.models.container import Container
 
 
 _log = logging.getLogger(__name__)
 _APP_DISCOVERY_KEY = 'eru:discovery:published'
-
-
-handle_etcd_exception = partial(handle_exception, (EtcdException, ValueError, KeyError))
 
 
 class EtcdPublisher(object):

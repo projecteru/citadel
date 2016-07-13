@@ -1,9 +1,9 @@
 # coding:utf-8
 
+from etcd import EtcdException
 from flask import session
-from datetime import datetime
-from functools import wraps
-from werkzeug.routing import BaseConverter, ValidationError
+from gitlab import GitlabError
+from functools import wraps, partial
 
 
 def with_appcontext(f):
@@ -30,21 +30,10 @@ def handle_exception(exceptions, default=None):
     return _handle_exception
 
 
+handle_etcd_exception = partial(handle_exception, (EtcdException, ValueError, KeyError))
+handle_gitlab_exception = partial(handle_exception, (GitlabError,))
+
+
 def login_user(user):
     session['id'] = user.id
     session['name'] = user.name
-
-
-class DateConverter(BaseConverter):
-    """Extracts a ISO8601 date from the path and validates it."""
-
-    regex = r'\d{4}-\d{2}-\d{2}'
-
-    def to_python(self, value):
-        try:
-            return datetime.strptime(value, '%Y-%m-%d').date()
-        except ValueError:
-            raise ValidationError()
-
-    def to_url(self, value):
-        return value.strftime('%Y-%m-%d')

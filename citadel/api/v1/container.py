@@ -1,4 +1,5 @@
 # coding: utf-8
+
 from flask import abort
 
 from citadel.libs.view import create_api_blueprint
