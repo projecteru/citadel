@@ -2,22 +2,22 @@
 
 from __future__ import absolute_import
 
+import re
 from base64 import b64decode
-from gitlab import GitlabError
-from functools import partial
 from urlparse import urlparse
 
 from citadel.ext import gitlab
-from citadel.libs.utils import handle_exception
+from citadel.libs.utils import handle_gitlab_exception
 from citadel.libs.cache import cache, ONE_DAY
 
 
-handle_gitlab_exception = partial(handle_exception, (GitlabError,))
+_PROJECT_NAME_REGEX = re.compile(r'^(\w+)@([^:]+):(.+)\.git$')
 
 
 def get_project_name(repo):
-    if repo.startswith('git@'):
-        return repo.split(':', 1)[1][:-4]
+    r = _PROJECT_NAME_REGEX.match(repo)
+    if r:
+        return r.group(3)
 
     u = urlparse(repo)
     return u.path[1:-4]

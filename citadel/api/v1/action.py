@@ -18,6 +18,7 @@ from citadel.libs.utils import with_appcontext
 from citadel.models.app import App, Release
 from citadel.models.container import Container
 from citadel.models.gitlab import get_project_name, get_file_content
+from citadel.models.env import Environment
 
 
 # 把action都挂在/api/:version/下, 不再加前缀
@@ -117,7 +118,7 @@ def deploy():
     cpu = float(data['cpu_quota'])
     count = int(data['count'])
     networks = data.get('networks', {})
-    env = data.get('env', [])
+    envname = data.get('env', '')
 
     pod = core.get_pod(podname)
     if not pod:
@@ -136,6 +137,12 @@ def deploy():
 
     if not release.image:
         abort(400, 'repo %s, %s has not been built yet' % (repo, sha))
+
+    # 找不到对应env就算了
+    # 需要加一下额外的env
+    env = Environment.get_by_app_and_env(appname, envname)
+    env = env and env.to_env_vars() or []
+    env.extend(data.get('extra_env', []))
 
     image = release.image
     ms = _peek_grpc(core.create_container(content, appname, image, podname, entrypoint, cpu, count, networks, env))
