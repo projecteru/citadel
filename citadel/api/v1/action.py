@@ -52,6 +52,8 @@ def _peek_grpc(call):
         ms.peek()
     except (face.RemoteError, face.RemoteShutdownError) as e:
         abort(400, e.details)
+    except face.AbortionError as e:
+        abort(500, 'gRPC remote server not available')
     return ms
 
 
