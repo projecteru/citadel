@@ -1,7 +1,7 @@
 # coding: utf-8
-
-from flask import abort
+from webargs import fields
 from datetime import datetime
+
 from werkzeug.routing import BaseConverter, ValidationError
 
 
@@ -20,11 +20,17 @@ class DateConverter(BaseConverter):
         return value.strftime('%Y-%m-%d')
 
 
-class AbortDict(dict):
-    """类似request.form[key], 但是用来封装request.get_json()"""
-
-    def __getitem__(self, key):
-        try:
-            return dict.__getitem__(self, key)
-        except KeyError:
-            abort(400, '`%s` must be in dict' % key)
+repo_field = fields.Str(required=True)
+podname_field = fields.Str(required=True)
+entrypoint_field = fields.Str(required=True)
+cpu_field = fields.Float(required=True)
+count_field = fields.Int(required=True)
+sha_field = fields.Str(required=True)
+artifact_field = fields.Str(missing='')
+uid_field = fields.Str(missing='')
+networks_field = fields.Dict(missing={})
+envname_field = fields.Str(missing='')
+extra_env_field = fields.List(fields.Str(), missing=[])
+ids_field = fields.List(fields.Str(), missing=[])
+appname_field = fields.Str(required=True)
+git_field = fields.Str(required=True)
