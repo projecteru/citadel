@@ -133,7 +133,7 @@ def create_container(repo, sha, podname, entrypoint, cpu, count, networks, envna
                 continue
 
             container = Container.create(release.app.name, release.sha, m.id,
-                                         entrypoint, 'env', cpu, m.podname, m.nodename)
+                                         entrypoint, envname, cpu, m.podname, m.nodename)
             publisher.add_container(container)
         q.put(_eof)
 

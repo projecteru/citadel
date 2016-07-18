@@ -77,7 +77,7 @@ def get_release(name, sha):
 @bp.route('/<name>/version/<sha>/containers', methods=['GET'])
 def get_release_containers(name, sha):
     release = _get_release(name, sha)
-    return Container.get_by_release(release.name, release.sha, g.start, g.limit)
+    return Container.get_by_release(name, release.sha, g.start, g.limit)
 
 
 @bp.route('/register', methods=['POST'])
