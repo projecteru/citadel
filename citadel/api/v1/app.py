@@ -1,8 +1,8 @@
 # coding: utf-8
-from flask import abort, g, request
-from webargs.flaskparser import use_args
 
-from citadel.libs.datastructure import appname_field, sha_field, git_field
+from flask import abort, g, request
+
+from citadel.libs.datastructure import AbortDict
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import App, Release
 from citadel.models.container import Container
@@ -81,15 +81,12 @@ def get_release_containers(name, sha):
 
 
 @bp.route('/register', methods=['POST'])
-@use_args({
-    'name': appname_field,
-    'git': git_field,
-    'sha': sha_field,
-})
-def register_release(args):
-    name = args['name']
-    git = args['git']
-    sha = args['sha']
+def register_release():
+    data = AbortDict(request.get_json())
+
+    name = data['name']
+    git = data['git']
+    sha = data['sha']
 
     app = App.get_or_create(name, git)
     if not app:
