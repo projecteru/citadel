@@ -62,11 +62,14 @@ class CoreRPC(object):
         return n and Node(n)
 
     @handle_rpc_exception(default=None)
-    def add_node(self, nodename, endpoint, podname, public):
+    def add_node(self, nodename, endpoint, podname, cafile, certfile, keyfile, public):
         stub = self._get_stub()
         opts = pb.AddNodeOptions(nodename=nodename,
                                  endpoint=endpoint,
                                  podname=podname,
+                                 cafile=cafile,
+                                 certfile=certfile,
+                                 keyfile=keyfile,
                                  public=public)
 
         n = stub.AddNode(opts, 5)
