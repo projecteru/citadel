@@ -18,6 +18,9 @@ $ gunicorn --bind 0.0.0.0:5000 app:app --timeout 1200 --workers 4
 
 ## TODO
 
-- [ ] API, deploy / build / remove / upgrade
-- [ ] Publish services
+- [x] API, deploy / build / remove / upgrade
+- [x] Publish services
 - [ ] UI
+- [ ] 身份认证, 权限鉴定, 关系存储
+- [ ] 操作日志记录
+- [ ] watch etcd 更改容器状态
