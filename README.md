@@ -8,17 +8,23 @@
 
 简直是要哭瞎!!!
 
-```
-$ gunicorn --bind 0.0.0.0:5000 app:app --timeout 1200 --workers 4
+```shell
+start web server
+
+$ ./bin/run-web-server --reload
+
+start etcd watcher
+
+$ ./bin/run-etcd-watcher
 ```
 
 ## DEV
 
-```python
-pip install -U -r requirements.txt
-export GRPC_VERBOSITY=ERROR
-export FLASK_APP=app.py
-flask run --reload --debugger
+```shell
+$ pip install -U -r requirements.txt
+$ export GRPC_VERBOSITY=ERROR
+$ export FLASK_APP=app.py
+$ flask run --reload --debugger
 ```
 
 ## NOTE
@@ -32,4 +38,4 @@ flask run --reload --debugger
 - [ ] UI
 - [ ] 身份认证, 权限鉴定, 关系存储
 - [ ] 操作日志记录
-- [ ] watch etcd 更改容器状态
+- [x] watch etcd 更改容器状态(取决于容器状态要不要直接在这里改了... 现在很简单)
