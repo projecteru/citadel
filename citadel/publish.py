@@ -87,7 +87,7 @@ class EtcdPublisher(object):
         for podname, containers in ctable.iteritems():
             data = {}
             for c in containers:
-                if not c.is_alive or c.in_removal:
+                if c.status() != 'running':
                     continue
                 data.setdefault(c.sha, {}).setdefault(c.entrypoint, {}).setdefault('addresses', []).extend(c.get_ips())
                 data.setdefault(c.sha, {}).setdefault(c.entrypoint, {}).setdefault('backends', []).extend(c.get_backends())
