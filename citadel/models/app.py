@@ -1,5 +1,4 @@
-# coding: utf-8
-
+# -*- coding: utf-8 -*-
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
 
@@ -34,9 +33,18 @@ class App(BaseModelMixin):
     def get_by_name(cls, name):
         return cls.query.filter_by(name=name).first()
 
+    @classmethod
+    def get(cls, name=None, user_id=None):
+        raise NotImplementedError
+
+    @classmethod
+    def get_by_user(cls, user_id):
+        raise NotImplementedError
+
     @property
     def uid(self):
-        """用来修正app的uid, 默认使用id"""
+        """用来修正app的uid, 默认使用id
+        TODO: dirty?"""
         return self.user_id or self.id
 
     @property
@@ -98,7 +106,7 @@ class Release(BaseModelMixin):
             return []
 
         q = cls.query.filter_by(app_id=app.id).order_by(cls.id.desc())
-        return q[start:start+limit]
+        return q[start:start + limit]
 
     @classmethod
     def get_by_app_and_sha(cls, name, sha):

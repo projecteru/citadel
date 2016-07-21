@@ -25,6 +25,8 @@ OAUTH2_CLIENT_SECRET = getenv('OAUTH2_CLIENT_SECRET', default='')
 OAUTH2_ACCESS_TOKEN_URL = getenv('OAUTH2_ACCESS_TOKEN_URL', default='')
 OAUTH2_AUTHORIZE_URL = getenv('OAUTH2_AUTHORIZE_URL', default='')
 
+MFS_LOG_FILE_PATH = getenv('MFS_LOG_FILE_PATH', default='/mnt/mfs/logs/eru/{app_name}/{entrypoint}/{dt}.log')
+
 try:
     from .local_config import *
 except ImportError:

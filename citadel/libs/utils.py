@@ -1,9 +1,9 @@
 # coding:utf-8
+from functools import wraps, partial
 
 from etcd import EtcdException
 from flask import session
 from gitlab import GitlabError
-from functools import wraps, partial
 
 
 def with_appcontext(f):
@@ -37,3 +37,10 @@ handle_gitlab_exception = partial(handle_exception, (GitlabError,))
 def login_user(user):
     session['id'] = user.id
     session['name'] = user.name
+
+
+def make_unicode(s):
+    try:
+        return s.decode('utf-8')
+    except:
+        return s

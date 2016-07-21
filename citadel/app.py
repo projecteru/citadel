@@ -10,7 +10,9 @@ from citadel.libs.datastructure import DateConverter
 
 
 blueprints = [
-    'core',
+    'index',
+    'user',
+    'app',
 ]
 
 api_blueprints = [
@@ -55,7 +57,7 @@ def create_app():
             session.pop('name', None)
             session.pop('sso', None)
 
-        g.websocket = request.environ.get('wsgi.websocket', None)
+        g.websocket = request.environ.get('wsgi.websocket')
         g.start = request.args.get('start', type=int, default=0)
         g.limit = request.args.get('limit', type=int, default=20)
 

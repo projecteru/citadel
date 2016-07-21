@@ -1,21 +1,20 @@
-# coding: utf-8
-
+# -*- coding: utf-8 -*-
 import json
-import yaml
-from more_itertools import peekable
-from threading import Thread
 from Queue import Queue, Empty
+from threading import Thread
+
+import yaml
 from grpc.framework.interfaces.face import face
+from more_itertools import peekable
 
 from citadel.ext import core
-from citadel.publish import publisher
 from citadel.libs.json import JSONEncoder
 from citadel.libs.utils import with_appcontext
-
 from citadel.models.app import App, Release
 from citadel.models.container import Container
-from citadel.models.gitlab import get_project_name, get_file_content
 from citadel.models.env import Environment
+from citadel.models.gitlab import get_project_name, get_file_content
+from citadel.publish import publisher
 
 
 _eof = object()
