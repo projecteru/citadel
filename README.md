@@ -27,6 +27,14 @@ $ export FLASK_APP=app.py
 $ flask run --reload --debugger
 ```
 
+跑测试.
+
+可千万别连着线上的 redis mysql 什么的就跑测试了...
+
+```shell
+$ ./bin/run-tests
+```
+
 ## NOTE
 
 一定要记得 `export GRPC_VERBOSITY=ERROR` 不然你会被 grpc 无穷无尽的 debug 输出烦死. issue 在 [这里](https://github.com/grpc/grpc/issues/6584), 找了老子好久啊... 文档好像也没有写怎么关闭的, X 了 Y 了!

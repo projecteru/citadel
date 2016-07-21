@@ -90,10 +90,15 @@ def build_image(repo, sha, uid='', artifact=''):
     return q
 
 
-def create_container(repo, sha, podname, entrypoint, cpu, count, networks, envname, extra_env):
+def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, networks, envname, extra_env):
     pod = core.get_pod(podname)
     if not pod:
         raise ActionError(400, 'pod %s not exist' % podname)
+
+    if nodename:
+        node = core.get_node(podname, nodename)
+        if not node:
+            raise ActionError(400, 'node %s, %s not exist' % (podname, nodename))
 
     project_name = get_project_name(repo)
     content = get_file_content(project_name, 'app.yaml', sha)
@@ -116,7 +121,7 @@ def create_container(repo, sha, podname, entrypoint, cpu, count, networks, envna
     env.extend(extra_env)
 
     image = release.image
-    ms = _peek_grpc(core.create_container(content, appname, image, podname, entrypoint, cpu, count, networks, env))
+    ms = _peek_grpc(core.create_container(content, appname, image, podname, nodename, entrypoint, cpu, count, networks, env))
     q = Queue()
 
     @with_appcontext

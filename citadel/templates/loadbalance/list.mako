@@ -1,8 +1,5 @@
 <%inherit file="/base.mako"/>
 <%namespace name="utils" file="/utils.mako"/>
-<%!
-from karazhan.config import LB_IMAGES
-%>
 
 <%def name="title()">Load Balance</%def>
 
@@ -25,11 +22,11 @@ from karazhan.config import LB_IMAGES
 
     <form class="form-horizontal" action="">
       <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Image</label>
+        <label class="col-sm-2 control-label" for="">Release</label>
         <div class="col-sm-10">
           <select id="" class="form-control" name="image">
-            % for i in LB_IMAGES:
-              <option value="${ i }">${ i }</option>
+            % for r in releases:
+              <option value="${ r.image }">${ r.image }</option>
             % endfor
           </select>
         </div>
@@ -49,9 +46,8 @@ from karazhan.config import LB_IMAGES
         <div class="col-sm-10">
           <select class="form-control" name="host">
             <option value="_random">Let Eru choose for me</option>
-            <% hosts = pods[0].get_hosts() %>
-            % for h in hosts:
-              <option value="${ h.name }">${ h.name } - ${ h.ip }</option>
+            % for n in nodes:
+              <option value="${ n.name }">${ n.name } - ${ n.endpoint }</option>
             % endfor
           </select>
         </div>
@@ -60,7 +56,7 @@ from karazhan.config import LB_IMAGES
         <label class="col-sm-2 control-label" for="">Entrypoint</label>
         <div class="col-sm-10">
           <select class="form-control" name="entrypoint">
-            % for entry in version.entrypoints.keys():
+            % for entry in releases[0].specs.entrypoints.keys():
               <option value="${ entry }">${ entry }</option>
             % endfor
           </select>
@@ -120,7 +116,7 @@ from karazhan.config import LB_IMAGES
       </tr>
     </thead>
     <tbody>
-      % for b in balancers:
+      % for b in elbs:
         <tr>
           <td><a href="${ url_for('loadbalance.get_balancer', id=b.id) }">${ b.name }</a></td>
           <td>${ b.addr }</td>
@@ -148,5 +144,5 @@ from karazhan.config import LB_IMAGES
 </%block>
 
 <%def name="bottom_script()">
-  <script src="/karazhan/static/js/add-loadbalance.js" type="text/javascript"></script>
+  <script src="/citadel/static/js/add-loadbalance.js" type="text/javascript"></script>
 </%def>

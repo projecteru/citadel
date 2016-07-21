@@ -30,15 +30,10 @@ def get_etcd_client(url):
     return Client(r.hostname, r.port)
 
 
-def get_redis_client(url):
-    r = urlparse(url)
-    return Redis(r.hostname, r.port)
-
-
 db = SQLAlchemy()
 mako = MakoTemplates()
 oauth = OAuth()
-rds = get_redis_client(REDIS_URL)
+rds = Redis.from_url(REDIS_URL)
 etcd = get_etcd_client(ETCD_URL)
 core = CoreRPC(GRPC_HOST, GRPC_PORT)
 

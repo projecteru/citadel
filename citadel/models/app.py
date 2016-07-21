@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
 
@@ -34,17 +35,14 @@ class App(BaseModelMixin):
         return cls.query.filter_by(name=name).first()
 
     @classmethod
-    def get(cls, name=None, user_id=None):
-        raise NotImplementedError
-
-    @classmethod
-    def get_by_user(cls, user_id):
-        raise NotImplementedError
+    def get_by_user(cls, user_id, start=0, limit=20):
+        """拿这个user可以有的app, 跟app自己的user_id没关系."""
+        names = AppUserRelation.get_appname_by_user_id(user_id, start, limit)
+        return [cls.get_by_name(n) for n in names]
 
     @property
     def uid(self):
-        """用来修正app的uid, 默认使用id
-        TODO: dirty?"""
+        """用来修正app的uid, 默认使用id"""
         return self.user_id or self.id
 
     @property
@@ -125,6 +123,10 @@ class Release(BaseModelMixin):
         return App.get(self.app_id)
 
     @cached_property
+    def name(self):
+        return self.app and self.app.name or ''
+
+    @cached_property
     def specs(self):
         """load app.yaml from GitLab"""
         content = get_file_content(self.app.project_name, 'app.yaml', self.sha)
@@ -144,3 +146,39 @@ class Release(BaseModelMixin):
             'specs': self.specs,
         })
         return d
+
+
+class AppUserRelation(BaseModelMixin):
+    __tablename__ = 'app_user_relation'
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'appname'),
+    )
+
+    appname = db.Column(db.String(255), nullable=False, index=True)
+    user_id = db.Column(db.Integer, nullable=False)
+
+    @classmethod
+    def add(cls, appname, user_id):
+        try:
+            m = cls(appname=appname, user_id=user_id)
+            db.session.add(m)
+            db.session.commit()
+            return m
+        except IntegrityError:
+            db.session.rollback()
+            return None
+
+    @classmethod
+    def delete(cls, appname, user_id):
+        cls.query.filter_by(user_id=user_id, appname=appname).delete()
+        db.session.commit()
+
+    @classmethod
+    def get_user_id_by_appname(cls, appname, start=0, limit=20):
+        rs = cls.query.filter_by(appname=appname)
+        return [r.user_id for r in rs[start:start+limit] if r]
+
+    @classmethod
+    def get_appname_by_user_id(cls, user_id, start=0, limit=20):
+        rs = cls.query.filter_by(user_id=user_id)
+        return [r.appname for r in rs[start:start+limit] if r]

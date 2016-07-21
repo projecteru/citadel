@@ -1,17 +1,13 @@
 <%inherit file="/base.mako"/>
-<%!
-import pyaml
-from karazhan.models.hardware import Pod
-%>
 <%namespace name="utils" file="/utils.mako"/>
 
 <%def name="title()">
-  ${ version.name } @ ${ version.sha[:7] }
+  ${ release.name } @ ${ release.sha[:7] }
 </%def>
 
 <%def name="more_header()">
   ${parent.more_header()}
-  <link rel="stylesheet" href="/karazhan/static/css/pygments-default.css" type="text/css">
+  <link rel="stylesheet" href="/citadel/static/css/pygments-default.css" type="text/css">
 </%def>
 
 <%def name="more_css()">
@@ -25,13 +21,13 @@ from karazhan.models.hardware import Pod
 
   <%call expr="utils.panel()">
     <%def name="header()">
-      <h3 class="panel-title">Version</h3>
+      <h3 class="panel-title">Release</h3>
     </%def>
-    <h4><a href="${ url_for('app.get_app', name=version.name) }">${ version.name }</a> @ ${ version.sha[:7] }</h4>
+    <h4><a href="${ url_for('app.get_app', name=app.name) }">${ app.name }</a> @ ${ release.short_sha }</h4>
     <button class="btn btn-info pull-right" data-toggle="modal" data-target="#build-image-modal">
       <span class="fui-time"> Build Image</span>
     </button>
-    % if version.image:
+    % if release.image:
       <button class="btn btn-info pull-right" data-toggle="modal" data-target="#add-container-modal">
         <span class="fui-plus"> Add Container</span>
       </button>
@@ -43,8 +39,7 @@ from karazhan.models.hardware import Pod
       <h3 class="panel-title">app.yaml</h3>
     </%def>
 
-    <% appconfig = pyaml.dumps(version.appconfig) %>
-    <pre>${ appconfig | n }</pre>
+    <pre>${ appspecs | n }</pre>
   </%call>
 
   <%call expr="utils.panel()">
@@ -73,33 +68,13 @@ from karazhan.models.hardware import Pod
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">App</label>
         <div class="col-sm-10">
-          <input class="form-control" type="text" name="name" value="${ version.name }" disabled>
+          <input class="form-control" type="text" name="name" value="${ app.name }" disabled>
         </div>
       </div>
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">Version</label>
         <div class="col-sm-10">
-          <input class="form-control" type="text" name="version" value="${ version.sha[:7] }" disabled>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Pod</label>
-        <div class="col-sm-10">
-          <select name="pod" class="form-control">
-            % for p in pods:
-              <option value="${ p.name }">${ p.name }</option>
-            % endfor
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Base</label>
-        <div class="col-sm-10">
-          <select name="base" class="form-control">
-            % for b in bases:
-              <option value="${ b.url }">${ b.name }</option>
-            % endfor
-          </select>
+          <input class="form-control" type="text" name="sha" value="${ release.sha }" disabled>
         </div>
       </div>
     </form>
@@ -114,18 +89,17 @@ from karazhan.models.hardware import Pod
       <button class="btn btn-info" id="add-container-button"><span class="fui-plus"></span>Go</button>
     </%def>
 
-    <% hosts = pods[0].get_hosts() %>
     <form id="add-container-form" class="form-horizontal" action="">
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">App</label>
         <div class="col-sm-10">
-          <input class="form-control" type="text" name="name" value="${ version.name }" disabled>
+          <input class="form-control" type="text" name="name" value="${ release.name }" disabled>
         </div>
       </div>
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">Version</label>
         <div class="col-sm-10">
-          <input class="form-control" type="text" name="version" value="${ version.sha[:7] }" disabled>
+          <input class="form-control" type="text" name="release" value="${ release.sha[:7] }" disabled>
         </div>
       </div>
       <div class="form-group">
@@ -139,12 +113,12 @@ from karazhan.models.hardware import Pod
         </div>
       </div>
       <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Host</label>
+        <label class="col-sm-2 control-label" for="">Node</label>
         <div class="col-sm-10">
           <select class="form-control" name="host">
             <option value="_random">Let Eru choose for me</option>
-            % for h in hosts:
-              <option value="${ h.name }">${ h.name } - ${ h.ip }</option>
+            % for n in nodes:
+              <option value="${ n.name }">${ n.name }</option>
             % endfor
           </select>
         </div>
@@ -153,7 +127,7 @@ from karazhan.models.hardware import Pod
         <label class="col-sm-2 control-label" for="">Entrypoint</label>
         <div class="col-sm-10">
           <select class="form-control" name="entrypoint">
-            % for entry in version.entrypoints.keys():
+            % for entry in release.specs.entrypoints.keys():
               <option value="${ entry }">${ entry }</option>
             % endfor
           </select>
@@ -163,13 +137,8 @@ from karazhan.models.hardware import Pod
         <label class="col-sm-2 control-label" for="">Env</label>
         <div class="col-sm-10">
           <select class="form-control" name="env">
-            <%
-              envs = app.get_env_names()
-              if not envs:
-                envs = ['prod']
-            %>
             % for env in envs:
-              <option value="${ env }">${ env }</option>
+              <option value="${ env.envname }">${ env.envname }</option>
             % endfor
           </select>
         </div>
@@ -195,9 +164,9 @@ from karazhan.models.hardware import Pod
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">Network</label>
         <div class="col-sm-10">
-          % for n in networks:
+          % for name, cidr in networks.iteritems():
             <label class="checkbox" for="">
-              <input type="checkbox" name="network" value="${ n.cidr }">${ n.name } - ${ n.cidr }
+              <input type="checkbox" name="network" value="${ name }">${ name } - ${ cidr }
             </label>
           % endfor
         </div>
@@ -238,5 +207,5 @@ from karazhan.models.hardware import Pod
 </%def>
 
 <%def name="bottom_script()">
-  <script src="/karazhan/static/js/deploy.js" type="text/javascript"></script>
+  <script src="/citadel/static/js/deploy.js" type="text/javascript"></script>
 </%def>

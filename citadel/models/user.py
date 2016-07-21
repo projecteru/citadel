@@ -18,6 +18,7 @@ _DEBUG_USER_DICT = {
 def get_current_user():
     if DEBUG:
         return User.from_dict(_DEBUG_USER_DICT)
+
     resp = sso.get('me')
     return User.from_dict(resp.data)
 
@@ -25,6 +26,7 @@ def get_current_user():
 def get_user(identifier):
     if DEBUG:
         return User.from_dict(_DEBUG_USER_DICT)
+
     resp = sso.get('user/%s' % identifier)
     return resp.data and User.from_dict(resp.data) or None
 
@@ -32,6 +34,7 @@ def get_user(identifier):
 def get_users(start=0, limit=20, q=None):
     if DEBUG:
         return [User.from_dict(_DEBUG_USER_DICT)]
+
     data = {'start': start, 'limit': limit}
     if q:
         data.update({'q': q})

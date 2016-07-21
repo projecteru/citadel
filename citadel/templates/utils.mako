@@ -1,3 +1,7 @@
+<%!
+  from citadel.models.gitlab import get_project
+%>
+
 <%def name="container_list(containers)">
   <table class="table">
     <thead>
@@ -6,7 +10,7 @@
         <th>ID</th>
         <th>Name</th>
         <th>Version</th>
-        <th>Host</th>
+        <th>Node</th>
         <th>Network</th>
         <th>CPU</th>
         <th>Entrypoint</th>
@@ -18,39 +22,34 @@
     <tbody>
       % for c in containers:
         <tr>
-          <td><input name="container-id" type="checkbox" value="${ c.short_id }"></td>
+          <td><input name="container-id" type="checkbox" value="${ c.container_id }"></td>
           <td>${ c.short_id }</td>
           <td>
             <span data-toggle="tooltip" data-placement="top" title="创建于 ${ c.created }">
               ${ c.appname } / ${ c.ident }
             </span>
           </td>
-          <td>${ c.version }</td>
-          <td>${ c.host_ip } / ${ c.hostname }</td>
+          <td>${ c.sha[:7] }</td>
+          <td>${ c.nodename }</td>
           <td>
-            % if c.networks:
-              % for n in c.networks:
-                <span class="block-span">${ n.vlan_address }</span>
+            % if c.get_ips():
+              % for n in c.get_ips():
+                <span class="block-span">${ n }</span>
               % endfor
             % else:
               host / none
             % endif
           </td>
-          <td>
-            % if c.excluded_core_label or c.shared_core_label:
-              ${ len(c.excluded_core_label) + float(c.nshare / 10.0) }
-            % else:
-              0 (共享)
-            % endif
-          </td>
+          <td>${ c.cpu_quota or '0 (共享)'}</td>
           <td>${ c.entrypoint }</td>
           <td>${ c.env }</td>
           <td>
-            % if c.in_removal:
+            <% status = c.status() %>
+            % if status == 'InRemoval':
               <span class="label label-warning">删除中...</span>
             % else:
-              <span class="label label-${ 'success' if c.is_alive else 'danger' }">
-                ${ u'运行' if c.is_alive else u'挂了' }
+              <span class="label label-${ 'success' if status == 'running' else 'danger' }">
+                ${ u'运行' if status == 'running' else u'挂了' }
               </span>
             % endif
           </td>
@@ -111,9 +110,9 @@
   </script>
 </%def>
 
-<%def name="version_list(versions, app)">
+<%def name="release_list(releases, app)">
   <%
-    project = app.get_gitlab_project()
+    project = get_project(app.project_name)
   %>
   <table class="table">
     <thead>
@@ -126,9 +125,9 @@
       </tr>
     </thead>
     <tbody>
-      % for v in versions:
+      % for v in releases:
         <tr>
-          <td><a href="${ url_for('app.get_version', name=v.name, sha=v.sha) }">${ v.sha[:7] }</a></td>
+          <td><a href="${ url_for('app.get_release', name=v.name, sha=v.sha) }">${ v.sha[:7] }</a></td>
           <td>${ v.created }</td>
           <%
             try:
@@ -149,20 +148,20 @@
           </td>
           <td>
             % if v.image:
-              <a class="btn btn-xs btn-success" href="${ url_for('app.get_version', name=v.name, sha=v.sha) }#add">
+              <a class="btn btn-xs btn-success" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
                 <span class="fui-plus"></span> Add Container
               </a>
             % else:
               % if v.build_status == 'waiting':
-                <a class="btn btn-xs btn-info" href="${ url_for('app.get_version', name=v.name, sha=v.sha) }#build">
+                <a class="btn btn-xs btn-info" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#build">
                   <span class="fui-time"></span> Build Image
                 </a>
               % elif v.build_status == 'building':
-                <a class="btn btn-xs btn-info disabled" href="${ url_for('app.get_version', name=v.name, sha=v.sha) }#build">
+                <a class="btn btn-xs btn-info disabled" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#build">
                   <span class="fui-time"></span> Building...
                 </a>
               % elif v.build_status == 'fail':
-                <a class="btn btn-xs btn-danger" href="${ url_for('app.get_version', name=v.name, sha=v.sha) }#build">
+                <a class="btn btn-xs btn-danger" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#build">
                   <span class="fui-time"></span> Failed, rebuild
                 </a>
               % endif

@@ -1,5 +1,9 @@
 <%inherit file="/base.mako"/>
 
+<%!
+  from citadel.models.container import Container
+%>
+
 <%def name="title()">
   Application List
 </%def>
@@ -19,7 +23,7 @@
         % for app in apps:
           <tr>
             <td><a href="${ url_for('app.get_app', name=app.name) }">${ app.name }</a></td>
-            <% containers = app.get_containers(limit=100) %>
+            <% containers = Container.get_by_app(app.name, limit=100) %>
             % if containers:
               <td>
                 <span class="label label-info">Running</span>
@@ -32,9 +36,9 @@
                 % endfor
               </td>
               <td>
-                <% versions = set([c.version for c in containers])%>
+                <% versions = set([c.sha for c in containers])%>
                 % for v in versions:
-                  <span class="label label-info">${ v }</span>
+                  <span class="label label-info">${ v[:7] }</span>
                 % endfor
               </td>
             % else:

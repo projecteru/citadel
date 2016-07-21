@@ -10,9 +10,11 @@ from citadel.libs.datastructure import DateConverter
 
 
 blueprints = [
-    'index',
-    'user',
     'app',
+    'user',
+    'ajax',
+    'admin',
+    'loadbalance',
 ]
 
 api_blueprints = [

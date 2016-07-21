@@ -1,0 +1,2 @@
+#!/bin/sh
+SQLALCHEMY_DATABASE_URI="mysql://root:@localhost:3306/citadeltest" REDIS_URL="redis://localhost:6379/1" py.test $@

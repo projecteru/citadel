@@ -22,7 +22,7 @@
           <tr>
             <td>${ app.name }</td>
             <td>${ app.git }</td>
-            <td>${ app.update }</td>
+            <td>${ app.updated }</td>
             <td>
               <a class="btn btn-xs btn-warning" href="#" data-user-id="${ user.id }" data-name="${ app.name }">
                 <span class="fui-cross"></span> Revoke

@@ -84,13 +84,14 @@ class CoreRPC(object):
             yield BuildImageMessage(m)
 
     @handle_rpc_exception(default=list)
-    def create_container(self, specs, appname, image, podname, entrypoint,
+    def create_container(self, specs, appname, image, podname, nodename, entrypoint,
                          cpu_quota, count, networks, env):
         stub = self._get_stub()
         opts = pb.DeployOptions(specs=specs,
                                 appname=appname,
                                 image=image,
                                 podname=podname,
+                                nodename=nodename,
                                 entrypoint=entrypoint,
                                 cpu_quota=cpu_quota,
                                 count=count,

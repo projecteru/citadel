@@ -151,5 +151,5 @@
 </%block>
 
 <%def name="bottom_script()">
-  <script src="/karazhan/static/js/balancer.js" type="text/javascript"></script>
+  <script src="/citadel/static/js/balancer.js" type="text/javascript"></script>
 </%def>

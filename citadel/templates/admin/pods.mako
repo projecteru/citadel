@@ -12,21 +12,14 @@
       <thead>
         <tr>
           <th>Name</th>
-          <th>Hosts</th>
-          <th>Share</th>
-          <th>Available/Total</th>
           <th>Description</th>
         </tr>
       </thead>
       <tbody>
         % for pod in pods:
-          <% total, available = pod.get_cores() %>
           <tr>
-            <td>${ pod.name }</td>
-            <td><a href="${ url_for('admin.get_pod_hosts', name=pod.name) }">${ pod.host_count }</a></td>
-            <td>${ '%.1f' % (1.0 / pod.core_share) }</td>
-            <td>${ '%.1f / %.1f' % (available, total) }</td>
-            <td>${ pod.description }</td>
+            <td><a href="${url_for('admin.get_pod_nodes', name=pod.name)}">${ pod.name }</a></td>
+            <td>${ pod.desc }</td>
           </tr>
         % endfor
       </tbody>

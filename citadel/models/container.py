@@ -65,6 +65,12 @@ class Container(BaseModelMixin):
         return [c.inspect() for c in cs[start:start+limit]]
 
     @classmethod
+    def get_by_node(cls, nodename, start=0, limit=20):
+        """get by nodename"""
+        cs = cls.query.filter_by(nodename=nodename).order_by(cls.id.desc())
+        return [c.inspect() for c in cs[start:start+limit]]
+
+    @classmethod
     def get(cls, id):
         c = super(Container, cls).get(id)
         return c.inspect()
@@ -78,6 +84,14 @@ class Container(BaseModelMixin):
     def delete_by_container_id(cls, container_id):
         cls.query.filter_by(container_id=container_id).delete()
         db.session.commit()
+
+    @property
+    def ident(self):
+        return self.name.rsplit('_', 2)[-1]
+
+    @property
+    def short_id(self):
+        return self.container_id[:7]
 
     def inspect(self):
         """must be called after get / create"""

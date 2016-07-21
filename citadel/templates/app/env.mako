@@ -26,12 +26,11 @@ from operator import itemgetter
 
   % for env in envs:
     <%
-      env_content = app.get_env_content(env)
-      env_content = sorted(env_content.items(), key=itemgetter(0))
+      env_content = sorted(env.items(), key=itemgetter(0))
     %>
     <div class="panel panel-info">
       <div class="panel-heading">
-        <h3 class="panel-title">${ env }
+        <h3 class="panel-title">${ env.envname }
           <a name="resize" class="btn-xs pull-right" href="#"><span class="fui-resize"></span></a>
         </h3>
       </div>
