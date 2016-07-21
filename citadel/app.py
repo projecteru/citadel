@@ -21,6 +21,7 @@ api_blueprints = [
     'container',
     'action',
     'network',
+    'mimiron',
 ]
 
 
