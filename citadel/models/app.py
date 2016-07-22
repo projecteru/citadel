@@ -49,6 +49,16 @@ class App(BaseModelMixin):
     def project_name(self):
         return get_project_name(self.git)
 
+    def get_online_entrypoints(self):
+        from .container import Container
+        containers = Container.get_by_app(self.name, limit=100)
+        return list(set([c.entrypoint for c in containers]))
+
+    def get_online_pods(self):
+        from .container import Container
+        containers = Container.get_by_app(self.name, limit=100)
+        return list(set([c.podname for c in containers]))
+
     def to_dict(self):
         d = super(App, self).to_dict()
         d.update({

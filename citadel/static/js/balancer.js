@@ -22,25 +22,25 @@ $('a[name=swither]').click(function(e){
   });
 });
 
-$('a[name=delete-record]').click(function(e){
+$('a[name=delete-route]').click(function(e){
   e.preventDefault();
   if (!confirm('确认删除?')) {
     return;
   }
   var self = $(this);
-  var url = '/ajax/loadbalance/record/{id}/remove'.replace('{id}', self.data('record-id'));
+  var url = '/ajax/loadbalance/route/{id}/remove'.replace('{id}', self.data('id'));
   $.post(url, {}, function(){
     self.parent().parent().remove();
   });
 });
 
-$('a[name=delete-special-record]').click(function(e){
+$('a[name=delete-primitive-route]').click(function(e){
   e.preventDefault();
   if (!confirm('确认删除?')) {
     return;
   }
   var self = $(this);
-  var url = '/ajax/loadbalance/srecord/{id}/remove'.replace('{id}', self.data('record-id'));
+  var url = '/ajax/loadbalance/sroute/{id}/remove'.replace('{id}', self.data('id'));
   $.post(url, {}, function(){
     self.parent().parent().remove();
   });
@@ -67,8 +67,8 @@ $('select[name=appname]').change(function(){
 });
 
 $('#refresh-btn').click(function(){
-  var balancerId = $(this).data('id');
-  var url = '/ajax/loadbalance/{id}/refresh'.replace('{id}', balancerId);
+  var name = $(this).data('name');
+  var url = '/ajax/loadbalance/{name}/refresh'.replace('{name}', name);
   if (!confirm('确定要刷新记录么?')) {
     return;
   }

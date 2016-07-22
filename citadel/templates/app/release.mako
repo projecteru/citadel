@@ -91,15 +91,9 @@
 
     <form id="add-container-form" class="form-horizontal" action="">
       <div class="form-group">
-        <label class="col-sm-2 control-label" for="">App</label>
+        <label class="col-sm-2 control-label" for="">Release</label>
         <div class="col-sm-10">
-          <input class="form-control" type="text" name="name" value="${ release.name }" disabled>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Version</label>
-        <div class="col-sm-10">
-          <input class="form-control" type="text" name="release" value="${ release.sha[:7] }" disabled>
+          <input class="form-control" type="text" name="release" value="${release.name} / ${release.short_sha}" data-id="${release.id}" disabled>
         </div>
       </div>
       <div class="form-group">
@@ -115,7 +109,7 @@
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">Node</label>
         <div class="col-sm-10">
-          <select class="form-control" name="host">
+          <select class="form-control" name="node">
             <option value="_random">Let Eru choose for me</option>
             % for n in nodes:
               <option value="${ n.name }">${ n.name }</option>
@@ -136,7 +130,7 @@
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">Env</label>
         <div class="col-sm-10">
-          <select class="form-control" name="env">
+          <select class="form-control" name="envname">
             % for env in envs:
               <option value="${ env.envname }">${ env.envname }</option>
             % endfor
@@ -146,13 +140,13 @@
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">Number</label>
         <div class="col-sm-10">
-          <input class="form-control" type="number" name="ncontainer" value="1">
+          <input class="form-control" type="number" name="count" value="1">
         </div>
       </div>
       <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Core</label>
+        <label class="col-sm-2 control-label" for="">CPU</label>
         <div class="col-sm-10">
-          <input class="form-control" type="number" step="0.1" min="0" name="ncore" value="1">
+          <input class="form-control" type="number" step="0.1" min="0" name="cpu" value="1">
         </div>
       </div>
       <div class="form-group">
@@ -169,12 +163,6 @@
               <input type="checkbox" name="network" value="${ name }">${ name } - ${ cidr }
             </label>
           % endfor
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Private</label>
-        <div class="col-sm-10">
-          <input class="form-control" type="checkbox" name="private" checked>
         </div>
       </div>
     </form>

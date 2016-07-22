@@ -10,6 +10,14 @@ from citadel.models.base import BaseModelMixin
 from citadel.models.container import Container
 
 
+"""
+配合ELB的部分.
+现在ELB实际按照名字来区别, 名字相同的多个ELB实例认为是一个ELB的多个实例.
+路由记录挂载在名字上, 也就是说名字相同的一组ELB实例实际上的等价的.
+所有对路由记录的操作, 都会反应到对应的所有ELB实例上.
+"""
+
+
 def get_app_backends(podname, appname, entrypoint):
     containers = Container.get_by_app(appname, limit=100)
     if entrypoint == '_all':
@@ -60,7 +68,7 @@ class PrimitiveRoute(BaseModelMixin):
             db.rollback()
             return
 
-        add_record_rules(b)
+        add_route(b)
         return b
 
     @classmethod
@@ -97,7 +105,7 @@ class PrimitiveRoute(BaseModelMixin):
         }
 
     def delete(self):
-        delete_record_rules(self)
+        delete_route(self)
         super(PrimitiveRoute, self).delete()
 
 
@@ -137,7 +145,7 @@ class Route(BaseModelMixin):
             db.session.rollback()
             return None
 
-        add_record_rules(r)
+        add_route(r)
         return r
 
     @classmethod
@@ -186,7 +194,7 @@ class Route(BaseModelMixin):
         return get_app_backends(self.podname, self.appname, self.entrypoint)
 
     def delete(self):
-        delete_record_rules(self)
+        delete_route(self)
         super(Route, self).delete()
 
 
@@ -228,44 +236,21 @@ class LoadBalancer(BaseModelMixin):
 
     @property
     def container(self):
-        return Container.get(self.container_id)
+        return Container.get_by_container_id(self.container_id)
 
     @property
+    def ip(self):
+        """要么是容器的IP, 要么是宿主机的IP, 反正都可以从容器那里拿到."""
+        if not self.container:
+            return 'Unknown'
+        ips = self.container.get_ips()
+        return ips and ips[0] or 'Unknown'
+
     def is_alive(self):
         return self.container and self.container.status() == 'running'
 
-    def add_record(self, podname, appname, entrypoint, domain):
-        """
-        意思是说把podname下这个appname的应用的entrypoint下面的所有后端,
-        都路由给domain这个域名
-        """
-        return Route.create(podname, appname, entrypoint, domain, self.id)
-
-    def add_special_record(self, ip, domain):
-        return PrimitiveRoute.create(ip, domain, self.id)
-
-    def get_special_records(self):
-        return PrimitiveRoute.get_by_balancer_id(self.id)
-
-    def get_records(self):
-        return Route.get_by_elb(self.name)
-
     def get_all_analysis(self):
         return self.lb_client.get_analysis() or {}
-
-    def refresh_records(self):
-        records = self.get_records()
-        for record in records:
-            add_record_rules(record)
-
-        srecords = self.get_special_records()
-        for record in srecords:
-            add_record_rules(record)
-
-    def delete(self):
-        Route.delete_by_balancer_id(self.id)
-        PrimitiveRoute.delete_by_balancer_id(self.id)
-        super(LoadBalancer, self).delete()
 
     def to_dict(self):
         d = {}
@@ -345,46 +330,64 @@ def parse_domain(domain):
     return domain, '/' + location
 
 
-def add_record_rules(record):
+def add_route(route):
+    """把一条路由添加到ELB内存里.
+    获取所有关联的ELB, 挨个添加记录."""
     # 获取upstream servers
     # 现在还没加 weight
     # 但是如果没有后端就算了, 也不添加domain了
-    servers = ['server %s;' % b for b in record.get_backends()]
+    servers = ['server %s;' % b for b in route.get_backends()]
     if not servers:
         return
 
-    for elb in record.get_elb():
+    for elb in route.get_elb():
         client = elb.lb_client
         # 1. 添加upstream
-        client.update_upstream(record.backend_name, servers)
+        client.update_upstream(route.backend_name, servers)
         # 2. 添加domain
-        client.update_domain(record.backend_name, record.domain)
+        client.update_domain(route.backend_name, route.domain)
 
 
-def delete_record_rules(record):
+def delete_route(route):
+    """把一条路由从ELB内存里删除.
+    要先看看对应的backend_name还有没有别人在用, 没有的话连upstream一起删除.
+    有的话只删除对应的域名, 也就是取消域名跟upstream的关联.
+    """
     # 先检查(appname, entrypoint, podname)这个三元组还有没有别人在用
-    rs = Route.get_by_backend(record.appname, record.entrypoint, record.podname)
-    rs = [r for r in rs if r != record]
+    rs = Route.get_by_backend(route.appname, route.entrypoint, route.podname)
+    rs = [r for r in rs if r != route]
 
-    for elb in record.get_elb():
+    for elb in route.get_elb():
         client = elb.lb_client
         # 1. 删除domain
-        client.delete_domain(record.domain)
+        client.delete_domain(route.domain)
 
         # 如果没有别人在用了
         # 2. 删除upstream
         if not rs:
-            client.delete_upstream(record.backend_name)
+            client.delete_upstream(route.backend_name)
 
 
+def refresh_routes(name):
+    """刷新一下名为name的ELB的路由表.
+    把对应的路由记录取出来, 然后对所有关联上的ELB实例进行刷新.
+    记录已经存在也没有关系, ELB自己会忽略掉错误."""
+    routes = Route.get_by_elb(name)
+    for r in routes:
+        add_route(r)
 
-def add_record_analysis(record):
-    for elb in record.get_elb():
+    proutes = PrimitiveRoute.get_by_elb(name)
+    for r in proutes:
+        add_route(r)
+
+
+def add_route_analysis(route):
+    for elb in route.get_elb():
         client = elb.lb_client
-        client.add_analysis(record.domain)
+        client.add_analysis(route.domain)
 
 
-def delete_record_analysis(record):
-    for elb in record.get_elb():
+def delete_route_analysis(route):
+    for elb in route.get_elb():
         client = elb.lb_client
-        client.delete_analysis(record.domain)
+        client.delete_analysis(route.domain)

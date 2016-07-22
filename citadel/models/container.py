@@ -142,5 +142,6 @@ class Container(BaseModelMixin):
             'name': self.name,
             'info': self.info,
             'backends': self.get_backends(),
+            'ips': self.get_ips(),
         })
         return d

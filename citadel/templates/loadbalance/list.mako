@@ -24,9 +24,9 @@
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">Release</label>
         <div class="col-sm-10">
-          <select id="" class="form-control" name="image">
+          <select id="" class="form-control" name="releaseid">
             % for r in releases:
-              <option value="${ r.image }">${ r.image }</option>
+              <option value="${ r.id }">${ r.image }</option>
             % endfor
           </select>
         </div>
@@ -42,12 +42,12 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Host</label>
+        <label class="col-sm-2 control-label" for="">Node</label>
         <div class="col-sm-10">
-          <select class="form-control" name="host">
+          <select class="form-control" name="node">
             <option value="_random">Let Eru choose for me</option>
             % for n in nodes:
-              <option value="${ n.name }">${ n.name } - ${ n.endpoint }</option>
+              <option value="${ n.name }">${ n.name } - ${ n.ip }</option>
             % endfor
           </select>
         </div>
@@ -63,9 +63,9 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Core</label>
+        <label class="col-sm-2 control-label" for="">CPU</label>
         <div class="col-sm-10">
-          <input class="form-control" type="number" name="ncore" value="1">
+          <input class="form-control" type="number" name="cpu" value="1">
         </div>
       </div>
       <div class="form-group">
@@ -109,29 +109,17 @@
     <thead>
       <tr>
         <th>Name</th>
-        <th>Addr</th>
-        <th>Status</th>
-        <th>Comment</th>
-        <th>Operation</th>
+        <th>Instance Status</th>
       </tr>
     </thead>
     <tbody>
-      % for b in elbs:
+      % for name, elbs in elb_dict.iteritems():
         <tr>
-          <td><a href="${ url_for('loadbalance.get_balancer', id=b.id) }">${ b.name }</a></td>
-          <td>${ b.addr }</td>
+          <td><a href="${ url_for('loadbalance.get_elb', name=name) }">${ name }</a></td>
           <td>
-            % if b.is_alive:
-              <span class="label label-success">Running</span>
-            % else:
-              <span class="label label-danger">Dead</span>
-            % endif
-          </td>
-          <td>${ b.comment }</td>
-          <td>
-            <a class="btn btn-xs btn-warning" href="#" name="delete-balancer" data-id="${ b.id }">
-              <span class="fui-trash"></span> Remove
-            </a>
+            % for b in elbs:
+              <span class="label label-${'success' if b.is_alive() else 'danger'}">${b.container_id[:7]} @ ${b.ip}</span>
+            % endfor
           </td>
         </tr>
       % endfor

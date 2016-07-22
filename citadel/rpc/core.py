@@ -1,5 +1,7 @@
 # coding: utf-8
 
+from decimal import Decimal
+from urlparse import urlparse
 from citadel.libs.json import Jsonized
 
 """
@@ -34,6 +36,21 @@ class Node(_CoreRPC):
     def __init__(self, node):
         super(Node, self).__init__(node)
         self.cpu = dict(node.cpu)
+
+    @property
+    def ip(self):
+        u = urlparse(self.endpoint)
+        return u.hostname
+
+    @property
+    def cpu_count(self):
+        return Decimal(sum(v/10.0 for v in self.cpu.values()))
+
+    def to_dict(self):
+        d = super(Node, self).to_dict()
+        d['ip'] = self.ip
+        d['cpu_count'] = self.cpu_count
+        return d
 
 
 class ErrorDetail(_CoreRPC):

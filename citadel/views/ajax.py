@@ -1,15 +1,19 @@
 # coding: utf-8
 
+import json
 from flask import g, request, abort
 
 from citadel.ext import core
+from citadel.libs.utils import with_appcontext
 from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
-from citadel.views.helper import bp_get_app
-from citadel.action import remove_container, ActionError
+from citadel.views.helper import bp_get_app, bp_get_balancer
+from citadel.action import create_container, remove_container, action_stream, ActionError
 
-from citadel.models.app import AppUserRelation
+from citadel.models.app import AppUserRelation, Release
 from citadel.models.env import Environment
-from citadel.models.balancer import LoadBalancer, add_record_analysis, delete_record_analysis
+from citadel.models.container import Container
+from citadel.models.balancer import (Route, PrimitiveRoute, LoadBalancer,
+        add_route_analysis, delete_route_analysis, refresh_routes)
 
 
 bp = create_ajax_blueprint('ajax', __name__, url_prefix='/ajax')
@@ -25,13 +29,16 @@ def delete_app_env(name):
     return DEFAULT_RETURN_VALUE
 
 
-@bp.route('/rmcontainer', methods=['POST'])
-def remove_containers():
-    container_ids = request.form.getlist('container_id')
-    try:
-        return eru.remove_containers(container_ids)
-    except EruException:
-        return {'tasks': []}
+@bp.route('/app/<name>/online-entrypoints', methods=['GET'])
+def get_app_online_entrypoints(name):
+    app = bp_get_app(name, g.user)
+    return app.get_online_entrypoints()
+
+
+@bp.route('/app/<name>/online-pods', methods=['GET'])
+def get_app_online_pods(name):
+    app = bp_get_app(name, g.user)
+    return app.get_online_pods()
 
 
 @bp.route('/app/<name>/backends')
@@ -39,77 +46,126 @@ def get_app_backends(name):
     return {}
 
 
+@bp.route('/release/<release_id>/deploy', methods=['POST'])
+def deploy_release(release_id):
+    release = Release.get(release_id)
+    if not release:
+        abort(404, 'Release %s not found' % release_id)
+
+    if not (release.specs and release.specs.entrypoints):
+        abort(404, 'Release %s has no entrypoints')
+
+    podname = request.form['podname']
+    entrypoint = request.form['entrypoint']
+    cpu = request.form.get('cpu', type=float, default=0)
+    count = request.form.get('count', type=int, default=1)
+    envname = request.form.get('envname', '')
+    envs = request.form.get('envs', '')
+    nodename = request.form.get('nodename', '')
+
+    # 比较诡异, jQuery传个list是这样的...
+    networks = request.form.getlist('networks[]')
+
+    if nodename == '_random':
+        nodename = ''
+    extra_env = [env.strip() for env in envs.split(';')]
+    extra_env = [env for env in extra_env if env]
+
+    # 这里来的就都走自动分配吧
+    networks = {key: '' for key in networks}
+
+    try:
+        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, count, networks, envname, extra_env)
+    except ActionError as e:
+        return {'error': e.message}
+
+    for line in action_stream(q):
+        m = json.loads(line)
+        if not m['success']:
+            continue
+        print m
+
+    return DEFAULT_RETURN_VALUE
+
+
+@bp.route('/release/<release_id>/entrypoints')
+def get_release_entrypoints(release_id):
+    release = Release.get(release_id)
+    if not release:
+        abort(404, 'Release %s not found' % release_id)
+
+    if not (release.specs and release.specs.entrypoints):
+        abort(404, 'Release %s has no entrypoints')
+
+    return release.specs.entrypoints.keys()
+
+
+@bp.route('/rmcontainer', methods=['POST'])
+def remove_containers():
+    container_ids = request.form.getlist('container_id')
+    try:
+        remove_container(container_ids)
+    except ActionError as e:
+        return {'error': e.message}
+    return DEFAULT_RETURN_VALUE
+
+
 @bp.route('/pods')
 def get_all_pods():
     return core.list_pods()
 
 
-@bp.route('/pod/<name>/hosts')
+@bp.route('/pod/<name>/nodes')
 def get_pod_nodes(name):
     return core.get_pod_nodes(name)
 
 
-#@bp.route('/loadbalance', methods=['POST'])
-#def create_loadbalance():
-#    image = request.form['image']
-#    name, sha = parse_name_and_version(image)
-#    version = bp_get_version(name, sha)
-#
-#    podname = request.form['podname']
-#    entrypoint = request.form['entrypoint']
-#    balancer_name = request.form['name']
-#    ncore = request.form.get('ncore', type=float, default=1)
-#    hostname = request.form.get('hostname')
-#    comment = request.form.get('comment', '')
-#    envs = request.form.get('env', '')
-#
-#    if hostname == '_random':
-#        hostname = None
-#
-#    extra_env = {'ELBNAME': name}
-#    for env in envs.split(';'):
-#        env = env.strip()
-#        r = env.split('=', 1)
-#        if len(r) != 2:
-#            continue
-#        extra_env.update({r[0].strip(): r[1].strip()})
-#
-#    @with_appcontext
-#    def poll_loadbalance_container(task_id, user_id, comment):
-#        container_id = None
-#        while True:
-#            try:
-#                task = eru.get_task(task_id)
-#            except EruException:
-#                break
-#            if not task['finished']:
-#                gevent.sleep(1)
-#                continue
-#            try:
-#                container_id = task['props']['container_ids'][0]
-#            except (KeyError, IndexError):
-#                pass
-#            if container_id:
-#                break
-#
-#        container = Container.get(container_id)
-#        if not container:
-#            return
-#
-#        Balancer.create(container.host_ip, user_id, container.container_id, balancer_name, comment)
-#
-#    try:
-#        resp = eru.deploy_private(podname, name, ncore, 1,
-#                                  version.sha, entrypoint, env='prod', network_ids=[],
-#                                  host_name=hostname, extra_env=extra_env)
-#        task_id = resp['tasks'][0]
-#    except (EruException, IndexError, KeyError) as e:
-#        return {'error': e.message}, 400
-#
-#    gevent.spawn(poll_loadbalance_container, task_id, g.user.id, comment)
-#    return {'task': task_id}
-#
-#
+@bp.route('/loadbalance', methods=['POST'])
+def create_loadbalance():
+    release_id = request.form['releaseid']
+    release = Release.get(release_id)
+    if not release:
+        abort(404, 'Release %s not found' % release_id)
+
+    podname = request.form['podname']
+    entrypoint = request.form['entrypoint']
+    name = request.form['name']
+    cpu = request.form.get('cpu', type=float, default=1)
+    nodename = request.form.get('nodename', '')
+    comment = request.form.get('comment', '')
+    envs = request.form.get('env', '')
+
+    if nodename == '_random':
+        nodename = None
+
+    extra_env = ['ELBNAME=%s' % name]
+    for env in envs.split(';'):
+        env = env.strip()
+        if not env:
+            continue
+        extra_env.append(env)
+
+    try:
+        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, 1, {}, 'prod', extra_env)
+    except ActionError as e:
+        return {'error': e.message}
+
+    @with_appcontext
+    def _stream_consumer(q):
+        for line in action_stream(q):
+            m = json.loads(line)
+            if not m['success']:
+                continue
+            container = Container.get_by_container_id(m['id'])
+            ips = container.get_ip()
+            elb = LoadBalancer.create(ips[0], g.user.id, container.container_id, name, comment)
+            yield elb
+
+    for elb in _stream_consumer(q):
+        print elb.name
+    return DEFAULT_RETURN_VALUE
+
+
 @bp.route('/loadbalance/<id>/remove', methods=['POST'])
 def remove_loadbalance(id):
     elb = bp_get_balancer(id)
@@ -119,85 +175,64 @@ def remove_loadbalance(id):
         return {'error': e.message}
 
     # TODO 这里是同步的... 会不会太久
-    for m in action_stream(q):
-        if m.success and elb.container_id == m.id:
+    for line in action_stream(q):
+        m = json.loads(line)
+        if m['success'] and elb.container_id == m['id']:
             elb.delete()
     return DEFAULT_RETURN_VALUE
 
 
-@bp.route('/loadbalance/<id>/refresh', methods=['POST'])
-def refresh_loadbalance(id):
-    balancer = bp_get_balancer(id)
-    balancer.refresh_records()
+@bp.route('/loadbalance/<name>/refresh', methods=['POST'])
+def refresh_loadbalance(name):
+    elbs = LoadBalancer.get_by_name(name)
+    if not elbs:
+        abort(404, 'No ELB named %s found' % name)
+
+    refresh_routes(name)
     return DEFAULT_RETURN_VALUE
 
 
-@bp.route('/loadbalance/<id>/route', methods=['POST'])
-def create_loadbalance_route(id):
-    balancer = bp_get_balancer(id)
+@bp.route('/loadbalance/route/<id>/remove', methods=['POST'])
+def delete_lbrecord(id):
+    route = Route.get(id)
+    if not route:
+        abort(404, 'Route %d not found' % id)
 
-    appname = request.form['appname']
-    domain = request.form['domain']
-    entrypoint = request.form['entrypoint']
-
-    balancer.add_record(appname, entrypoint, domain)
+    route.delete()
     return DEFAULT_RETURN_VALUE
 
 
-#@bp.route('/loadbalance/record/<id>/remove', methods=['POST'])
-#def delete_lbrecord(id):
-#    record = bp_get_lbrecord(id)
-#    record.delete()
-#    return DEFAULT_RETURN_VALUE
-#
-#
-#@bp.route('/loadbalance/srecord/<id>/remove', methods=['POST'])
-#def delete_slbrecord(id):
-#    srecord = bp_get_slbrecord(id)
-#    srecord.delete()
-#    return DEFAULT_RETURN_VALUE
-#
-#
-#@bp.route('/loadbalance/record/<id>/analysis', methods=['PUT', 'DELETE'])
-#def switch_lbrecord_analysis(id):
-#    record = bp_get_lbrecord(id)
-#    if request.method == 'PUT':
-#        add_record_analysis(record)
-#    elif request.method == 'DELETE':
-#        delete_record_analysis(record)
-#    return DEFAULT_RETURN_VALUE
-#
-#
-#@bp.route('/loadbalance/for/<appname>/<entrypoint>')
-#def get_balancer_for_app(appname, entrypoint):
-#    records = LBRecord.get_by_appname_and_entrypoint(appname, entrypoint)
-#    if not records:
-#        return None
-#    data = {'backend_name': records[0].backend_name}
-#    balancers = set(r.balancer for r in records)
-#    data['balancers'] = [b.to_dict() for b in balancers]
-#    return data
-#
-#
-#@bp.route('/loadbalance/forpod/<podname>/<appname>/<entrypoint>')
-#def get_balancer_for_app_in_pod(podname, appname, entrypoint):
-#    records = LBRecord.get_by_podname(podname, appname, entrypoint)
-#    if not records:
-#        return None
-#    data = {'backend_name': records[0].backend_name}
-#    balancers = set(r.balancer for r in records)
-#    data['balancers'] = [b.to_dict() for b in balancers]
-#    return data
-#
-#
+@bp.route('/loadbalance/sroute/<id>/remove', methods=['POST'])
+def delete_slbrecord(id):
+    route = PrimitiveRoute.get(id)
+    if not route:
+        abort(404, 'Route %d not found' % id)
+
+    route.delete()
+    return DEFAULT_RETURN_VALUE
+
+
+@bp.route('/loadbalance/record/<id>/analysis', methods=['PUT', 'DELETE'])
+def switch_lbrecord_analysis(id):
+    route = Route.get(id)
+    if not route:
+        abort(404, 'Route %d not found' % id)
+
+    if request.method == 'PUT':
+        add_route_analysis(route)
+    elif request.method == 'DELETE':
+        delete_route_analysis(route)
+    return DEFAULT_RETURN_VALUE
+
+
 @bp.route('/admin/revoke-app', methods=['POST'])
 def revoke_app():
     user_id = request.form['user_id']
     name = request.form['name']
     AppUserRelation.delete(name, user_id)
     return DEFAULT_RETURN_VALUE
-#
-#
+
+
 #@bp.before_request
 #def access_control():
 #    if request.path.startswith('/ajax/loadbalance/for') or request.path.endswith('/backends'):
