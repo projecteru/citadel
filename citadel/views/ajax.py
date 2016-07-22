@@ -156,8 +156,12 @@ def create_loadbalance():
             m = json.loads(line)
             if not m['success']:
                 continue
+
             container = Container.get_by_container_id(m['id'])
-            ips = container.get_ip()
+            if not container:
+                continue
+
+            ips = container.get_ips()
             elb = LoadBalancer.create(ips[0], g.user.id, container.container_id, name, comment)
             yield elb
 

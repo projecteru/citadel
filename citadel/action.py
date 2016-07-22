@@ -132,13 +132,15 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, netwo
             return
 
         for m in ms:
+            if m.success:
+                container = Container.create(release.app.name, release.sha, m.id,
+                                             entrypoint, envname, cpu, m.podname, m.nodename)
+                publisher.add_container(container)
+            # 这里的顺序一定要注意
+            # 必须在创建容器完成之后再把消息丢入队列
+            # 否则调用者可能会碰到拿到了消息但是没有容器的状况.
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
-            if not m.success:
-                continue
 
-            container = Container.create(release.app.name, release.sha, m.id,
-                                         entrypoint, envname, cpu, m.podname, m.nodename)
-            publisher.add_container(container)
         q.put(_eof)
 
     t = Thread(target=_stream_producer)
@@ -162,11 +164,9 @@ def remove_container(ids):
     @with_appcontext
     def _stream_producer():
         for m in ms:
+            if m.success:
+                Container.delete_by_container_id(m.id)
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
-            if not m.success:
-                continue
-
-            Container.delete_by_container_id(m.id)
         q.put(_eof)
 
     t = Thread(target=_stream_producer)
@@ -204,21 +204,21 @@ def upgrade_container(ids, repo, sha):
     @with_appcontext
     def _stream_producer():
         for m in ms:
+            if m.success:
+                old = Container.get_by_container_id(m.id)
+                if not old:
+                    continue
+
+                c = Container.create(old.appname, sha, m.new_id, old.entrypoint,
+                                     old.env, old.cpu_quota, old.podname, old.nodename)
+                if not c:
+                    continue
+                publisher.add_container(c)
+
+                old.delete()
+            # 这里也要注意顺序
+            # 不要让外面出现拿到了消息但是数据还没有更新.
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
-            if not m.success:
-                continue
-
-            old = Container.get_by_container_id(m.id)
-            if not old:
-                continue
-
-            c = Container.create(old.appname, sha, m.new_id, old.entrypoint,
-                                 old.env, old.cpu_quota, old.podname, old.nodename)
-            if not c:
-                continue
-            publisher.add_container(c)
-
-            old.delete()
 
         q.put(_eof)
 

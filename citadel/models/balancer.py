@@ -21,8 +21,8 @@ from citadel.models.container import Container
 def get_app_backends(podname, appname, entrypoint):
     containers = Container.get_by_app(appname, limit=100)
     if entrypoint == '_all':
-        return [b for c in containers for b in c.backends if c.podname == podname]
-    return [b for c in containers for b in c.backends if c.entrypoint == entrypoint and c.podname == podname]
+        return [b for c in containers for b in c.get_backends() if c.podname == podname]
+    return [b for c in containers for b in c.get_backends() if c.entrypoint == entrypoint and c.podname == podname]
 
 
 def normalize_domain(domain):
