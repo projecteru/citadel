@@ -1,10 +1,11 @@
 # coding: utf-8
 
-from flask import abort
+from flask import g, abort
 
 from citadel.ext import core
 from citadel.models.app import App, Release
 from citadel.models.loadbalance import ELBInstance
+from citadel.models.oplog import OPLog
 
 
 def bp_get_app(appname, user):
