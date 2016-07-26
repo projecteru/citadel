@@ -19,7 +19,9 @@
         <tr>
           <th>Name</th>
           <th>Description</th>
-          <th>CPU</th>
+          <th>CPU(total)</th>
+          <th>CPU(remain)</th>
+          <th>Memory</th>
           <th>IP</th>
         </tr>
       </thead>
@@ -28,7 +30,9 @@
           <tr>
             <td><a href="${ url_for('admin.get_node_containers', podname=pod.name, nodename=node.name) }">${ node.name }</a></td>
             <td>${ pod.desc }</td>
+            <td>${ node.total_cpu_count }</td>
             <td>${ node.cpu_count }</td>
+            <td>${ node.memory_total } MB</td>
             <td>${ node.ip }</td>
           </tr>
         % endfor

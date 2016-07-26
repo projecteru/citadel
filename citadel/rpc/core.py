@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import json
 from decimal import Decimal
 from urlparse import urlparse
 from citadel.libs.json import Jsonized
@@ -31,16 +32,27 @@ class Pod(_CoreRPC):
 
 class Node(_CoreRPC):
 
-    fields = ['name', 'endpoint', 'podname', 'public', 'cpu']
+    fields = ['name', 'endpoint', 'podname', 'public', 'cpu', 'info']
 
     def __init__(self, node):
         super(Node, self).__init__(node)
         self.cpu = dict(node.cpu)
+        self.info = node.info and json.loads(node.info) or {}
 
     @property
     def ip(self):
         u = urlparse(self.endpoint)
         return u.hostname
+
+    @property
+    def memory_total(self):
+        """memory total in MB"""
+        mem = self.info.get('MemTotal', 0)
+        return mem / 1024 / 1024
+
+    @property
+    def total_cpu_count(self):
+        return self.info.get('NCPU', 0)
 
     @property
     def cpu_count(self):
