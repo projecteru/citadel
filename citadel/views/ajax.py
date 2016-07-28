@@ -13,7 +13,8 @@ from citadel.models.app import AppUserRelation, Release
 from citadel.models.env import Environment
 from citadel.models.container import Container
 from citadel.models.balancer import (Route, PrimitiveRoute, LoadBalancer,
-        add_route_analysis, delete_route_analysis, refresh_routes)
+                                     add_route_analysis, delete_route_analysis,
+                                     refresh_routes)
 
 
 bp = create_ajax_blueprint('ajax', __name__, url_prefix='/ajax')
@@ -237,11 +238,13 @@ def revoke_app():
     return DEFAULT_RETURN_VALUE
 
 
-#@bp.before_request
-#def access_control():
-#    if request.path.startswith('/ajax/loadbalance/for') or request.path.endswith('/backends'):
-#        return
-#    if not g.user:
-#        abort(401)
-#    if not g.user.privilege and request.path.startswith('/ajax/admin'):
-#        abort(403)
+@bp.before_request
+def access_control():
+    if request.path.endswith('/backends'):
+        return
+
+    if not g.user:
+        abort(401)
+
+    if not g.user.privilege and request.path.startswith('/ajax/admin'):
+        abort(403)

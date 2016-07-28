@@ -16,8 +16,8 @@ _DEBUG_USER_DICT = {
 
 
 def get_current_user():
-    if DEBUG:
-        return User.from_dict(_DEBUG_USER_DICT)
+    # if DEBUG:
+    #     return User.from_dict(_DEBUG_USER_DICT)
 
     resp = sso.get('me')
     return User.from_dict(resp.data)

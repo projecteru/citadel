@@ -1,8 +1,8 @@
 # coding: utf-8
-
 import os
 from functools import partial, wraps
-from flask import Blueprint, jsonify, abort, g
+
+from flask import g, Blueprint, abort, jsonify
 from flask_mako import render_template
 
 from citadel.libs.json import jsonize
@@ -10,15 +10,6 @@ from citadel.libs.json import jsonize
 
 ERROR_CODES = [400, 401, 403, 404]
 DEFAULT_RETURN_VALUE = {'error': None}
-
-
-def need_login(f):
-    @wraps(f)
-    def _(*args, **kwargs):
-        if not g.user:
-            abort(401)
-        return f(*args, **kwargs)
-    return _
 
 
 def need_admin(f):
