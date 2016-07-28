@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-
-from flask import Blueprint, session, redirect, url_for, abort
+from flask import session, Blueprint, redirect, url_for, abort
 
 from citadel.ext import sso
 

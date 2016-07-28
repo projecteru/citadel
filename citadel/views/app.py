@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-
 import os
+
 from flask import g, request, url_for, redirect
 from flask_mako import render_template
 
-from citadel.ext import core
 from citadel.config import GITLAB_URL
+from citadel.ext import core
 from citadel.libs.view import create_page_blueprint
-from citadel.views.helper import bp_get_app, bp_get_release, get_nodes_for_first_pod
-from citadel.network.plugin import get_all_pools
-
 from citadel.models.app import App, Release
-from citadel.models.env import Environment
 from citadel.models.container import Container
+from citadel.models.env import Environment
 from citadel.models.gitlab import get_file_content
+from citadel.network.plugin import get_all_pools
+from citadel.views.helper import bp_get_app, bp_get_release, get_nodes_for_first_pod
 
 
 bp = create_page_blueprint('app', __name__, url_prefix='/app')
@@ -46,8 +45,9 @@ def get_release(name, sha):
 
     pods = core.list_pods()
     nodes = get_nodes_for_first_pod(pods)
-    return render_template('/app/release.mako', app=app, release=release, envs=envs,
-            appspecs=appspecs, containers=containers, networks=networks, nodes=nodes, pods=pods)
+    return render_template('/app/release.mako', app=app, release=release,
+                           envs=envs, appspecs=appspecs, containers=containers,
+                           networks=networks, nodes=nodes, pods=pods)
 
 
 @bp.route('/<name>/env', methods=['GET', 'POST'])
