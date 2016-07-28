@@ -3,7 +3,7 @@ from flask import g, request, url_for, redirect, abort
 from flask_mako import render_template
 
 from citadel.ext import core
-from citadel.libs.view import create_page_blueprint, need_admin
+from citadel.libs.view import create_page_blueprint
 from citadel.models.app import AppUserRelation, App
 from citadel.models.container import Container
 from citadel.models.user import get_users, get_user
@@ -66,9 +66,3 @@ def user_info(identifier):
     all_apps = App.get_all(limit=100)
     all_apps = [app for app in all_apps if app not in apps]
     return render_template('/admin/user_info.mako', user=user, apps=apps, all_apps=all_apps)
-
-
-@bp.before_request
-@need_admin
-def access_control():
-    pass

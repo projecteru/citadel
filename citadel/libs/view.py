@@ -1,8 +1,8 @@
 # coding: utf-8
 import os
-from functools import partial, wraps
+from functools import partial
 
-from flask import g, Blueprint, abort, jsonify
+from flask import Blueprint, jsonify
 from flask_mako import render_template
 
 from citadel.libs.json import jsonize
@@ -10,17 +10,6 @@ from citadel.libs.json import jsonize
 
 ERROR_CODES = [400, 401, 403, 404]
 DEFAULT_RETURN_VALUE = {'error': None}
-
-
-def need_admin(f):
-    @wraps(f)
-    def _(*args, **kwargs):
-        if not g.user:
-            abort(401)
-        if not g.user.privilege:
-            abort(403)
-        return f(*args, **kwargs)
-    return _
 
 
 def create_ajax_blueprint(name, import_name, url_prefix=None):
