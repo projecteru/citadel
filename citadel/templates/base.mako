@@ -7,10 +7,10 @@
 
     <!-- Le styles -->
     <link href="/citadel/static/img/favicon.jpg" rel="shortcut icon">
-    <link href="/citadel/static/css/bootstrap.min.css" rel="stylesheet" type="text/css">
-    <link href="/citadel/static/css/flat-ui.min.css" rel="stylesheet" type="text/css">
-    <script src="/citadel/static/js/jquery.min.js"></script>
-    <script src="/citadel/static/js/flat-ui.min.js"></script>
+    <link href="//cdn.bootcss.com/flat-ui/2.3.0/css/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="//cdn.bootcss.com/flat-ui/2.3.0/css/flat-ui.min.css" rel="stylesheet" type="text/css">
+    <script src="//cdn.bootcss.com/flat-ui/2.3.0/js/vendor/jquery.min.js"></script>
+    <script src="//cdn.bootcss.com/flat-ui/2.3.0/js/flat-ui.min.js"></script>
     <script src="/citadel/static/js/common.js"></script>
     ${ self.more_header() }
     <style>

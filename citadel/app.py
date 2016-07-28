@@ -55,7 +55,6 @@ def create_app():
             abort(401)
 
     def init_global_vars():
-        g.websocket = request.environ.get('wsgi.websocket')
         g.start = request.args.get('start', type=int, default=0)
         g.limit = request.args.get('limit', type=int, default=20)
 
