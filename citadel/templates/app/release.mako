@@ -5,11 +5,6 @@
   ${ release.name } @ ${ release.sha[:7] }
 </%def>
 
-<%def name="more_header()">
-  ${parent.more_header()}
-  <link rel="stylesheet" href="/citadel/static/css/pygments-default.css" type="text/css">
-</%def>
-
 <%def name="more_css()">
   .progress-bar {
   -webkit-transition: none !important;
