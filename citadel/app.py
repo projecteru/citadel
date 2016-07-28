@@ -44,6 +44,12 @@ def create_app():
         sentry = SentryCollector(dsn=app.config['SENTRY_DSN'])
         sentry.init_app(app)
 
+    def check_admin():
+        if not g.user:
+            abort(401)
+        if not g.user.privilege:
+            abort(403)
+
     def init_sso_users():
         g.user = get_current_user() if 'sso' in session or debug else None
         if g.user is None:
@@ -55,7 +61,6 @@ def create_app():
             abort(401)
 
     def init_global_vars():
-        g.websocket = request.environ.get('wsgi.websocket')
         g.start = request.args.get('start', type=int, default=0)
         g.limit = request.args.get('limit', type=int, default=20)
 
@@ -63,6 +68,9 @@ def create_app():
         bp = import_string('%s.views.%s:bp' % (__package__, bp_name))
         bp.before_request(init_global_vars)
         bp.before_request(init_sso_users)
+        if bp_name == 'admin':
+            bp.before_request(check_admin)
+
         app.register_blueprint(bp)
 
     for bp_name in api_blueprints:
