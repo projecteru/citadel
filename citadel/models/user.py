@@ -1,7 +1,9 @@
 # coding: utf-8
+import requests
+from flask import abort, request
 
+from citadel.config import DEBUG, AUTH_AUTHORIZE_URL
 from citadel.ext import sso
-from citadel.config import DEBUG
 
 
 _DEBUG_USER_DICT = {
@@ -13,6 +15,19 @@ _DEBUG_USER_DICT = {
     'token': 'token',
     'pubkey': '',
 }
+
+
+def get_current_user_via_auth():
+    try:
+        resp = requests.get(AUTH_AUTHORIZE_URL, headers=request.headers)
+    except:
+        abort(408)
+
+    status_code = resp.status_code
+    if status_code != 200:
+        abort(status_code)
+
+    return User.from_dict(resp.json())
 
 
 def get_current_user():

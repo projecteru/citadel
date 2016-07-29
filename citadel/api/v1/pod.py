@@ -1,5 +1,4 @@
 # coding: utf-8
-
 from flask import abort, g
 
 from citadel.ext import core

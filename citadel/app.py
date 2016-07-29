@@ -4,7 +4,7 @@ from werkzeug.utils import import_string
 
 from citadel.ext import db, mako
 from citadel.libs.datastructure import DateConverter
-from citadel.models.user import get_current_user
+from citadel.models.user import get_current_user, get_current_user_via_auth
 from citadel.sentry import SentryCollector
 
 
@@ -50,7 +50,7 @@ def create_app():
         if not g.user.privilege:
             abort(403)
 
-    def init_sso_users():
+    def init_sso_user():
         g.user = get_current_user() if 'sso' in session or debug else None
         if g.user is None:
             session.pop('id', None)
@@ -60,6 +60,9 @@ def create_app():
         if not g.user:
             abort(401)
 
+    def init_auth_user():
+        g.user = get_current_user_via_auth()
+
     def init_global_vars():
         g.start = request.args.get('start', type=int, default=0)
         g.limit = request.args.get('limit', type=int, default=20)
@@ -67,7 +70,7 @@ def create_app():
     for bp_name in blueprints:
         bp = import_string('%s.views.%s:bp' % (__package__, bp_name))
         bp.before_request(init_global_vars)
-        bp.before_request(init_sso_users)
+        bp.before_request(init_sso_user)
         if bp_name == 'admin':
             bp.before_request(check_admin)
 
@@ -76,6 +79,7 @@ def create_app():
     for bp_name in api_blueprints:
         bp = import_string('%s.api.v1.%s:bp' % (__package__, bp_name))
         bp.before_request(init_global_vars)
+        bp.before_request(init_auth_user)
         app.register_blueprint(bp)
 
     return app
