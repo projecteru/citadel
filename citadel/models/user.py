@@ -1,6 +1,7 @@
 # coding: utf-8
+
 import requests
-from flask import abort, request
+from flask import abort
 
 from citadel.config import DEBUG, AUTH_AUTHORIZE_URL
 from citadel.ext import sso
@@ -17,9 +18,9 @@ _DEBUG_USER_DICT = {
 }
 
 
-def get_current_user_via_auth():
+def get_current_user_via_auth(token):
     try:
-        resp = requests.get(AUTH_AUTHORIZE_URL, headers=request.headers)
+        resp = requests.get(AUTH_AUTHORIZE_URL, headers={'X-Neptulon-Token': token})
     except:
         abort(408)
 
@@ -31,8 +32,8 @@ def get_current_user_via_auth():
 
 
 def get_current_user():
-    # if DEBUG:
-    #     return User.from_dict(_DEBUG_USER_DICT)
+    if DEBUG:
+        return User.from_dict(_DEBUG_USER_DICT)
 
     resp = sso.get('me')
     return User.from_dict(resp.data)

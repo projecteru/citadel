@@ -1,4 +1,5 @@
 # coding: utf-8
+
 from flask import g, session, abort, Flask, request
 from werkzeug.utils import import_string
 
@@ -50,36 +51,20 @@ def create_app():
         if not g.user.privilege:
             abort(403)
 
-    def init_sso_user():
-        g.user = get_current_user() if 'sso' in session or debug else None
-        if g.user is None:
-            session.pop('id', None)
-            session.pop('name', None)
-            session.pop('sso', None)
-
-        if not g.user:
-            abort(401)
-
-    def init_auth_user():
-        g.user = get_current_user_via_auth()
-
-    def init_global_vars():
-        g.start = request.args.get('start', type=int, default=0)
-        g.limit = request.args.get('limit', type=int, default=20)
-
     for bp_name in blueprints:
         bp = import_string('%s.views.%s:bp' % (__package__, bp_name))
-        bp.before_request(init_global_vars)
-        bp.before_request(init_sso_user)
-        if bp_name == 'admin':
-            bp.before_request(check_admin)
-
         app.register_blueprint(bp)
 
     for bp_name in api_blueprints:
         bp = import_string('%s.api.v1.%s:bp' % (__package__, bp_name))
-        bp.before_request(init_global_vars)
-        bp.before_request(init_auth_user)
         app.register_blueprint(bp)
+
+    @app.before_request
+    def init_global_vars():
+        g.start = request.args.get('start', type=int, default=0)
+        g.limit = request.args.get('limit', type=int, default=20)
+
+        token = request.headers.get('X-Neptulon-Token', '')
+        g.user = token and get_current_user_via_auth(token) or (get_current_user() if 'sso' in session or debug else None)
 
     return app
