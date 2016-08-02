@@ -32,7 +32,7 @@ def index():
 
 
 @bp.route('/<name>', methods=['POST', 'GET'])
-def get_elb(name):
+def elb(name):
     elbs = LoadBalancer.get_by_name(name)
     if not elbs:
         abort(404, 'No elb found')
