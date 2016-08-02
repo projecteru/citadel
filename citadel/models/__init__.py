@@ -3,7 +3,7 @@
 from .user import User
 from .app import App, Release, AppUserRelation
 from .container import Container
-from .balancer import LoadBalancer, Route, PrimitiveRoute
+from .balancer import LoadBalancer, Route
 
 
-__all__ = ['User', 'App', 'Release', 'AppUserRelation', 'Container', 'LoadBalancer', 'Route', 'PrimitiveRoute']
+__all__ = ['User', 'App', 'Release', 'AppUserRelation', 'Container', 'LoadBalancer', 'Route']

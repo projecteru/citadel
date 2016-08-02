@@ -57,34 +57,6 @@
       </tbody>
     </table>
   </%call>
-<!--
-    加一个表,显示特定的record.
--->
-  <%call expr="utils.panel()">
-    <%def name="header()">
-      <h3 class="panel-title">"${name}" Primitive Balancing Routes</h3>
-    </%def>
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Domain</th>
-          <th>IP</th>
-          <th>Operation</th>
-        </tr>
-      </thead>
-      <tbody>
-        % for r in proutes:
-          <tr>
-            <td>${ r.domain }</td>
-            <td>${ r.ip }</td>
-            <td><a class="btn btn-xs btn-warning" href="#" data-id="${r.id}" name="delete-primitive-route"><span class="fui-trash"></span> Remove</a></td>
-          </tr>
-        % endfor
-      </tbody>
-    </table>
-  </%call>
-
-<!--end-->
 
   <div class="col-md-8 col-md-offset-2">
     <form class="form-horizontal" action="${ url_for('loadbalance.elb', name=name) }" method="POST">
@@ -125,12 +97,6 @@
         <label class="col-sm-2 control-label" for="">Domain</label>
         <div class="col-sm-10">
           <input class="form-control" type="text" name="domain">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">IP</label>
-        <div class="col-sm-10">
-            <input class="form-control" type="text" name="ip">
         </div>
       </div>
       <div class="form-group">
