@@ -10,6 +10,8 @@ from citadel.models.user import get_current_user, get_current_user_via_auth
 from citadel.sentry import SentryCollector
 
 
+logging.getLogger('requests').setLevel(logging.CRITICAL)
+logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(process)d] [%(levelname)s] [%(filename)s @ %(lineno)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S %z')
 
 blueprints = [
