@@ -214,8 +214,8 @@
     prev = 'disabled' if cur_page <= 1 else ''
     prev_num = max((cur_page - 2) * limit, 0)
   %>
-  <div class="pagination">
-    <ul>
+  <div>
+    <ul class="pagination">
       <li class="previous ${ prev }">
       <a class="fui-arrow-left" href="${ request.base_url }?start=${ prev_num }&limit=${ limit }"></a>
       </li>
