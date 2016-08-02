@@ -151,7 +151,7 @@
               <a class="btn btn-xs btn-success" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
                 <span class="fui-plus"></span> Add Container
               </a>
-            % elif g.user.privilege and False:
+            % elif g.user.privilege:
               <a class="btn btn-xs btn-success" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
                 <span class="fui-plus"></span> Add Container With Raw Mode
               </a>
