@@ -151,20 +151,14 @@
               <a class="btn btn-xs btn-success" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
                 <span class="fui-plus"></span> Add Container
               </a>
+            % elif g.user.privilege and False:
+              <a class="btn btn-xs btn-success" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
+                <span class="fui-plus"></span> Add Container With Raw Mode
+              </a>
             % else:
-              % if v.build_status == 'waiting':
-                <a class="btn btn-xs btn-info" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#build">
-                  <span class="fui-time"></span> Build Image
-                </a>
-              % elif v.build_status == 'building':
-                <a class="btn btn-xs btn-info disabled" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#build">
-                  <span class="fui-time"></span> Building...
-                </a>
-              % elif v.build_status == 'fail':
-                <a class="btn btn-xs btn-danger" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#build">
-                  <span class="fui-time"></span> Failed, rebuild
-                </a>
-              % endif
+              <a class="btn btn-xs btn-success" disabled href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
+                <span class="fui-plus"></span> Add Container
+              </a>
             % endif
           </td>
         </tr>

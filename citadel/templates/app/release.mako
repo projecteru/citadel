@@ -160,6 +160,14 @@
           % endfor
         </div>
       </div>
+      % if g.user.privilege:
+        <div class="form-group">
+          <label class="col-sm-2 control-label" for="">Raw</label>
+          <div class="col-sm-10">
+            <input class="form-control" type="checkbox" name="raw" value="">
+          </div>
+        </div>
+      % endif
     </form>
   </%call>
 

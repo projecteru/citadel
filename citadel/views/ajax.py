@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import json
+import logging
 from flask import g, request, abort
 
 from citadel.ext import core
@@ -18,6 +19,7 @@ from citadel.models.balancer import (Route, PrimitiveRoute, LoadBalancer,
 
 
 bp = create_ajax_blueprint('ajax', __name__, url_prefix='/ajax')
+log = logging.getLogger(__name__)
 
 
 @bp.route('/app/<name>/delete-env', methods=['POST'])
@@ -63,6 +65,10 @@ def deploy_release(release_id):
     envname = request.form.get('envname', '')
     envs = request.form.get('envs', '')
     nodename = request.form.get('nodename', '')
+    raw = request.form.get('raw', type=int, default=0)
+
+    if raw and not g.user.privilege:
+        abort(400, 'Raw deploy only supported for admins')
 
     # 比较诡异, jQuery传个list是这样的...
     networks = request.form.getlist('networks[]')
@@ -76,13 +82,15 @@ def deploy_release(release_id):
     networks = {key: '' for key in networks}
 
     try:
-        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, count, networks, envname, extra_env)
+        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, count, networks, envname, extra_env, bool(raw))
     except ActionError as e:
+        log.error('error when creating container: %s', e.message)
         return {'error': e.message}
 
     for line in action_stream(q):
         m = json.loads(line)
         if not m['success']:
+            log.error('error when creating container: %s', m['error'])
             continue
 
     return DEFAULT_RETURN_VALUE
@@ -106,6 +114,7 @@ def remove_containers():
     try:
         remove_container(container_ids)
     except ActionError as e:
+        log.error('error when removing containers: %s', e.message)
         return {'error': e.message}
     return DEFAULT_RETURN_VALUE
 
@@ -148,6 +157,7 @@ def create_loadbalance():
     try:
         q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, 1, {}, 'prod', extra_env)
     except ActionError as e:
+        log.error('error when creating ELB: %s', e.message)
         return {'error': e.message}
 
     @with_appcontext
@@ -155,6 +165,7 @@ def create_loadbalance():
         for line in action_stream(q):
             m = json.loads(line)
             if not m['success']:
+                log.error('error when creating ELB: %s', m['error'])
                 continue
 
             container = Container.get_by_container_id(m['id'])
@@ -166,7 +177,7 @@ def create_loadbalance():
             yield elb
 
     for elb in _stream_consumer(q):
-        print elb.name
+        log.info('ELB %s created', elb.name)
     return DEFAULT_RETURN_VALUE
 
 
@@ -182,6 +193,7 @@ def remove_loadbalance(id):
     for line in action_stream(q):
         m = json.loads(line)
         if m['success'] and elb.container_id == m['id']:
+            log.info('ELB %s deleted', elb.name)
             elb.delete()
     return DEFAULT_RETURN_VALUE
 

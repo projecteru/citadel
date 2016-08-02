@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+
 import json
+import logging
 from Queue import Queue, Empty
 from threading import Thread
 
@@ -18,6 +20,7 @@ from citadel.publish import publisher
 
 
 _eof = object()
+log = logging.getLogger(__name__)
 
 
 class ActionError(Exception):
@@ -90,7 +93,7 @@ def build_image(repo, sha, uid='', artifact=''):
     return q
 
 
-def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, networks, envname, extra_env):
+def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, networks, envname, extra_env, raw=False):
     pod = core.get_pod(podname)
     if not pod:
         raise ActionError(400, 'pod %s not exist' % podname)
@@ -111,17 +114,21 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, netwo
     if not release:
         raise ActionError(400, 'repo %s, %s does not have the right appname in app.yaml' % (repo, sha))
 
-    if not release.image:
-        raise ActionError(400, 'repo %s, %s has not been built yet' % (repo, sha))
-
     # 找不到对应env就算了
     # 需要加一下额外的env
     env = Environment.get_by_app_and_env(appname, envname)
     env = env and env.to_env_vars() or []
     env.extend(extra_env)
 
+    # 如果是raw模式, 用app.yaml里写的base替代
     image = release.image
-    ms = _peek_grpc(core.create_container(content, appname, image, podname, nodename, entrypoint, cpu, count, networks, env))
+    if raw:
+        image = specs.get('base', '')
+    if not image:
+        log.error('repo %s, %s has no image, may not been built yet', repo, sha)
+        raise ActionError(400, 'repo %s, %s has no image, may not been built yet' % (repo, sha))
+
+    ms = _peek_grpc(core.create_container(content, appname, image, podname, nodename, entrypoint, cpu, count, networks, env, raw))
     q = Queue()
 
     @with_appcontext

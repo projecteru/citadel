@@ -18,7 +18,7 @@
       <thead>
         <tr>
           <th>Name</th>
-          <th>Description</th>
+          <th>OS</th>
           <th>CPU(total)</th>
           <th>CPU(remain)</th>
           <th>Memory</th>
@@ -29,7 +29,7 @@
         % for node in nodes:
           <tr>
             <td><a href="${ url_for('admin.get_node_containers', podname=pod.name, nodename=node.name) }">${ node.name }</a></td>
-            <td>${ pod.desc }</td>
+            <td>${ node.info.get('OperatingSystem', 'unknown') }</td>
             <td>${ node.total_cpu_count }</td>
             <td>${ node.cpu_count }</td>
             <td>${ node.memory_total } MB</td>

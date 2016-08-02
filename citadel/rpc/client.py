@@ -85,7 +85,7 @@ class CoreRPC(object):
 
     @handle_rpc_exception(default=list)
     def create_container(self, specs, appname, image, podname, nodename, entrypoint,
-                         cpu_quota, count, networks, env):
+                         cpu_quota, count, networks, env, raw):
         stub = self._get_stub()
         opts = pb.DeployOptions(specs=specs,
                                 appname=appname,
@@ -96,7 +96,8 @@ class CoreRPC(object):
                                 cpu_quota=cpu_quota,
                                 count=count,
                                 networks=networks,
-                                env=env)
+                                env=env,
+                                raw=raw)
 
         for m in stub.CreateContainer(opts, 3600):
             yield CreateContainerMessage(m)

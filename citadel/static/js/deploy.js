@@ -43,6 +43,7 @@ $('#add-container-button').click(function(e){
   data.count = $('#add-container-form input[name=count]').val() || '1';
   data.envs = $('#add-container-form input[name=envs]').val();
   data.networks = networks;
+  data.raw = $('#add-container-form input[name=raw]:checked').length;
 
   console.log(data);
   $.post(url, data, function(r){
