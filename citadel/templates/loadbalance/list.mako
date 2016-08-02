@@ -77,7 +77,7 @@
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">Name</label>
         <div class="col-sm-10">
-          <input class="form-control" type="text" name="name" value="">
+          <input class="form-control" type="text" name="name" value="unnamed">
         </div>
       </div>
       <div class="form-group">
