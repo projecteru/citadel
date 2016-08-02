@@ -87,7 +87,7 @@
 <!--end-->
 
   <div class="col-md-8 col-md-offset-2">
-    <form class="form-horizontal" action="${ url_for('loadbalance.get_elb', name=name) }" method="POST">
+    <form class="form-horizontal" action="${ url_for('loadbalance.elb', name=name) }" method="POST">
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">App Name</label>
         <div class="col-sm-10">
