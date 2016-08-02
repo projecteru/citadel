@@ -13,9 +13,8 @@ from citadel.action import create_container, remove_container, action_stream, Ac
 from citadel.models.app import AppUserRelation, Release
 from citadel.models.env import Environment
 from citadel.models.container import Container
-from citadel.models.balancer import (Route, PrimitiveRoute, LoadBalancer,
-                                     add_route_analysis, delete_route_analysis,
-                                     refresh_routes)
+from citadel.models.balancer import (Route, LoadBalancer, add_route_analysis,
+                                     delete_route_analysis, refresh_routes)
 
 
 bp = create_ajax_blueprint('ajax', __name__, url_prefix='/ajax')
@@ -211,16 +210,6 @@ def refresh_loadbalance(name):
 @bp.route('/loadbalance/route/<id>/remove', methods=['POST'])
 def delete_lbrecord(id):
     route = Route.get(id)
-    if not route:
-        abort(404, 'Route %d not found' % id)
-
-    route.delete()
-    return DEFAULT_RETURN_VALUE
-
-
-@bp.route('/loadbalance/sroute/<id>/remove', methods=['POST'])
-def delete_slbrecord(id):
-    route = PrimitiveRoute.get(id)
     if not route:
         abort(404, 'Route %d not found' % id)
 

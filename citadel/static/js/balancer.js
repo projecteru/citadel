@@ -34,19 +34,6 @@ $('a[name=delete-route]').click(function(e){
   });
 });
 
-$('a[name=delete-primitive-route]').click(function(e){
-  e.preventDefault();
-  if (!confirm('确认删除?')) {
-    return;
-  }
-  var self = $(this);
-  var url = '/ajax/loadbalance/sroute/{id}/remove'.replace('{id}', self.data('id'));
-  $.post(url, {}, function(){
-    self.parent().parent().remove();
-  });
-});
-
-
 $('select[name=appname]').change(function(){
   var appname = $(this).val();
   var url = '/ajax/app/{appname}/online-entrypoints'.replace('{appname}', appname);

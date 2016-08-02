@@ -1,4 +1,4 @@
-from citadel.models.balancer import LoadBalancer, PrimitiveRoute, Route
+from citadel.models.balancer import LoadBalancer
 
 
 def test_loadbalancer(test_db):

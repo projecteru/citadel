@@ -42,73 +42,6 @@ def normalize_domain(domain):
         return '/'.join([domain, path])
 
 
-class PrimitiveRoute(BaseModelMixin):
-    """原始的route, 把一个域名直接路由到对应的IP."""
-    __tablename__ = 'special_elb_route'
-
-    ip = db.Column(db.String(16), index=True)
-    domain = db.Column(db.String(255), index=True)
-    elbname = db.Column(db.String(64), index=True)
-
-    appname = 'fakeappname'
-    podname = 'fakepodname'
-    entrypoint = 'fakeentrypoint'
-
-    def __hash__(self):
-        return self.id
-
-    @classmethod
-    def create(cls, ip, domain, elbname):
-        try:
-            domain = normalize_domain(domain)
-            b = cls(ip=ip, domain=domain, elbname=elbname)
-            db.session.add(b)
-            db.session.commit()
-        except IntegrityError:
-            db.rollback()
-            return
-
-        add_route(b)
-        return b
-
-    @classmethod
-    def get_by_elb(cls, elbname):
-        return cls.query.filter_by(elbname=elbname).order_by(cls.id.desc()).all()
-
-    @classmethod
-    def delete_by_elb(cls, elbname):
-        cls.query.filter_by(elbname=elbname).delete()
-        db.session.commit()
-
-    @classmethod
-    def delete_by_domain(cls, domain):
-        cls.query.filter_by(domain=domain).delete()
-        db.session.commit()
-
-    @property
-    def backend_name(self):
-        suffix = hashlib.sha224(self.domain).hexdigest()[:6]
-        return "%s_%s" % (self.domain.replace("/", "_"), suffix)
-
-    def get_elb(self):
-        return LoadBalancer.get_by_name(self.elbname)
-
-    def get_backends(self):
-        res = self.query.filter_by(domain=self.domain).all()
-        return [x.ip for x in res]
-
-    def dict_for_elb(self):
-        return {
-            'ip': self.ip,
-            'domain': self.domain,
-            'balancer_id': self.balancer_id,
-        }
-
-    def delete(self):
-        delete_route(self)
-        super(PrimitiveRoute, self).delete()
-
-
 class Route(BaseModelMixin):
     """
     ELB的route. 把appname/entrypoint/podname对应的一组backend给路由到对应elbname的ELB上.
@@ -374,10 +307,6 @@ def refresh_routes(name):
     记录已经存在也没有关系, ELB自己会忽略掉错误."""
     routes = Route.get_by_elb(name)
     for r in routes:
-        add_route(r)
-
-    proutes = PrimitiveRoute.get_by_elb(name)
-    for r in proutes:
         add_route(r)
 
 
