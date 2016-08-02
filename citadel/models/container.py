@@ -34,7 +34,6 @@ class Container(BaseModelMixin):
             db.session.commit()
             return c.inspect()
         except IntegrityError:
-            print 'error'
             db.session.rollback()
             return None
 

@@ -84,7 +84,6 @@ def deploy_release(release_id):
         m = json.loads(line)
         if not m['success']:
             continue
-        print m
 
     return DEFAULT_RETURN_VALUE
 

@@ -46,10 +46,9 @@ $('#add-container-button').click(function(e){
 
   console.log(data);
   $.post(url, data, function(r){
-    console.log(r);
-    if (r.code != 200) {
-      alert(JSON.stringify(r))
-      return
+    if (r.error !== null) {
+      alert(r.error);
+      return;
     }
     location.reload();
   });
