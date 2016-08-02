@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import requests
+from requests.exceptions import ConnectTimeout, ReadTimeout, ConnectionError
 from flask import abort
 
 from citadel.config import DEBUG, AUTH_AUTHORIZE_URL
@@ -20,9 +21,9 @@ _DEBUG_USER_DICT = {
 
 def get_current_user_via_auth(token):
     try:
-        resp = requests.get(AUTH_AUTHORIZE_URL, headers={'X-Neptulon-Token': token})
-    except:
-        abort(408)
+        resp = requests.get(AUTH_AUTHORIZE_URL, headers={'X-Neptulon-Token': token}, timeout=5)
+    except (ConnectTimeout, ConnectionError, ReadTimeout):
+        abort(408, 'error when getting user from neptulon')
 
     status_code = resp.status_code
     if status_code != 200:
