@@ -115,7 +115,7 @@
     <tbody>
       % for name, elbs in elb_dict.iteritems():
         <tr>
-          <td><a href="${ url_for('loadbalance.get_elb', name=name) }">${ name }</a></td>
+          <td><a href="${ url_for('loadbalance.elb', name=name) }">${ name }</a></td>
           <td>
             % for b in elbs:
               <span class="label label-${'success' if b.is_alive() else 'danger'}">${b.container_id[:7]} @ ${b.ip}</span>
