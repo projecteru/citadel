@@ -17,10 +17,11 @@ from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_name, get_file_content
 from citadel.publish import publisher
+from citadel.models.loadbalance import update_elb_for_container
 
 
 _eof = object()
-log = logging.getLogger(__name__)
+_log = logging.getLogger(__name__)
 
 
 class ActionError(Exception):
@@ -125,7 +126,7 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, netwo
     if raw:
         image = specs.get('base', '')
     if not image:
-        log.error('repo %s, %s has no image, may not been built yet', repo, sha)
+        _log.error('repo %s, %s has no image, may not been built yet', repo, sha)
         raise ActionError(400, 'repo %s, %s has no image, may not been built yet' % (repo, sha))
 
     ms = _peek_grpc(core.create_container(content, appname, image, podname, nodename, entrypoint, cpu, count, networks, env, raw))
@@ -144,6 +145,7 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, netwo
                                              entrypoint, envname, cpu, m.podname, m.nodename)
                 publisher.add_container(container)
                 log.info('Container [%s] created', m.id)
+                update_elb_for_container(container)
             # 这里的顺序一定要注意
             # 必须在创建容器完成之后再把消息丢入队列
             # 否则调用者可能会碰到拿到了消息但是没有容器的状况.
@@ -173,6 +175,7 @@ def remove_container(ids):
     def _stream_producer():
         for m in ms:
             if m.success:
+                update_elb_for_container(container)
                 Container.delete_by_container_id(m.id)
                 log.info('Container [%s] deleted', m.id)
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')

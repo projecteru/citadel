@@ -4,7 +4,7 @@ from flask import abort
 
 from citadel.ext import core
 from citadel.models.app import App, Release
-from citadel.models.balancer import LoadBalancer
+from citadel.models.loadbalance import ELBInstance
 
 
 def bp_get_app(appname, user):
@@ -22,7 +22,7 @@ def bp_get_release(appname, sha):
 
 
 def bp_get_balancer(id):
-    elb = LoadBalancer.get(id)
+    elb = ELBInstance.get(id)
     if not elb:
         abort(404, 'ELB %s not found' % id)
     return elb

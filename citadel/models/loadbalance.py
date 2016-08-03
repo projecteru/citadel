@@ -93,7 +93,7 @@ class Route(BaseModelMixin):
         return '%s_%s_%s' % (self.appname, self.podname, self.entrypoint)
 
     def get_elb(self):
-        return LoadBalancer.get_by_name(self.elbname)
+        return ELBInstance.get_by_name(self.elbname)
 
     def dict_for_elb(self):
         d = {}
@@ -114,8 +114,8 @@ class Route(BaseModelMixin):
         super(Route, self).delete()
 
 
-class LoadBalancer(BaseModelMixin):
-    """ELB, name相同的ELB被认为功能相同."""
+class ELBInstance(BaseModelMixin):
+    """name 相同的 ELBInstance 组成一个 ELB, ELB 是一个虚拟的概念"""
     __tablename__ = 'elb'
 
     addr = db.Column(db.String(255), nullable=False)
@@ -294,3 +294,24 @@ def delete_route_analysis(route):
     for elb in route.get_elb():
         client = elb.lb_client
         client.delete_analysis(route.domain)
+
+
+def update_elb_for_container(container):
+    appname = container.appname
+    entrypoint = container.entrypoint
+    podname = container.podname
+
+    routes = Route.get_by_backend(appname, entrypoint, podname)
+    if not routes:
+        return
+    elbnames = set(r.elbname for r in routes)
+    elbs = [elb for elb_list in [ELBInstance.get_by_name(n) for n in elbnames] for elb in elb_list]
+    lb_clients = [elb.lb_client for elb in elbs]
+
+    # routes 就是不同 ELB 上边的 route 组成的数组
+    # 它们其实是一样的路由，随便取一个 backend_name 就好了
+    backend_name = routes[0].backend_name
+    backends = get_app_backends(podname, appname, entrypoint)
+    servers = ['server %s;' % b for b in backends]
+    for lb_client in lb_clients:
+        lb_client.update_upstream(backend_name, servers)

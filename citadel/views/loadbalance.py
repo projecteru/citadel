@@ -7,7 +7,7 @@ from citadel.config import ELB_APP_NAME
 from citadel.ext import core
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
-from citadel.models.balancer import LoadBalancer, Route
+from citadel.models.loadbalance import ELBInstance, Route
 from citadel.views.helper import get_nodes_for_first_pod
 
 
@@ -17,7 +17,7 @@ bp = create_page_blueprint('loadbalance', __name__, url_prefix='/loadbalance')
 @bp.route('/')
 def index():
     elb_dict = {}
-    for elb in LoadBalancer.get_all(g.start, g.limit):
+    for elb in ELBInstance.get_all(g.start, g.limit):
         elb_dict.setdefault(elb.name, []).append(elb)
     pods = core.list_pods()
 
@@ -32,7 +32,7 @@ def index():
 
 @bp.route('/<name>', methods=['POST', 'GET'])
 def elb(name):
-    elbs = LoadBalancer.get_by_name(name)
+    elbs = ELBInstance.get_by_name(name)
     if not elbs:
         abort(404, 'No elb found')
 

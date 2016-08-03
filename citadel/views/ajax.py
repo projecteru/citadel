@@ -13,7 +13,7 @@ from citadel.action import create_container, remove_container, action_stream, Ac
 from citadel.models.app import AppUserRelation, Release
 from citadel.models.env import Environment
 from citadel.models.container import Container
-from citadel.models.balancer import (Route, LoadBalancer, add_route_analysis,
+from citadel.models.loadbalance import (Route, ELBInstance, add_route_analysis,
                                      delete_route_analysis, refresh_routes)
 
 
@@ -173,7 +173,7 @@ def create_loadbalance():
                 continue
 
             ips = container.get_ips()
-            elb = LoadBalancer.create(ips[0], g.user.id, container.container_id, name, comment)
+            elb = ELBInstance.create(ips[0], g.user.id, container.container_id, name, comment)
             yield elb
 
     for elb in _stream_consumer(q):
@@ -200,7 +200,7 @@ def remove_loadbalance(id):
 
 @bp.route('/loadbalance/<name>/refresh', methods=['POST'])
 def refresh_loadbalance(name):
-    elbs = LoadBalancer.get_by_name(name)
+    elbs = ELBInstance.get_by_name(name)
     if not elbs:
         abort(404, 'No ELB [%s] found' % name)
 
