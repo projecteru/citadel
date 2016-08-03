@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 
 from citadel.ext import db
 from citadel.libs.json import Jsonized
-from citadel.libs.utils import normalize_domain, parse_domain
+from citadel.libs.utils import normalize_domain
 from citadel.models.base import BaseModelMixin
 from citadel.models.container import Container
 
@@ -69,24 +69,8 @@ class Route(BaseModelMixin):
         return cls.query.filter_by(elbname=elbname).order_by(cls.id.desc()).all()
 
     @classmethod
-    def delete_by_elb(cls, elbname):
-        cls.query.filter_by(elbname=elbname).delete()
-        db.session.commit()
-
-    @classmethod
-    def get_by_appname_and_entrypoint(cls, appname, entrypoint):
-        return cls.query.filter_by(appname=appname, entrypoint=entrypoint).order_by(cls.id.desc()).all()
-
-    @classmethod
     def get_by_backend(cls, appname, entrypoint, podname):
         return cls.query.filter_by(appname=appname, entrypoint=entrypoint, podname=podname).order_by(cls.id.desc()).all()
-
-    @classmethod
-    def get_by_podname(cls, podname, appname, entrypoint):
-        q = cls.query.filter_by(appname=appname, podname=podname)
-        if entrypoint != '__all__':
-            q = q.filter_by(entrypoint=entrypoint)
-        return q.order_by(cls.id.desc()).all()
 
     @property
     def backend_name(self):
@@ -94,17 +78,6 @@ class Route(BaseModelMixin):
 
     def get_elb(self):
         return ELBInstance.get_by_name(self.elbname)
-
-    def dict_for_elb(self):
-        d = {}
-        domain, location = parse_domain(self.domain)
-        d['domain'] = domain
-        d['appname'] = self.appname
-        d['version'] = 'all'
-        d['entrypoint'] = self.entrypoint
-        d['location'] = location
-        d['pod'] = self.podname
-        return d
 
     def get_backends(self):
         return get_app_backends(self.podname, self.appname, self.entrypoint)

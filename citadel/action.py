@@ -144,7 +144,7 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, netwo
                 container = Container.create(release.app.name, release.sha, m.id,
                                              entrypoint, envname, cpu, m.podname, m.nodename)
                 publisher.add_container(container)
-                log.info('Container [%s] created', m.id)
+                _log.info('Container [%s] created', m.id)
                 update_elb_for_container(container)
             # 这里的顺序一定要注意
             # 必须在创建容器完成之后再把消息丢入队列
@@ -177,7 +177,7 @@ def remove_container(ids):
             if m.success:
                 update_elb_for_container(container)
                 Container.delete_by_container_id(m.id)
-                log.info('Container [%s] deleted', m.id)
+                _log.info('Container [%s] deleted', m.id)
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
         q.put(_eof)
 
@@ -227,8 +227,9 @@ def upgrade_container(ids, repo, sha):
                     continue
                 publisher.add_container(c)
 
+                update_elb_for_container(container)
                 old.delete()
-                log.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
+                _log.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
             # 这里也要注意顺序
             # 不要让外面出现拿到了消息但是数据还没有更新.
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
