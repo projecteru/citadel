@@ -227,6 +227,7 @@ def upgrade_container(ids, repo, sha):
                     continue
                 publisher.add_container(c)
 
+                update_elb_for_container(container)
                 old.delete()
                 _log.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
             # 这里也要注意顺序
