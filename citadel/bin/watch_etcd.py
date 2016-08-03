@@ -1,5 +1,7 @@
 # coding: utf-8
-
+"""
+run use citadel/bin/run-etcd-watcher
+"""
 import time
 import json
 import logging
@@ -11,6 +13,7 @@ from etcd import EtcdWatchTimedOut, EtcdConnectionFailed
 from citadel.ext import etcd
 from citadel.publish import publisher
 from citadel.models import Container
+from citadel.models.loadbalance import update_elb_for_container
 from citadel.libs.utils import with_appcontext
 
 
@@ -40,14 +43,14 @@ def deal(key, data):
     if not container:
         return
 
-    # TODO
-    # 这里需要改下, 应该是从balancer直接剔除这个节点比较简单
     if alive:
-        _log.info('add')
+        _log.info('add {}'.format(container_id))
         publisher.add_container(container)
     else:
-        _log.info('remove')
+        _log.info('remove {}'.format(container_id))
         publisher.remove_container(container)
+
+    update_elb_for_container(container)
     publisher.publish_app(appname)
 
 
