@@ -1,4 +1,5 @@
 # coding: utf-8
+
 from flask import g, request, url_for, redirect, abort
 from flask_mako import render_template
 
@@ -66,3 +67,9 @@ def user_info(identifier):
     all_apps = App.get_all(limit=100)
     all_apps = [app for app in all_apps if app not in apps]
     return render_template('/admin/user_info.mako', user=user, apps=apps, all_apps=all_apps)
+
+
+@bp.before_request
+def access_control():
+    if not g.user.privilege:
+        abort(403, 'Current user not privileged')

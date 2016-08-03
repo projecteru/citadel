@@ -1,7 +1,7 @@
 # coding: utf-8
 
 import logging
-from flask import g, session, abort, Flask, request
+from flask import g, abort, session, Flask, request
 from werkzeug.utils import import_string
 
 from citadel.ext import db, mako
@@ -50,12 +50,6 @@ def create_app():
         sentry = SentryCollector(dsn=app.config['SENTRY_DSN'])
         sentry.init_app(app)
 
-    def check_admin():
-        if not g.user:
-            abort(401)
-        if not g.user.privilege:
-            abort(403)
-
     for bp_name in blueprints:
         bp = import_string('%s.views.%s:bp' % (__package__, bp_name))
         app.register_blueprint(bp)
@@ -71,5 +65,8 @@ def create_app():
 
         token = request.headers.get('X-Neptulon-Token', '')
         g.user = token and get_current_user_via_auth(token) or (get_current_user() if 'sso' in session or debug else None)
+
+        if not g.user:
+            abort(401, 'Must login')
 
     return app

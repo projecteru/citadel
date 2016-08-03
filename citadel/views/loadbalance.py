@@ -1,4 +1,5 @@
 # coding: utf-8
+
 from flask import g, request, abort
 from flask_mako import render_template
 
@@ -35,7 +36,8 @@ def elb(name):
     if not elbs:
         abort(404, 'No elb found')
 
-    if request.method == 'POST':
+    # 不是admin就别乱改了
+    if request.method == 'POST' and g.user.privilege:
         domain = request.form['domain']
         appname = request.form['appname']
         podname = request.form['podname']

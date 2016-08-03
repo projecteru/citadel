@@ -8,7 +8,7 @@ from flask_mako import render_template
 from citadel.libs.json import jsonize
 
 
-ERROR_CODES = [400, 401, 403, 404]
+ERROR_CODES = [400, 401, 403, 404, 408]
 DEFAULT_RETURN_VALUE = {'error': None}
 
 

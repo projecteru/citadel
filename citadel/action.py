@@ -143,6 +143,7 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, netwo
                 container = Container.create(release.app.name, release.sha, m.id,
                                              entrypoint, envname, cpu, m.podname, m.nodename)
                 publisher.add_container(container)
+                log.info('Container [%s] created', m.id)
             # 这里的顺序一定要注意
             # 必须在创建容器完成之后再把消息丢入队列
             # 否则调用者可能会碰到拿到了消息但是没有容器的状况.
@@ -173,6 +174,7 @@ def remove_container(ids):
         for m in ms:
             if m.success:
                 Container.delete_by_container_id(m.id)
+                log.info('Container [%s] deleted', m.id)
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
         q.put(_eof)
 
@@ -223,6 +225,7 @@ def upgrade_container(ids, repo, sha):
                 publisher.add_container(c)
 
                 old.delete()
+                log.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
             # 这里也要注意顺序
             # 不要让外面出现拿到了消息但是数据还没有更新.
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')

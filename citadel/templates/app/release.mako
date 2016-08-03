@@ -19,12 +19,17 @@
       <h3 class="panel-title">Release</h3>
     </%def>
     <h4><a href="${ url_for('app.get_app', name=app.name) }">${ app.name }</a> @ ${ release.short_sha }</h4>
-    <button class="btn btn-info pull-right" data-toggle="modal" data-target="#build-image-modal">
-      <span class="fui-time"> Build Image</span>
-    </button>
     % if release.image:
       <button class="btn btn-info pull-right" data-toggle="modal" data-target="#add-container-modal">
-        <span class="fui-plus"> Add Container</span>
+        <span class="fui-plus"></span> Add Container
+      </button>
+    % elif g.user.privilege:
+      <button class="btn btn-info pull-right" data-toggle="modal" data-target="#add-container-modal">
+        <span class="fui-plus"></span> Add Raw Container
+      </button>
+    % else:
+      <button class="btn btn-info pull-right" disabled>
+        <span class="fui-plus"></span> Add Container
       </button>
     % endif
   </%call>
@@ -171,9 +176,9 @@
     </form>
   </%call>
 
-  <%call expr="utils.modal('add-container-progress')">
+  <%call expr="utils.modal('container-progress')">
     <%def name="header()">
-      <h3 class="modal-title">Adding Container ...</h3>
+      <h3 class="modal-title">Please wait...</h3>
     </%def>
     <%def name="footer()">
     </%def>

@@ -21,6 +21,16 @@ $('#add-container-form select[name=pod]').change(function(){
   });
 });
 
+$(document).ajaxStart(function(){
+  var progressBar = $('div.progress-bar');
+
+  $('#add-container-modal').modal('hide');
+  $('#container-progress').modal('show');
+  progressBar.width('0').animate({width: '100%'}, 10000);
+}).ajaxStop(function(){
+  $('#container-progress').modal('hide');
+});
+
 $('#add-container-button').click(function(e){
   e.preventDefault();
   var url = '/ajax/release/{releaseId}/deploy';

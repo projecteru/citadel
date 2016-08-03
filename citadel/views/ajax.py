@@ -27,6 +27,7 @@ def delete_app_env(name):
     app = bp_get_app(name, g.user)
     env = Environment.get_by_app_and_env(app.name, envname)
     if env:
+        log.info('Env [%s] for app [%s] deleted', envname, name)
         env.delete()
     return DEFAULT_RETURN_VALUE
 
@@ -176,7 +177,7 @@ def create_loadbalance():
             yield elb
 
     for elb in _stream_consumer(q):
-        log.info('ELB %s created', elb.name)
+        log.info('ELB [%s] created', elb.name)
     return DEFAULT_RETURN_VALUE
 
 
@@ -192,7 +193,7 @@ def remove_loadbalance(id):
     for line in action_stream(q):
         m = json.loads(line)
         if m['success'] and elb.container_id == m['id']:
-            log.info('ELB %s deleted', elb.name)
+            log.info('ELB [%s] deleted', elb.name)
             elb.delete()
     return DEFAULT_RETURN_VALUE
 
@@ -201,9 +202,10 @@ def remove_loadbalance(id):
 def refresh_loadbalance(name):
     elbs = LoadBalancer.get_by_name(name)
     if not elbs:
-        abort(404, 'No ELB named %s found' % name)
+        abort(404, 'No ELB [%s] found' % name)
 
     refresh_routes(name)
+    log.info('ELB [%s] refreshed', name)
     return DEFAULT_RETURN_VALUE
 
 
@@ -214,6 +216,7 @@ def delete_lbrecord(id):
         abort(404, 'Route %d not found' % id)
 
     route.delete()
+    log.info('Route [%s] for ELB [%s] deleted', id, route.elbname)
     return DEFAULT_RETURN_VALUE
 
 
@@ -240,11 +243,6 @@ def revoke_app():
 
 @bp.before_request
 def access_control():
-    if request.path.endswith('/backends'):
-        return
-
-    if not g.user:
-        abort(401)
-
-    if not g.user.privilege and request.path.startswith('/ajax/admin'):
-        abort(403)
+    # loadbalance和admin的不是admin就不要乱搞了
+    if not g.user.privilege and (request.path.startswith('/ajax/admin') or request.path.startswith('/ajax/loadbalance')):
+        abort(403, 'Must be admin')

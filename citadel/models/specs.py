@@ -46,7 +46,7 @@ class Bind(object):
 class Entrypoint(object):
 
     def __init__(self, command, ports, exposes, network_mode, mem_limit,
-            restart, health_check, hosts, permdir, privileged, log_config):
+            restart, health_check, hosts, permdir, privileged, log_config, working_dir):
         self.command = command
         self.ports = ports
         self.exposes = exposes
@@ -58,6 +58,7 @@ class Entrypoint(object):
         self.permdir = permdir
         self.privileged = privileged
         self.log_config = log_config
+        self.working_dir = working_dir
 
     @classmethod
     def from_dict(cls, data):
@@ -72,13 +73,14 @@ class Entrypoint(object):
         permdir = bool(data.get('permdir'))
         privileged = bool(data.get('privileged'))
         log_config = data.get('log_config', 'json-file')
+        working_dir = data.get('working_dir', '')
         return cls(command, ports, exposes, network_mode, mem_limit, restart,
-                health_check, hosts, permdir, privileged, log_config)
+                health_check, hosts, permdir, privileged, log_config, working_dir)
 
 
 class Specs(Jsonized):
 
-    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base, raw):
+    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base, mount_paths, raw):
         # raw to jsonize
         self.appname = appname
         self.entrypoints = entrypoints
@@ -87,6 +89,7 @@ class Specs(Jsonized):
         self.binds = binds
         self.meta = meta
         self.base = base
+        self.mount_paths = mount_paths
         self._raw = raw
 
     @classmethod
@@ -98,7 +101,8 @@ class Specs(Jsonized):
         binds = {key: Bind.from_dict(value) for key, value in data.get('binds', {}).iteritems()}
         meta = data.get('meta', {})
         base = data.get('base')
-        return cls(appname, entrypoints, build, volumes, binds, meta, base, data)
+        mount_paths = data.get('mount_paths', [])
+        return cls(appname, entrypoints, build, volumes, binds, meta, base, mount_paths, data)
 
     @classmethod
     def from_string(cls, string):
