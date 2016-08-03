@@ -8,13 +8,13 @@ from citadel.ext import core
 from citadel.libs.utils import with_appcontext
 from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
 from citadel.views.helper import bp_get_app, bp_get_balancer
-from citadel.action import create_container, remove_container, action_stream, ActionError
+from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
 
 from citadel.models.app import AppUserRelation, Release
 from citadel.models.env import Environment
 from citadel.models.container import Container
 from citadel.models.loadbalance import (Route, ELBInstance, add_route_analysis,
-                                     delete_route_analysis, refresh_routes)
+                                        delete_route_analysis, refresh_routes)
 
 
 bp = create_ajax_blueprint('ajax', __name__, url_prefix='/ajax')
@@ -246,3 +246,11 @@ def access_control():
     # loadbalance和admin的不是admin就不要乱搞了
     if not g.user.privilege and (request.path.startswith('/ajax/admin') or request.path.startswith('/ajax/loadbalance')):
         abort(403, 'Must be admin')
+
+
+@bp.route('/upgrade-container', methods=['POST'])
+def upgrade_container_view():
+    container_ids = request.form.getlist('container_id')
+    release_sha = request.form['release']
+    upgrade_container(container_ids, repo=None, sha=release_sha)
+    return DEFAULT_RETURN_VALUE
