@@ -13,6 +13,7 @@ MAKO_TRANSLATE_EXCEPTIONS = False
 
 GRPC_HOST = getenv('GRPC_HOST', default='127.0.0.1')
 GRPC_PORT = getenv('GRPC_PORT', default=5001, type=int)
+AGENT_PORT = getenv('AGENT_PORT', default=12345, type=int)
 
 SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', default='mysql://root:@localhost:3306/citadel')
 SQLALCHEMY_TRACK_MODIFICATIONS = getenv('SQLALCHEMY_TRACK_MODIFICATIONS', default=True, type=bool)

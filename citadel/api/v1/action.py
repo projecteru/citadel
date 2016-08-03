@@ -1,9 +1,13 @@
 # coding: utf-8
 
+import json
 from flask import jsonify, request, Response
 
 from citadel.libs.view import create_api_blueprint
 from citadel.libs.datastructure import AbortDict
+from citadel.libs.agent import EruAgentError, EruAgentClient
+
+from citadel.ext import core
 from citadel.action import (build_image, create_container, remove_container,
         upgrade_container, action_stream, ActionError)
 
@@ -69,6 +73,31 @@ def upgrade():
 
     q = upgrade_container(ids, repo, sha)
     return Response(action_stream(q), mimetype='application/json')
+
+
+@bp.route('/log', methods=['POST'])
+def get_log():
+    data = AbortDict(request.get_json())
+    appname = data['appname']
+    podname = data['podname']
+    nodename = data['nodename']
+
+    node = core.get_node(podname, nodename)
+    if not node:
+        raise ActionError(400, 'Node %s not found' % nodename)
+
+    # use ActionError instead of EruAgentError to client
+    client = EruAgentClient(node.ip)
+    try:
+        resp = client.log(appname)
+    except EruAgentError as e:
+        raise ActionError(400, e.message)
+
+    def log_producer():
+        for data in resp:
+            yield json.dumps(data) + '\n'
+
+    return Response(log_producer(), mimetype='application/json')
 
 
 @bp.errorhandler(ActionError)
