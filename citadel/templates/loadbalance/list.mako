@@ -118,7 +118,7 @@
           <td><a href="${ url_for('loadbalance.elb', name=name) }">${ name }</a></td>
           <td>
             % for b in elbs:
-              <span class="label label-${'success' if b.is_alive() else 'danger'}">${b.container_id[:7]} @ ${b.ip}</span>
+              <a href="http://${b.ip}/__erulb__/upstream" target="_blank"><span class="label label-${'success' if b.is_alive() else 'danger'}">${b.container_id[:7]} @ ${b.ip}</span></a>
             % endfor
           </td>
         </tr>

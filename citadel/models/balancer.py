@@ -1,11 +1,11 @@
 # coding: utf-8
 
-import hashlib
 import requests
 from sqlalchemy.exc import IntegrityError
 
 from citadel.ext import db
 from citadel.libs.json import Jsonized
+from citadel.libs.utils import normalize_domain, parse_domain
 from citadel.models.base import BaseModelMixin
 from citadel.models.container import Container
 
@@ -23,23 +23,6 @@ def get_app_backends(podname, appname, entrypoint):
     if entrypoint == '_all':
         return [b for c in containers for b in c.get_backends() if c.podname == podname]
     return [b for c in containers for b in c.get_backends() if c.entrypoint == entrypoint and c.podname == podname]
-
-
-def normalize_domain(domain):
-    """保留第一级的path, 并且去掉最后的/"""
-    if '/' not in domain:
-        return domain
-
-    r = domain.split('/', 2)
-    if len(r) == 2:
-        domain, path = r
-        if path:
-            return '/'.join([domain, path])
-        return domain
-    else:
-        domain = r[0]
-        path = r[1]
-        return '/'.join([domain, path])
 
 
 class Route(BaseModelMixin):
@@ -252,15 +235,6 @@ class LBClient(Jsonized):
 
     def to_dict(self):
         return {'domain_addr': self.domain_addr, 'upstream_addr': self.upstream_addr}
-
-
-def parse_domain(domain):
-    s = domain.split('/')
-    if len(s) == 1:
-        domain, location = s[0], ''
-    else:
-        domain, location = s[:2]
-    return domain, '/' + location
 
 
 def add_route(route):
