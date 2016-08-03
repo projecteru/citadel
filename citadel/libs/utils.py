@@ -1,4 +1,5 @@
 # coding:utf-8
+
 from functools import wraps, partial
 
 from etcd import EtcdException
@@ -44,3 +45,29 @@ def make_unicode(s):
         return s.decode('utf-8')
     except:
         return s
+
+
+def normalize_domain(domain):
+    """保留第一级的path, 并且去掉最后的/"""
+    if '/' not in domain:
+        return domain
+
+    r = domain.split('/', 2)
+    if len(r) == 2:
+        domain, path = r
+        if path:
+            return '/'.join([domain, path])
+        return domain
+    else:
+        domain = r[0]
+        path = r[1]
+        return '/'.join([domain, path])
+
+
+def parse_domain(domain):
+    s = domain.split('/')
+    if len(s) == 1:
+        domain, location = s[0], ''
+    else:
+        domain, location = s[:2]
+    return domain, '/' + location
