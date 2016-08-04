@@ -61,7 +61,7 @@ $('#add-container-button').click(function(e){
       alert(r.error);
       return;
     }
-    location.reload();
+    window.location.href = window.location.href.replace(/#\w+/g, '');
   });
 });
 
