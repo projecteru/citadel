@@ -65,6 +65,7 @@
     </tbody>
   </table>
 
+  <button name="delete-all" class="btn btn-warning pull-right"><span class="fui-trash"></span> Delete Chosen</button>
   ${caller.body()}
 
   <script>

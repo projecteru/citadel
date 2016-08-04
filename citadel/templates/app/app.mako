@@ -37,7 +37,6 @@
     </%def>
     <%utils:container_list containers="${ containers }">
       <button name="upgrade-all" class="btn btn-primary pull-left" data-toggle="modal" data-target="#upgrade-container-modal"><span class="fui-apple"></span> Upgrade Chosen</button>
-      <button name="delete-all" class="btn btn-warning pull-right"><span class="fui-trash"></span> Delete Chosen</button>
 
     </%utils:container_list>
   </%utils:panel>
