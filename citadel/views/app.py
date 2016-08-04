@@ -49,7 +49,6 @@ def get_release(name, sha):
                            envs=envs, appspecs=appspecs, containers=containers,
                            networks=networks, nodes=nodes, pods=pods)
 
-
 @bp.route('/<name>/env', methods=['GET', 'POST'])
 def app_env(name):
     app = bp_get_app(name, g.user)

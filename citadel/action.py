@@ -188,7 +188,15 @@ def remove_container(ids):
     return q
 
 
-def upgrade_container(ids, repo, sha):
+def upgrade_container(ids, repo=None, sha=None):
+    containers = [c for c in [Container.get_by_container_id(i) for i in ids] if c]
+    if not containers:
+        return
+
+    if not repo:
+        app = App.get_by_name(containers[0].appname)
+        repo = app.git
+
     project_name = get_project_name(repo)
     content = get_file_content(project_name, 'app.yaml', sha)
     if not content:
@@ -196,7 +204,12 @@ def upgrade_container(ids, repo, sha):
 
     specs = yaml.load(content)
     appname = specs.get('appname', '')
-    release = Release.get_by_app_and_sha(appname, sha)
+
+    if sha:
+        release = Release.get_by_app_and_sha(appname, sha)
+    else:
+        release = Release.get_by_app(appname, limit=1)[0]
+
     if not release:
         raise ActionError(400, 'repo %s, %s does not have the right appname in app.yaml' % (repo, sha))
 
@@ -204,7 +217,6 @@ def upgrade_container(ids, repo, sha):
         raise ActionError(400, 'repo %s, %s has not been built yet' % (repo, sha))
 
     # publish backends
-    containers = [Container.get_by_container_id(i) for i in ids]
     for container in containers:
         if not container:
             continue

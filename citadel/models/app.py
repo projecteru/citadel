@@ -12,6 +12,7 @@ from citadel.models.specs import Specs
 class App(BaseModelMixin):
     __tablename__ = 'app'
     name = db.Column(db.CHAR(64), nullable=False, unique=True)
+    # 这货就是 git@gitlab.ricebook.net...
     git = db.Column(db.String(255), nullable=False)
     user_id = db.Column(db.Integer, nullable=False, default=0)
 
