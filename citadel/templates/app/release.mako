@@ -46,7 +46,8 @@
     <%def name="header()">
       <h3 class="panel-title">Online Containers: ${ len(containers) }</h3>
     </%def>
-    ${ utils.container_list(containers) }
+    <%utils:container_list containers="${ containers }">
+    </%utils:container_list>
   </%call>
 
 </%block>
