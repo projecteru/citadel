@@ -10,7 +10,7 @@ from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
 from citadel.views.helper import bp_get_app, bp_get_balancer
 from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
 
-from citadel.models.app import AppUserRelation, Release
+from citadel.models.app import AppUserRelation, Release, App
 from citadel.models.env import Environment
 from citadel.models.container import Container
 from citadel.models.loadbalance import (Route, ELBInstance, add_route_analysis,
@@ -112,10 +112,37 @@ def get_release_entrypoints(release_id):
 def remove_containers():
     container_ids = request.form.getlist('container_id')
     try:
-        remove_container(container_ids)
+        q = remove_container(container_ids)
     except ActionError as e:
         log.error('error when removing containers: %s', e.message)
         return {'error': e.message}
+
+    for line in action_stream(q):
+        m = json.loads(line)
+        if not m['success']:
+            log.error('error when deleting container: %s', m['message'])
+    return DEFAULT_RETURN_VALUE
+
+
+@bp.route('/upgrade-container', methods=['POST'])
+def upgrade_containers():
+    container_ids = request.form.getlist('container_id')
+    sha = request.form['sha']
+    appname = request.form['appname']
+
+    app = App.get_by_name(appname)
+    if not app:
+        abort(400, 'App %s not found' % appname)
+
+    try:
+        q = upgrade_container(container_ids, app.git, sha)
+    except ActionError as e:
+        return {'error': e.message}
+
+    for line in action_stream(q):
+        m = json.loads(line)
+        if not m['success']:
+            log.error('error when upgrading container %s: %s', m['id'], m['error'])
     return DEFAULT_RETURN_VALUE
 
 
@@ -246,11 +273,3 @@ def access_control():
     # loadbalance和admin的不是admin就不要乱搞了
     if not g.user.privilege and (request.path.startswith('/ajax/admin') or request.path.startswith('/ajax/loadbalance')):
         abort(403, 'Must be admin')
-
-
-@bp.route('/upgrade-container', methods=['POST'])
-def upgrade_container_view():
-    container_ids = request.form.getlist('container_id')
-    release_sha = request.form['release']
-    upgrade_container(container_ids, repo=None, sha=release_sha)
-    return DEFAULT_RETURN_VALUE

@@ -67,19 +67,21 @@
 
   <script>
     $('button[id=upgrade-container-button]').click(function(e){
-    if (!$('input[name=container-id]:checked').length) {
-    return;
-    }
-    e.preventDefault();
-    var payload = [];
-    var url = '/ajax/upgrade-container';
-    $.each($('input[name=container-id]:checked'), function(){
-    payload.push('container_id=' + $(this).val());
-    });
-    payload.push('release=' + $('select[name=release]').val())
-    $.post(url, payload.join('&'), function(){
-    location.reload();
-    })
+      e.preventDefault();
+      if (!$('input[name=container-id]:checked').length) {
+        return;
+      }
+
+      var payload = [];
+      payload.push('sha=' + $('select[name=release]').val());
+      payload.push('appname=' + $('h4').html());
+      $.each($('input[name=container-id]:checked'), function(){
+        payload.push('container_id=' + $(this).val());
+      });
+
+      $.post('/ajax/upgrade-container', payload.join('&'), function(){
+        location.reload();
+      });
     });
   </script>
 

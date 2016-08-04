@@ -191,14 +191,11 @@ def remove_container(ids):
     return q
 
 
-def upgrade_container(ids, repo=None, sha=None):
-    containers = [c for c in [Container.get_by_container_id(i) for i in ids] if c]
+def upgrade_container(ids, repo, sha):
+    containers = [Container.get_by_container_id(i) for i in ids]
+    containers = [c for c in containers if c and c.sha != sha]
     if not containers:
-        return
-
-    if not repo:
-        app = App.get_by_name(containers[0].appname)
-        repo = app.git
+        raise ActionError(400, 'No containers to upgrade')
 
     project_name = get_project_name(repo)
     content = get_file_content(project_name, 'app.yaml', sha)
@@ -208,11 +205,7 @@ def upgrade_container(ids, repo=None, sha=None):
     specs = yaml.load(content)
     appname = specs.get('appname', '')
 
-    if sha:
-        release = Release.get_by_app_and_sha(appname, sha)
-    else:
-        release = Release.get_by_app(appname, limit=1)[0]
-
+    release = Release.get_by_app_and_sha(appname, sha)
     if not release:
         raise ActionError(400, 'repo %s, %s does not have the right appname in app.yaml' % (repo, sha))
 
