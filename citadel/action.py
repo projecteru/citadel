@@ -17,7 +17,7 @@ from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_name, get_file_content
 from citadel.publish import publisher
-from citadel.models.loadbalance import update_elb_for_container
+from citadel.models.loadbalance import update_elb_for_containers
 
 
 _eof = object()
@@ -139,18 +139,20 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, netwo
             q.put(_eof)
             return
 
+        containers = []
         for m in ms:
             if m.success:
                 container = Container.create(release.app.name, release.sha, m.id,
                                              entrypoint, envname, cpu, m.podname, m.nodename)
+                containers.append(container)
                 publisher.add_container(container)
                 _log.info('Container [%s] created', m.id)
-                update_elb_for_container(container)
             # 这里的顺序一定要注意
             # 必须在创建容器完成之后再把消息丢入队列
             # 否则调用者可能会碰到拿到了消息但是没有容器的状况.
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
 
+        update_elb_for_containers(containers)
         q.put(_eof)
 
     t = Thread(target=_stream_producer)
@@ -168,6 +170,8 @@ def remove_container(ids):
             continue
         publisher.remove_container(container)
 
+    # TODO: handle the situations where core try-and-fail to delete container
+    update_elb_for_containers(containers)
     ms = _peek_grpc(core.remove_container(ids))
     q = Queue()
 
@@ -175,7 +179,6 @@ def remove_container(ids):
     def _stream_producer():
         for m in ms:
             if m.success:
-                update_elb_for_container(container)
                 Container.delete_by_container_id(m.id)
                 _log.info('Container [%s] deleted', m.id)
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
@@ -237,9 +240,10 @@ def upgrade_container(ids, repo=None, sha=None):
                                      old.env, old.cpu_quota, old.podname, old.nodename)
                 if not c:
                     continue
-                publisher.add_container(c)
 
-                update_elb_for_container(container)
+                publisher.add_container(c)
+                # 这里只能一个一个更新 elb 了，无法批量更新
+                update_elb_for_containers(c)
                 old.delete()
                 _log.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
             # 这里也要注意顺序

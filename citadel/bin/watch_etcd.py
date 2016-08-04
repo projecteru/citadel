@@ -13,7 +13,7 @@ from etcd import EtcdWatchTimedOut, EtcdConnectionFailed
 from citadel.ext import etcd
 from citadel.publish import publisher
 from citadel.models import Container
-from citadel.models.loadbalance import update_elb_for_container
+from citadel.models.loadbalance import update_elb_for_containers
 from citadel.libs.utils import with_appcontext
 
 
@@ -50,7 +50,7 @@ def deal(key, data):
         _log.info('remove {}'.format(container_id))
         publisher.remove_container(container)
 
-    update_elb_for_container(container)
+    update_elb_for_containers(container)
     publisher.publish_app(appname)
 
 

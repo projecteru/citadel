@@ -2,6 +2,7 @@
 
 import requests
 from sqlalchemy.exc import IntegrityError
+from collections import Iterable
 
 from citadel.ext import db
 from citadel.libs.json import Jsonized
@@ -269,22 +270,24 @@ def delete_route_analysis(route):
         client.delete_analysis(route.domain)
 
 
-def update_elb_for_container(container):
-    appname = container.appname
-    entrypoint = container.entrypoint
-    podname = container.podname
+def update_elb_for_containers(containers):
+    if not isinstance(containers, Iterable):
+        containers = [containers]
 
-    routes = Route.get_by_backend(appname, entrypoint, podname)
-    if not routes:
-        return
-    elbnames = set(r.elbname for r in routes)
-    elbs = [elb for elb_list in [ELBInstance.get_by_name(n) for n in elbnames] for elb in elb_list]
-    lb_clients = [elb.lb_client for elb in elbs]
+    route_backends = set((c.appname, c.entrypoint, c.podname) for c in containers)
 
-    # routes 就是不同 ELB 上边的 route 组成的数组
-    # 它们其实是一样的路由，随便取一个 backend_name 就好了
-    backend_name = routes[0].backend_name
-    backends = get_app_backends(podname, appname, entrypoint)
-    servers = ['server %s;' % b for b in backends]
-    for lb_client in lb_clients:
-        lb_client.update_upstream(backend_name, servers)
+    for appname, entrypoint, podname in route_backends:
+        routes = Route.get_by_backend(appname, entrypoint, podname)
+        if not routes:
+            continue
+        elbnames = set(r.elbname for r in routes)
+        elbs = [elb for elb_list in [ELBInstance.get_by_name(n) for n in elbnames] for elb in elb_list]
+        lb_clients = [elb.lb_client for elb in elbs]
+
+        # routes 就是不同 ELB 上边的 route 组成的数组
+        # 它们其实是一样的路由，随便取一个 backend_name 就好了
+        backend_name = routes[0].backend_name
+        backends = get_app_backends(podname, appname, entrypoint)
+        servers = ['server %s;' % b for b in backends]
+        for lb_client in lb_clients:
+            lb_client.update_upstream(backend_name, servers)
