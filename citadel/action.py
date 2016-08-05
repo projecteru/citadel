@@ -6,19 +6,21 @@ from Queue import Queue, Empty
 from threading import Thread
 
 import yaml
+from flask import g
 from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 
 from citadel.ext import core
 from citadel.libs.json import JSONEncoder
 from citadel.libs.utils import with_appcontext
+from citadel.publish import publisher
+
 from citadel.models.app import App, Release
 from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_name, get_file_content
 from citadel.models.loadbalance import update_elb_for_containers
 from citadel.models.oplog import OPType, OPLog
-from citadel.publish import publisher
 
 
 _eof = object()
@@ -30,6 +32,13 @@ class ActionError(Exception):
     def __init__(self, code, message):
         self.code = code
         self.message = message
+
+
+def _get_current_user_id():
+    """with_appcontext的线程是没有g.user的, 得通过其他方式拿到了之后传进去."""
+    if not hasattr(g, 'user'):
+        return 0
+    return g.user and g.user.id or 0
 
 
 def action_stream(q):
@@ -67,7 +76,6 @@ def build_image(repo, sha, uid='', artifact=''):
 
     specs = yaml.load(content)
     appname = specs.get('appname', '')
-    OPLog.create(OPType.BUILD_IMAGE, appname, sha)
     app = App.get_by_name(appname)
     if not app:
         raise ActionError(400, 'repo %s does not have the right appname in app.yaml' % repo)
@@ -134,6 +142,8 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, netwo
     ms = _peek_grpc(core.create_container(content, appname, image, podname, nodename, entrypoint, cpu, count, networks, env, raw))
     q = Queue()
 
+    user_id = _get_current_user_id()
+
     @with_appcontext
     def _stream_producer():
         release = Release.get_by_app_and_sha(appname, sha)
@@ -146,6 +156,16 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, netwo
             if m.success:
                 container = Container.create(release.app.name, release.sha, m.id,
                                              entrypoint, envname, cpu, m.podname, m.nodename)
+                if not container:
+                    _log.error('Create [%s] created failed', m.id)
+                    continue
+
+                # 记录oplog, cpu这里需要处理下, 因为返回的消息里也有这个值
+                op_content = {'entrypoint': entrypoint, 'envname': envname, 'networks': networks}
+                op_content.update(m.to_dict())
+                op_content['cpu'] = cpu
+                OPLog.create(user_id, OPType.CREATE_CONTAINER, appname, release.sha, op_content)
+
                 containers.append(container)
                 publisher.add_container(container)
                 _log.info('Container [%s] created', m.id)
@@ -170,7 +190,6 @@ def remove_container(ids):
     for c in containers:
         if not c:
             continue
-        OPLog.create(OPType.REMOVE_CONTAINER, c.appname, c.sha)
         publisher.remove_container(c)
 
     # TODO: handle the situations where core try-and-fail to delete container
@@ -178,11 +197,23 @@ def remove_container(ids):
     ms = _peek_grpc(core.remove_container(ids))
     q = Queue()
 
+    user_id = _get_current_user_id()
+
     @with_appcontext
     def _stream_producer():
         for m in ms:
             if m.success:
-                Container.delete_by_container_id(m.id)
+                container = Container.get_by_container_id(m.id)
+                if not container:
+                    _log.info('Container [%s] not found when deleting', m.id)
+                    continue
+
+                # 记录oplog
+                op_content = {'container_id': m.id}
+                OPLog.create(user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
+
+                container.delete()
+
                 _log.info('Container [%s] deleted', m.id)
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
         q.put(_eof)
@@ -220,10 +251,11 @@ def upgrade_container(ids, repo, sha):
         if not container:
             continue
         publisher.remove_container(container)
-        OPLog.create(OPType.UPGRADE_CONTAINER, appname, sha)
 
     ms = _peek_grpc(core.upgrade_container(ids, release.image))
     q = Queue()
+
+    user_id = _get_current_user_id()
 
     @with_appcontext
     def _stream_producer():
@@ -238,10 +270,15 @@ def upgrade_container(ids, repo, sha):
                 if not c:
                     continue
 
+                # 记录oplog
+                op_content = {'old_id': m.id, 'new_id': m.new_id, 'old_sha': old.sha, 'new_sha': c.sha}
+                OPLog.create(user_id, OPType.UPGRADE_CONTAINER, c.appname, c.sha, op_content)
+
                 publisher.add_container(c)
                 # 这里只能一个一个更新 elb 了，无法批量更新
                 update_elb_for_containers(c)
                 old.delete()
+
                 _log.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
             # 这里也要注意顺序
             # 不要让外面出现拿到了消息但是数据还没有更新.

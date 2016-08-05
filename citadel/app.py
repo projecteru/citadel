@@ -32,6 +32,18 @@ api_blueprints = [
     'mimiron',
 ]
 
+ANONYMOUS_PATHS = [
+    '/hook',
+    '/user',
+]
+
+
+def anonymous_path(path):
+    for p in ANONYMOUS_PATHS:
+        if path.startswith(path):
+            return True
+    return False
+
 
 def create_app():
     app = Flask(__name__, static_url_path='/citadel/static')
@@ -66,7 +78,7 @@ def create_app():
         token = request.headers.get('X-Neptulon-Token', '')
         g.user = token and get_current_user_via_auth(token) or (get_current_user() if 'sso' in session or debug else None)
 
-        if not g.user:
+        if not g.user and not anonymous_path(request.path):
             abort(401, 'Must login')
 
     return app

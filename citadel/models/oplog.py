@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
+
 import json
 
 import enum
+import sqlalchemy
 import sqlalchemy.types as types
-from flask import g
-from flask_sqlalchemy import sqlalchemy as sa
 
 from citadel.ext import db
 from citadel.models.base import BaseModelMixin
@@ -37,7 +37,7 @@ class Enum34(types.TypeDecorator):
         if value is None:
             return None
         if value not in self.enum_class:
-            raise ValueError("\"%s\"is not a valid enum value" % repr(value))
+            raise ValueError("'%s' is not a valid enum value" % repr(value))
         return value.value
 
     def process_result_value(self, value, dialect):
@@ -47,7 +47,6 @@ class Enum34(types.TypeDecorator):
 
 
 class OPType(enum.Enum):
-
     REGISTER_RELEASE = 0
     BUILD_IMAGE = 1
     CREATE_ENV = 2
@@ -63,9 +62,9 @@ class OPType(enum.Enum):
 class OPLog(BaseModelMixin):
 
     __tablename__ = 'operation_log'
-    user_id = db.Column(db.Integer, nullable=True, index=True)
-    appname = db.Column(db.CHAR(64), nullable=True, index=True)
-    sha = db.Column(db.CHAR(64), nullable=True, index=True)
+    user_id = db.Column(db.Integer, nullable=False, default=0, index=True)
+    appname = db.Column(db.CHAR(64), nullable=False, default='', index=True)
+    sha = db.Column(db.CHAR(64), nullable=False, default='', index=True)
     action = db.Column(Enum34(OPType))
     content = db.Column(JsonType, default={})
 
@@ -89,14 +88,12 @@ class OPLog(BaseModelMixin):
             start, end = time_window
             filters.extend([cls.dt >= start, cls.dt <= end])
 
-        return cls.query.filter(sa.and_(*filters)).order_by(sa.desc(cls.dt)).all()
+        return cls.query.filter(sqlalchemy.and_(*filters)).order_by(cls.created.desc()).all()
 
     @classmethod
-    def create(cls, action, appname=None, sha=None, content=None):
-        try:
-            user_id = g.user.id
-        except:
-            user_id = 0
+    def create(cls, user_id, action, appname='', sha='', content=None):
+        if content is None:
+            content = {}
 
         op_log = cls(user_id=user_id,
                      appname=appname,

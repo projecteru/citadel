@@ -36,7 +36,7 @@ from operator import itemgetter
       </div>
       <div class="panel-body hidden">
         <form class="form-horizontal" action="${ url_for('app.app_env', name=app.name) }" method="POST">
-          <input type="hidden" name="env" value="${ env }">
+          <input type="hidden" name="env" value="${ env.envname }">
           % for key, value in env_content:
             <div class="form-group">
               <div class="col-sm-5">
@@ -52,7 +52,7 @@ from operator import itemgetter
             </div>
           % endfor
         </form>
-        <a name="delete-env" class="btn btn-warning pull-right to-right" href="#" data-env="${ env }"><span class="fui-trash"></span> Delete Env</a>
+        <a name="delete-env" class="btn btn-warning pull-right to-right" href="#" data-env="${ env.envname }"><span class="fui-trash"></span> Delete Env</a>
         <a name="submit-env" class="btn btn-info pull-right to-right" href="#"><span class="fui-check"></span> OK</a>
         <a name="add-row" class="btn btn-info pull-right to-right" href="#"><span class="fui-plus"></span> Add Row</a>
       </div>

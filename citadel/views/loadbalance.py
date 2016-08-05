@@ -3,9 +3,11 @@
 from flask import g, request, abort
 from flask_mako import render_template
 
-from citadel.config import ELB_APP_NAME
 from citadel.ext import core
+from citadel.config import ELB_APP_NAME
 from citadel.libs.view import create_page_blueprint
+
+from citadel.models.oplog import OPLog, OPType
 from citadel.models.app import App, Release
 from citadel.models.loadbalance import ELBInstance, Route
 from citadel.views.helper import get_nodes_for_first_pod
@@ -42,7 +44,15 @@ def elb(name):
         appname = request.form['appname']
         podname = request.form['podname']
         entrypoint = request.form['entrypoint']
-        Route.create(podname, appname, entrypoint, domain, name)
+
+        route = Route.create(podname, appname, entrypoint, domain, name)
+        if not route:
+            abort(400, 'Create route error')
+
+        # 记录oplog
+        op_content = {'route_id': route.id}
+        op_content.update(route.to_dict())
+        OPLog.create(g.user.id, OPType.CREATE_ELB_ROUTE, content=op_content)
 
     routes = Route.get_by_elb(name)
 

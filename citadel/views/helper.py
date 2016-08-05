@@ -1,12 +1,13 @@
 # coding: utf-8
 
-from flask import g, abort
+from flask import abort
 
 from citadel.ext import core
 from citadel.models.app import App, Release
 from citadel.models.loadbalance import ELBInstance
-from citadel.models.oplog import OPLog
 
+
+# TODO 这些可以只拿当前user的啊
 
 def bp_get_app(appname, user):
     app = App.get_by_name(appname)

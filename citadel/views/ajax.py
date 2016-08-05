@@ -26,9 +26,11 @@ log = logging.getLogger(__name__)
 def delete_app_env(name):
     envname = request.form['env']
     app = bp_get_app(name, g.user)
-    appname = app.name
-    OPLog.create(OPType.DELETE_ENV, appname)
-    env = Environment.get_by_app_and_env(appname, envname)
+
+    # 记录oplog
+    OPLog.create(g.user.id, OPType.DELETE_ENV, app.name, content={'envname': envname})
+
+    env = Environment.get_by_app_and_env(app.name, envname)
     if env:
         log.info('Env [%s] for app [%s] deleted', envname, name)
         env.delete()
@@ -54,6 +56,7 @@ def get_app_backends(name):
 
 @bp.route('/release/<release_id>/deploy', methods=['POST'])
 def deploy_release(release_id):
+    """部署的ajax接口, oplog在对应action里记录."""
     release = Release.get(release_id)
     if not release:
         abort(404, 'Release %s not found' % release_id)
@@ -84,19 +87,6 @@ def deploy_release(release_id):
     # 这里来的就都走自动分配吧
     networks = {key: '' for key in networks}
 
-    action_content = {
-        'podname': podname,
-        'nodename': nodename,
-        'entrypoint': entrypoint,
-        'cpu': cpu,
-        'count': count,
-        'networks': networks,
-        'envname': envname,
-    }
-    OPLog.create(OPType.CREATE_CONTAINER,
-                 release.app.name,
-                 release.sha,
-                 action_content)
     try:
         q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, count, networks, envname, extra_env, bool(raw))
     except ActionError as e:
@@ -187,12 +177,6 @@ def create_loadbalance():
     comment = request.form.get('comment', '')
     envs = request.form.get('env', '')
 
-    action_content = {'elbname': name}
-    OPLog.create(OPType.CREATE_ELB_INSTANCE,
-                 release.app.name,
-                 release.sha,
-                 action_content)
-
     if nodename == '_random':
         nodename = None
 
@@ -209,6 +193,8 @@ def create_loadbalance():
         log.error('error when creating ELB: %s', e.message)
         return {'error': e.message}
 
+    user_id = g.user.id
+
     @with_appcontext
     def _stream_consumer(q):
         for line in action_stream(q):
@@ -223,6 +209,11 @@ def create_loadbalance():
 
             ips = container.get_ips()
             elb = ELBInstance.create(ips[0], g.user.id, container.container_id, name, comment)
+
+            # 记录oplog
+            op_content = {'elbname': name, 'container_id': container.container_id}
+            OPLog.create(user_id, OPType.CREATE_ELB_INSTANCE, release.app.name, release.sha, op_content)
+
             yield elb
 
     for elb in _stream_consumer(q):
@@ -261,11 +252,16 @@ def refresh_loadbalance(name):
 @bp.route('/loadbalance/route/<id>/remove', methods=['POST'])
 def delete_lbrecord(id):
     route = Route.get(id)
-    OPLog.create(OPType.DELETE_ELB_ROUTE, content={'route': id})
     if not route:
         abort(404, 'Route %d not found' % id)
 
+    # 记录oplog
+    op_content = {'route_id': id}
+    op_content.update(route.to_dict())
+    OPLog.create(g.user.id, OPType.DELETE_ELB_ROUTE, content=op_content)
+
     route.delete()
+
     log.info('Route [%s] for ELB [%s] deleted', id, route.elbname)
     return DEFAULT_RETURN_VALUE
 

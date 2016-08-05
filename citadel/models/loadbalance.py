@@ -87,6 +87,15 @@ class Route(BaseModelMixin):
         delete_route(self)
         super(Route, self).delete()
 
+    def to_dict(self):
+        return {
+            'appname': self.appname,
+            'entrypoint': self.entrypoint,
+            'podname': self.podname,
+            'domain': self.domain,
+            'elbname': self.elbname,
+        }
+
 
 class ELBInstance(BaseModelMixin):
     """name 相同的 ELBInstance 组成一个 ELB, ELB 是一个虚拟的概念"""
