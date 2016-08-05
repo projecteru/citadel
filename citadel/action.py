@@ -16,8 +16,9 @@ from citadel.models.app import App, Release
 from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_name, get_file_content
-from citadel.publish import publisher
 from citadel.models.loadbalance import update_elb_for_containers
+from citadel.models.oplog import OPType, OPLog
+from citadel.publish import publisher
 
 
 _eof = object()
@@ -66,6 +67,7 @@ def build_image(repo, sha, uid='', artifact=''):
 
     specs = yaml.load(content)
     appname = specs.get('appname', '')
+    OPLog.create(OPType.BUILD_IMAGE, appname, sha)
     app = App.get_by_name(appname)
     if not app:
         raise ActionError(400, 'repo %s does not have the right appname in app.yaml' % repo)
@@ -165,10 +167,11 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, count, netwo
 def remove_container(ids):
     # publish backends
     containers = [Container.get_by_container_id(i) for i in ids]
-    for container in containers:
-        if not container:
+    for c in containers:
+        if not c:
             continue
-        publisher.remove_container(container)
+        OPLog.create(OPType.REMOVE_CONTAINER, c.appname, c.sha)
+        publisher.remove_container(c)
 
     # TODO: handle the situations where core try-and-fail to delete container
     update_elb_for_containers(containers)
@@ -217,6 +220,7 @@ def upgrade_container(ids, repo, sha):
         if not container:
             continue
         publisher.remove_container(container)
+        OPLog.create(OPType.UPGRADE_CONTAINER, appname, sha)
 
     ms = _peek_grpc(core.upgrade_container(ids, release.image))
     q = Queue()

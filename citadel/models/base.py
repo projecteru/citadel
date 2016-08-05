@@ -3,6 +3,8 @@
 import json
 from datetime import datetime
 
+from flask_sqlalchemy import sqlalchemy as sa
+
 from citadel.ext import db, rds
 from citadel.libs.json import Jsonized
 
@@ -12,7 +14,7 @@ class BaseModelMixin(db.Model, Jsonized):
     __abstract__ = True
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    created = db.Column(db.DateTime, default=datetime.now)
+    created = db.Column(db.DateTime, server_default=sa.sql.func.now())
     updated = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
     @classmethod
@@ -26,7 +28,7 @@ class BaseModelMixin(db.Model, Jsonized):
     @classmethod
     def get_all(cls, start=0, limit=20):
         q = cls.query.order_by(cls.id.desc())
-        return q[start:start+limit]
+        return q[start:start + limit]
 
     def delete(self):
         db.session.delete(self)

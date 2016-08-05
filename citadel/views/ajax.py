@@ -2,19 +2,20 @@
 
 import json
 import logging
+
 from flask import g, request, abort
 
+from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
 from citadel.ext import core
 from citadel.libs.utils import with_appcontext
 from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
-from citadel.views.helper import bp_get_app, bp_get_balancer
-from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
-
 from citadel.models.app import AppUserRelation, Release, App
-from citadel.models.env import Environment
 from citadel.models.container import Container
+from citadel.models.env import Environment
 from citadel.models.loadbalance import (Route, ELBInstance, add_route_analysis,
                                         delete_route_analysis, refresh_routes)
+from citadel.models.oplog import OPType, OPLog
+from citadel.views.helper import bp_get_app, bp_get_balancer
 
 
 bp = create_ajax_blueprint('ajax', __name__, url_prefix='/ajax')
@@ -25,7 +26,9 @@ log = logging.getLogger(__name__)
 def delete_app_env(name):
     envname = request.form['env']
     app = bp_get_app(name, g.user)
-    env = Environment.get_by_app_and_env(app.name, envname)
+    appname = app.name
+    OPLog.create(OPType.DELETE_ENV, appname)
+    env = Environment.get_by_app_and_env(appname, envname)
     if env:
         log.info('Env [%s] for app [%s] deleted', envname, name)
         env.delete()
@@ -81,6 +84,19 @@ def deploy_release(release_id):
     # 这里来的就都走自动分配吧
     networks = {key: '' for key in networks}
 
+    action_content = {
+        'podname': podname,
+        'nodename': nodename,
+        'entrypoint': entrypoint,
+        'cpu': cpu,
+        'count': count,
+        'networks': networks,
+        'envname': envname,
+    }
+    OPLog.create(OPType.CREATE_CONTAINER,
+                 release.app.name,
+                 release.sha,
+                 action_content)
     try:
         q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, count, networks, envname, extra_env, bool(raw))
     except ActionError as e:
@@ -171,6 +187,12 @@ def create_loadbalance():
     comment = request.form.get('comment', '')
     envs = request.form.get('env', '')
 
+    action_content = {'elbname': name}
+    OPLog.create(OPType.CREATE_ELB_INSTANCE,
+                 release.app.name,
+                 release.sha,
+                 action_content)
+
     if nodename == '_random':
         nodename = None
 
@@ -239,6 +261,7 @@ def refresh_loadbalance(name):
 @bp.route('/loadbalance/route/<id>/remove', methods=['POST'])
 def delete_lbrecord(id):
     route = Route.get(id)
+    OPLog.create(OPType.DELETE_ELB_ROUTE, content={'route': id})
     if not route:
         abort(404, 'Route %d not found' % id)
 
