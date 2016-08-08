@@ -7,9 +7,7 @@ from citadel.models.app import App, Release
 from citadel.models.loadbalance import ELBInstance
 
 
-# TODO 这些可以只拿当前user的啊
-
-def bp_get_app(appname, user):
+def bp_get_app(appname):
     app = App.get_by_name(appname)
     if not app:
         abort(404, 'App %s not found' % appname)
