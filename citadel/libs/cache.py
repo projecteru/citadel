@@ -3,6 +3,7 @@
 import cPickle
 import functools
 import inspect
+from collections import OrderedDict
 
 from citadel.ext import rds
 
@@ -11,7 +12,7 @@ ONE_DAY = 86400
 ONE_HOUR = 3600
 
 
-def cache(fmt, ttl=None):
+def cache(fmt=None, ttl=None):
     def _cache(f):
         @functools.wraps(f)
         def _(*args, **kwargs):
@@ -19,7 +20,13 @@ def cache(fmt, ttl=None):
             kw = dict(zip(ags.args, args))
             kw.update(kwargs)
 
-            key = fmt.format(**kw)
+            if not fmt:
+                _fmt = 'citadel:{}:{}'.format(f.__name__, '{}' * len(kw))
+                ordered = OrderedDict(kw)
+                key = _fmt.format(*ordered.values())
+            else:
+                key = fmt.format(**kw)
+
             value = rds.get(key)
             if value is not None:
                 return cPickle.loads(value)

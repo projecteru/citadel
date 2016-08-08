@@ -6,6 +6,7 @@ from flask import abort
 
 from citadel.config import DEBUG, AUTH_AUTHORIZE_URL
 from citadel.ext import sso
+from citadel.libs.cache import cache, ONE_DAY
 
 
 _DEBUG_USER_DICT = {
@@ -19,6 +20,7 @@ _DEBUG_USER_DICT = {
 }
 
 
+@cache(ttl=ONE_DAY)
 def get_current_user_via_auth(token):
     try:
         resp = requests.get(AUTH_AUTHORIZE_URL, headers={'X-Neptulon-Token': token}, timeout=5)
