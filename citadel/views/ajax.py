@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 @bp.route('/app/<name>/delete-env', methods=['POST'])
 def delete_app_env(name):
     envname = request.form['env']
-    app = bp_get_app(name, g.user)
+    app = bp_get_app(name)
 
     # 记录oplog
     OPLog.create(g.user.id, OPType.DELETE_ENV, app.name, content={'envname': envname})
@@ -39,13 +39,13 @@ def delete_app_env(name):
 
 @bp.route('/app/<name>/online-entrypoints', methods=['GET'])
 def get_app_online_entrypoints(name):
-    app = bp_get_app(name, g.user)
+    app = bp_get_app(name)
     return app.get_online_entrypoints()
 
 
 @bp.route('/app/<name>/online-pods', methods=['GET'])
 def get_app_online_pods(name):
-    app = bp_get_app(name, g.user)
+    app = bp_get_app(name)
     return app.get_online_pods()
 
 

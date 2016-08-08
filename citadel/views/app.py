@@ -37,7 +37,7 @@ def get_app(name):
 
 @bp.route('/<name>/version/<sha>')
 def get_release(name, sha):
-    app = bp_get_app(name, g.user)
+    app = bp_get_app(name)
     release = Release.get_by_app_and_sha(app.name, sha)
     containers = Container.get_by_release(app.name, sha, g.start, g.limit)
 
@@ -54,7 +54,7 @@ def get_release(name, sha):
 
 @bp.route('/<name>/env', methods=['GET', 'POST'])
 def app_env(name):
-    app = bp_get_app(name, g.user)
+    app = bp_get_app(name)
 
     if request.method == 'GET':
         envs = Environment.get_by_app(app.name)
@@ -76,7 +76,7 @@ def app_env(name):
 
 @bp.route('/<name>/version/<sha>/gitlab')
 def gitlab_url(name, sha):
-    app = bp_get_app(name, g.user)
+    app = bp_get_app(name)
     release = bp_get_release(name, sha)
     url = os.path.join(GITLAB_URL, app.project_name, 'commit', release.sha)
     return redirect(url)
