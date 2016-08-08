@@ -15,7 +15,9 @@
     <%def name="header()">
       <h3 class="panel-title">Containers</h3>
     </%def>
-    ${ utils.container_list(containers) }
+
+    <%call expr="utils.container_list(containers)">
+    </%call>
   </%call>
 
 </%block>
