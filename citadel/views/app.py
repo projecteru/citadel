@@ -29,7 +29,7 @@ def index():
 
 @bp.route('/<name>')
 def get_app(name):
-    app = bp_get_app(name, g.user)
+    app = bp_get_app(name)
     releases = Release.get_by_app(app.name, g.start, g.limit)
     containers = Container.get_by_app(app.name, g.start, g.limit)
     return render_template('/app/app.mako', app=app, releases=releases, containers=containers)
