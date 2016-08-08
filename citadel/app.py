@@ -40,7 +40,7 @@ ANONYMOUS_PATHS = [
 
 def anonymous_path(path):
     for p in ANONYMOUS_PATHS:
-        if path.startswith(path):
+        if path.startswith(p):
             return True
     return False
 
