@@ -50,6 +50,10 @@
                 <li class="${ 'active' if request.path.startswith(url_for('admin.pods')) else '' }">
                 <a href="${ url_for('admin.pods') }"><span class="fui-list-thumbnailed"></span> Pods</a>
                 </li>
+                <li class="divider"></li>
+                <li class="${ 'active' if request.path.startswith(url_for('admin.oplog')) else '' }">
+                <a href="${ url_for('admin.oplog') }"><span class="fui-list-thumbnailed"></span> OPLog</a>
+                </li>
               </ul>
             </li>
           % endif

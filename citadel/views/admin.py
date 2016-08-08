@@ -5,7 +5,9 @@ from flask_mako import render_template
 
 from citadel.ext import core
 from citadel.libs.view import create_page_blueprint
+
 from citadel.models.app import AppUserRelation, App
+from citadel.models.oplog import OPLog
 from citadel.models.container import Container
 from citadel.models.user import get_users, get_user
 
@@ -67,6 +69,12 @@ def user_info(identifier):
     all_apps = App.get_all(limit=100)
     all_apps = [app for app in all_apps if app not in apps]
     return render_template('/admin/user_info.mako', user=user, apps=apps, all_apps=all_apps)
+
+
+@bp.route('/oplog')
+def oplog():
+    oplogs = OPLog.get_all(g.start, g.limit)
+    return render_template('/admin/oplog.mako', oplogs=oplogs)
 
 
 @bp.before_request

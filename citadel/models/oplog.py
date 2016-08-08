@@ -69,7 +69,7 @@ class OPLog(BaseModelMixin):
     content = db.Column(JsonType, default={})
 
     @classmethod
-    def get_by(cls, user_id=None, appname=None, sha=None, action=None, time_window=None):
+    def get_by(cls, user_id=None, appname=None, sha=None, action=None, time_window=None, start=0, limit=100):
         """filter OPLog by user, action, or a tuple of 2 datetime as timewindow"""
         filters = []
         if user_id:
@@ -88,7 +88,7 @@ class OPLog(BaseModelMixin):
             start, end = time_window
             filters.extend([cls.dt >= start, cls.dt <= end])
 
-        return cls.query.filter(sqlalchemy.and_(*filters)).order_by(cls.created.desc()).all()
+        return cls.query.filter(sqlalchemy.and_(*filters)).order_by(cls.id.desc()).offset(start).limit(limit).all()
 
     @classmethod
     def create(cls, user_id, action, appname='', sha='', content=None):
