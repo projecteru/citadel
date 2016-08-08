@@ -1,9 +1,9 @@
 # coding: utf-8
 
-from flask import abort
+from flask import abort, g
 
 from citadel.ext import core
-from citadel.models.app import App, Release
+from citadel.models.app import App, Release, AppUserRelation
 from citadel.models.loadbalance import ELBInstance
 
 
@@ -11,6 +11,10 @@ def bp_get_app(appname):
     app = App.get_by_name(appname)
     if not app:
         abort(404, 'App %s not found' % appname)
+
+    appnames = AppUserRelation.get_appname_by_user_id(g.user.id, limit=200)
+    if appname not in appnames and not g.user.privilege:
+        abort(403, 'Not permitted')
     return app
 
 
@@ -18,6 +22,10 @@ def bp_get_release(appname, sha):
     release = Release.get_by_app_and_sha(appname, sha)
     if not release:
         abort(404, 'Release %s, %s not found' % (appname, sha))
+
+    appnames = AppUserRelation.get_appname_by_user_id(g.user.id, limit=200)
+    if appname not in appnames and not g.user.privilege:
+        abort(403, 'Not permitted')
     return release
 
 

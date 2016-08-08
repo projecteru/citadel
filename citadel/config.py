@@ -23,13 +23,13 @@ ETCD_URL = getenv('ETCD_URL', default='etcd://127.0.0.1:2379')
 GITLAB_URL = getenv('GITLAB_URL', default='http://gitlab.ricebook.net')
 GITLAB_PRIVATE_TOKEN = getenv('GITLAB_PRIVATE_TOKEN', default='')
 
-OAUTH2_BASE_URL = getenv('OAUTH2_BASE_URL', default='')
+OAUTH2_BASE_URL = getenv('OAUTH2_BASE_URL', default='http://sso.ricebook.net/oauth/api/')
+OAUTH2_ACCESS_TOKEN_URL = getenv('OAUTH2_ACCESS_TOKEN_URL', default='http://sso.ricebook.net/oauth/token')
+OAUTH2_AUTHORIZE_URL = getenv('OAUTH2_AUTHORIZE_URL', default='http://sso.ricebook.net/oauth/authorize')
 OAUTH2_CLIENT_ID = getenv('OAUTH2_CLIENT_ID', default='')
 OAUTH2_CLIENT_SECRET = getenv('OAUTH2_CLIENT_SECRET', default='')
-OAUTH2_ACCESS_TOKEN_URL = getenv('OAUTH2_ACCESS_TOKEN_URL', default='')
-OAUTH2_AUTHORIZE_URL = getenv('OAUTH2_AUTHORIZE_URL', default='')
+AUTH_AUTHORIZE_URL = getenv('AUTH_AUTHORIZE_URL', default='http://sso.ricebook.net/auth/profile')
 
-AUTH_AUTHORIZE_URL = getenv('AUTH_AUTHORIZE_URL', default='')
 
 MFS_LOG_FILE_PATH = getenv('MFS_LOG_FILE_PATH', default='/mnt/mfs/logs/eru/{app_name}/{entrypoint}/{dt}.log')
 ELB_SHA = getenv('ELB_SHA', default='').split(',')
