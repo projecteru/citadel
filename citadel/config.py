@@ -20,7 +20,9 @@ SQLALCHEMY_TRACK_MODIFICATIONS = getenv('SQLALCHEMY_TRACK_MODIFICATIONS', defaul
 
 REDIS_URL = getenv('REDIS_URL', default='redis://127.0.0.1:6379/0')
 ETCD_URL = getenv('ETCD_URL', default='etcd://127.0.0.1:2379')
+
 GITLAB_URL = getenv('GITLAB_URL', default='http://gitlab.ricebook.net')
+GITLAB_API_URL = getenv('GITLAB_API_URL', default='http://gitlab.ricebook.net/api/v3')
 GITLAB_PRIVATE_TOKEN = getenv('GITLAB_PRIVATE_TOKEN', default='')
 
 OAUTH2_BASE_URL = getenv('OAUTH2_BASE_URL', default='http://sso.ricebook.net/oauth/api/')

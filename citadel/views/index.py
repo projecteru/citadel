@@ -5,7 +5,7 @@ import logging
 from flask import redirect, url_for, request
 
 from citadel.libs.view import create_page_blueprint
-from citadel.config import GITLAB_URL
+from citadel.config import GITLAB_API_URL
 
 from citadel.action import build_image, ActionError
 from citadel.models.app import App
@@ -57,7 +57,7 @@ def hook():
     if not app:
         return 'error when creating app'
 
-    artifacts = '%s/projects/%s/builds/%s/artifacts' % (GITLAB_URL, project_id, build_id)
+    artifacts = '%s/projects/%s/builds/%s/artifacts' % (GITLAB_API_URL, project_id, build_id)
     try:
         build_image(repo, sha, app.uid, artifacts)
     except ActionError as e:
