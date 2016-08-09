@@ -8,7 +8,7 @@ from citadel.libs.view import create_page_blueprint
 from citadel.config import GITLAB_API_URL
 
 from citadel.action import build_image, ActionError
-from citadel.models.app import App
+from citadel.models.app import App, Release
 from citadel.models.gitlab import get_project_name, get_file_content
 
 
@@ -56,6 +56,10 @@ def hook():
     app = App.get_or_create(appname, repo)
     if not app:
         return 'error when creating app'
+
+    release = Release.create(app, sha)
+    if not release:
+        return 'error when creating release'
 
     artifacts = '%s/projects/%s/builds/%s/artifacts' % (GITLAB_API_URL, project_id, build_id)
     try:
