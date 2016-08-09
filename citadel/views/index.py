@@ -1,17 +1,19 @@
 # coding: utf-8
 
 import yaml
+import logging
 from flask import redirect, url_for, request
 
 from citadel.libs.view import create_page_blueprint
 from citadel.config import GITLAB_URL
 
-from citadel.action import build_image
+from citadel.action import build_image, ActionError
 from citadel.models.app import App
 from citadel.models.gitlab import get_project_name, get_file_content
 
 
 bp = create_page_blueprint('index', __name__, url_prefix='')
+log = logging.getLogger(__name__)
 
 
 @bp.route('/')
@@ -27,6 +29,7 @@ def hook():
     """
     data = request.get_json()
     if not data:
+        log.info('No data provided')
         return 'No data provided'
 
     try:
@@ -35,10 +38,12 @@ def hook():
         project_id = data['project_id']
         build_id = data['build_id']
         repo = data['repository']['git_ssh_url']
-    except KeyError:
+    except KeyError as e:
+        log.error('key not found in hook: %s', e.message)
         return 'Bad format of JSON data'
 
     if build_status != 'success':
+        log.error('build status not success: %s', build_status)
         return 'build status not success: %s' % data['build_status']
 
     project_name = get_project_name(repo)
@@ -53,5 +58,9 @@ def hook():
         return 'error when creating app'
 
     artifacts = '%s/projects/%s/builds/%s/artifacts' % (GITLAB_URL, project_id, build_id)
-    build_image(repo, sha, app.uid, artifacts)
+    try:
+        build_image(repo, sha, app.uid, artifacts)
+    except ActionError as e:
+        log.error('error when build image: %s', e.message)
     return 'ok'
+
