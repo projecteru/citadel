@@ -44,7 +44,7 @@
               host / none
             % endif
           </td>
-          <td>${ c.cpu_quota or '0 (共享)'}</td>
+          <td>${ c.cpu_quota or u'0 (共享)'}</td>
           <td>${ c.entrypoint }</td>
           <td>${ c.env }</td>
           <td>
