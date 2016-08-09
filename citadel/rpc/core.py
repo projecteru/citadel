@@ -1,5 +1,6 @@
 # coding: utf-8
 
+from __future__ import division
 import json
 from decimal import Decimal
 from urlparse import urlparse
@@ -55,8 +56,14 @@ class Node(_CoreRPC):
         return self.info.get('NCPU', 0)
 
     @property
+    def used_cpu_count(self):
+        from citadel.models import Container
+        containers = Container.get_by_node(self.name, limit=None)
+        return sum([c.info['HostConfig']['CpuQuota'] / c.info['HostConfig']['CpuPeriod'] for c in containers])
+
+    @property
     def cpu_count(self):
-        return Decimal(sum(v/10.0 for v in self.cpu.values()))
+        return Decimal(sum(v / 10.0 for v in self.cpu.values()))
 
     def to_dict(self):
         d = super(Node, self).to_dict()
