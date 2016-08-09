@@ -26,13 +26,20 @@ def hook():
     有点担心这里面有些操作会慢, 不过暂时看应该没有什么问题.
     """
     data = request.get_json()
-    if data['build_status'] != 'success':
-        return 'build status not success: %s' % data['build_status']
+    if not data:
+        return 'No data provided'
 
-    sha = data['sha']
-    project_id = data['project_id']
-    build_id = data['build_id']
-    repo = data['repository']['git_ssh_url']
+    try:
+        build_status = data['build_status']
+        sha = data['sha']
+        project_id = data['project_id']
+        build_id = data['build_id']
+        repo = data['repository']['git_ssh_url']
+    except KeyError:
+        return 'Bad format of JSON data'
+
+    if build_status != 'success':
+        return 'build status not success: %s' % data['build_status']
 
     project_name = get_project_name(repo)
     content = get_file_content(project_name, 'app.yaml', sha)
