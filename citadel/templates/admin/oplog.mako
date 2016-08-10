@@ -17,7 +17,7 @@
     <table class="table">
       <thead>
         <tr>
-          <th>#</th>
+          <th>🕒</th>
           <th>UserID</th>
           <th>Appname</th>
           <th>Sha</th>
@@ -27,7 +27,7 @@
       <tbody>
         % for oplog in oplogs:
           <tr>
-            <td>${oplog.id}</td>
+            <td>${oplog.created}</td>
             <td>${oplog.user_id}</td>
             <td>${oplog.appname}</td>
             <td>${oplog.sha}</td>
