@@ -9,9 +9,11 @@ from citadel.action import create_container, remove_container, action_stream, Ac
 from citadel.ext import core
 from citadel.libs.utils import with_appcontext
 from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
+
 from citadel.models.app import AppUserRelation, Release, App
 from citadel.models.container import Container
 from citadel.models.env import Environment
+from citadel.models.combo import Combo
 from citadel.models.loadbalance import (Route, ELBInstance, add_route_analysis,
                                         delete_route_analysis, refresh_routes)
 from citadel.models.oplog import OPType, OPLog
@@ -66,7 +68,7 @@ def deploy_release(release_id):
 
     podname = request.form['podname']
     entrypoint = request.form['entrypoint']
-    cpu = request.form.get('cpu', type=float, default=0)
+    combo_label = request.form.get('combo', default='')
     count = request.form.get('count', type=int, default=1)
     envname = request.form.get('envname', '')
     envs = request.form.get('envs', '')
@@ -75,6 +77,10 @@ def deploy_release(release_id):
 
     if raw and not g.user.privilege:
         abort(400, 'Raw deploy only supported for admins')
+
+    combo = Combo.get(combo_label)
+    if not combo:
+        abort(400, 'Bad combo: %s' % combo_label)
 
     # 比较诡异, jQuery传个list是这样的...
     networks = request.form.getlist('networks[]')
@@ -88,7 +94,7 @@ def deploy_release(release_id):
     networks = {key: '' for key in networks}
 
     try:
-        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, count, networks, envname, extra_env, bool(raw))
+        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, combo.cpu, combo.memory, count, networks, envname, extra_env, bool(raw))
     except ActionError as e:
         log.error('error when creating container: %s', e.message)
         return {'error': e.message}
@@ -188,7 +194,7 @@ def create_loadbalance():
         extra_env.append(env)
 
     try:
-        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, 1, {}, 'prod', extra_env)
+        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, 0, 1, {}, 'prod', extra_env)
     except ActionError as e:
         log.error('error when creating ELB: %s', e.message)
         return {'error': e.message}

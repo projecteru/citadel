@@ -49,7 +49,7 @@ $('#add-container-button').click(function(e){
   data.podname = $('#add-container-form select[name=pod]').val();
   data.nodename = $('#add-container-form select[name=node]').val();
   data.entrypoint = $('#add-container-form select[name=entrypoint]').val();
-  data.cpu = $('#add-container-form input[name=cpu]').val() || '1';
+  data.combo = $('#add-container-form select[name=combo]').val();
   data.count = $('#add-container-form input[name=count]').val() || '1';
   data.envs = $('#add-container-form input[name=envs]').val();
   data.networks = networks;

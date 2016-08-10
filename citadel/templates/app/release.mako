@@ -145,9 +145,13 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="col-sm-2 control-label" for="">CPU</label>
+        <label class="col-sm-2 control-label" for="">Combo</label>
         <div class="col-sm-10">
-          <input class="form-control" type="number" step="0.1" min="0" name="cpu" value="1">
+          <select class="form-control" name="combo">
+            % for combo in combos:
+              <option value="${combo.label}">${combo.label}: ${combo.cpu} CPU, ${combo.memory_str} Memory</option>
+            % endfor
+          </select>
         </div>
       </div>
       <div class="form-group">

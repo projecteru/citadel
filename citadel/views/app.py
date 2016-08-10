@@ -15,6 +15,8 @@ from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_file_content
 from citadel.models.oplog import OPLog, OPType
+from citadel.models.combo import ALL_COMBOS
+
 from citadel.views.helper import bp_get_app, bp_get_release, get_nodes_for_first_pod
 
 
@@ -50,7 +52,7 @@ def get_release(name, sha):
     nodes = get_nodes_for_first_pod(pods)
     return render_template('/app/release.mako', app=app, release=release,
                            envs=envs, appspecs=appspecs, containers=containers,
-                           networks=networks, nodes=nodes, pods=pods)
+                           networks=networks, nodes=nodes, pods=pods, combos=ALL_COMBOS)
 
 @bp.route('/<name>/env', methods=['GET', 'POST'])
 def app_env(name):
