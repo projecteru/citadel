@@ -88,8 +88,8 @@
       <h3 class="modal-title">Add Container</h3>
     </%def>
 
-    <form id="add-container-form" class="form-horizontal collapse advance-form-group" action="">
-      <div class="form-group">
+    <form id="add-container-form" class="form-horizontal" action="">
+      <div class="form-group collapse advance-form-group">
         <label class="col-sm-2 control-label" for="">Release</label>
         <div class="col-sm-10">
           <input class="form-control" type="text" name="release" value="${release.name} / ${release.short_sha}" data-id="${release.id}" disabled>
