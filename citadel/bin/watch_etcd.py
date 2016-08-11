@@ -46,11 +46,12 @@ def deal(key, data):
     if alive:
         _log.info('add {}'.format(container_id))
         publisher.add_container(container)
+        update_elb_for_containers(container)
     else:
         _log.info('remove {}'.format(container_id))
         publisher.remove_container(container)
+        update_elb_for_containers(exclude=container)
 
-    update_elb_for_containers(container)
     publisher.publish_app(appname)
 
 

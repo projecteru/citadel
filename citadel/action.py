@@ -193,7 +193,7 @@ def remove_container(ids):
         publisher.remove_container(c)
 
     # TODO: handle the situations where core try-and-fail to delete container
-    update_elb_for_containers(containers)
+    update_elb_for_containers(exclude=containers)
     ms = _peek_grpc(core.remove_container(ids))
     q = Queue()
 
@@ -276,7 +276,7 @@ def upgrade_container(ids, repo, sha):
 
                 publisher.add_container(c)
                 # 这里只能一个一个更新 elb 了，无法批量更新
-                update_elb_for_containers(c)
+                update_elb_for_containers(c, exclude=old)
                 old.delete()
 
                 _log.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
