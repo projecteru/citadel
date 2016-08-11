@@ -49,13 +49,23 @@ class Container(BaseModelMixin):
     def get_by_release(cls, appname, sha, start=0, limit=20):
         """get by release appname and release sha"""
         cs = cls.query.filter(cls.appname == appname, cls.sha.like('{}%'.format(sha))).order_by(cls.id.desc())
-        return [c.inspect() for c in cs[start:start + limit]]
+        if limit:
+            res = [c.inspect() for c in cs[start:start + limit]]
+        else:
+            res = cs.all()
+
+        return res
 
     @classmethod
     def get_by_app(cls, appname, start=0, limit=20):
         """get by appname"""
         cs = cls.query.filter_by(appname=appname).order_by(cls.id.desc())
-        return [c.inspect() for c in cs[start:start + limit]]
+        if limit:
+            res = [c.inspect() for c in cs[start:start + limit]]
+        else:
+            res = cs.all()
+
+        return res
 
     @classmethod
     def get_by_pod(cls, podname, start=0, limit=20):

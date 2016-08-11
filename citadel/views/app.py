@@ -1,22 +1,19 @@
 # -*- coding: utf-8 -*-
-
 import os
 
 from flask import g, request, url_for, redirect
 from flask_mako import render_template
 
-from citadel.ext import core
 from citadel.config import GITLAB_URL
+from citadel.ext import core
 from citadel.libs.view import create_page_blueprint
-from citadel.network.plugin import get_all_pools
-
 from citadel.models.app import App, Release
+from citadel.models.combo import ALL_COMBOS
 from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_file_content
 from citadel.models.oplog import OPLog, OPType
-from citadel.models.combo import ALL_COMBOS
-
+from citadel.network.plugin import get_all_pools
 from citadel.views.helper import bp_get_app, bp_get_release, get_nodes_for_first_pod
 
 
@@ -25,15 +22,15 @@ bp = create_page_blueprint('app', __name__, url_prefix='/app')
 
 @bp.route('/')
 def index():
-    apps = App.get_by_user(g.user.id, g.start, g.limit)
+    apps = App.get_by_user(g.user.id, limit=None)
     return render_template('/app/list.mako', apps=apps)
 
 
 @bp.route('/<name>')
 def get_app(name):
     app = bp_get_app(name)
-    releases = Release.get_by_app(app.name, g.start, g.limit)
-    containers = Container.get_by_app(app.name, g.start, g.limit)
+    releases = Release.get_by_app(app.name, limit=8)
+    containers = Container.get_by_app(app.name, limit=None)
     return render_template('/app/app.mako', app=app, releases=releases, containers=containers)
 
 
@@ -41,7 +38,7 @@ def get_app(name):
 def get_release(name, sha):
     app = bp_get_app(name)
     release = Release.get_by_app_and_sha(app.name, sha)
-    containers = Container.get_by_release(app.name, sha, g.start, g.limit)
+    containers = Container.get_by_release(app.name, sha, limit=None)
 
     appspecs = get_file_content(app.project_name, 'app.yaml', release.sha)
 
@@ -53,6 +50,7 @@ def get_release(name, sha):
     return render_template('/app/release.mako', app=app, release=release,
                            envs=envs, appspecs=appspecs, containers=containers,
                            networks=networks, nodes=nodes, pods=pods, combos=ALL_COMBOS)
+
 
 @bp.route('/<name>/env', methods=['GET', 'POST'])
 def app_env(name):

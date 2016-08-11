@@ -18,7 +18,7 @@ from operator import itemgetter
       <h3 class="panel-title">Env</h3>
     </div>
     <div class="panel-body">
-      <h4>${ app.name }</h4>
+      <h4><a href="${ url_for('app.get_app', name=app.name) }">${ app.name }</a></h4>
       <p>设置环境变量, 这些变量会被设置进容器里的环境变量并且在启动程序的时候继承下来.</p>
       <p>注意, 环境变量无法叫做 "env". 另外环境变量会自动变为大写值, 如 "karazhan" 变成 "KARAZHAN"</p>
     </div>
@@ -132,7 +132,7 @@ from operator import itemgetter
         $(this).parent().parent().remove();
       }
     });
-      
+
     $(document).on('keyup', 'input.key', function(){
       var value = $(this).val();
       $(this).attr('name', 'key_' + value);
@@ -140,7 +140,7 @@ from operator import itemgetter
       var key = $(this).parent().parent().find('input.key').val()
       $(this).attr('name', 'value_' + key);
     });
-      
+
     $(document).on('click', 'a[name=add-row]', function(e){
       e.preventDefault();
       var form = $(this).siblings('form');

@@ -14,7 +14,7 @@
   <%utils:panel>
     <%def name="header()">
       <h3 class="panel-title">App
-        <a href="${ url_for('app.app_env', name=app.name) }" class="btn-xs">
+        <a href="${ url_for('app.app_env', name=app.name) }" class="btn-xs" target="_blank">
           <span class="fui-arrow-right"></span> Environment Variables
         </a>
       </h3>
@@ -25,7 +25,6 @@
   <%utils:panel>
     <%def name="header()">
       <h3 class="panel-title">Latest Versions
-        <a href="#" class="btn-xs"><span class="fui-arrow-right"></span> More</a>
       </h3>
     </%def>
     ${ utils.release_list(releases, app) }

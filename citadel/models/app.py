@@ -192,4 +192,9 @@ class AppUserRelation(BaseModelMixin):
     @classmethod
     def get_appname_by_user_id(cls, user_id, start=0, limit=20):
         rs = cls.query.filter_by(user_id=user_id)
-        return [r.appname for r in rs[start:start+limit] if r]
+        if limit:
+            res = [r.appname for r in rs[start:start+limit] if r]
+        else:
+            res = rs.all()
+
+        return res
