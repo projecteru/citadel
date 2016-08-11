@@ -60,11 +60,6 @@
       <h3 class="modal-title">Build Image</h3>
     </%def>
 
-    <%def name="footer()">
-      <button class="btn btn-warning" id="close-modal" data-dismiss="modal"><span class="fui-cross"></span>Close</button>
-      <button class="btn btn-info" id="build-image-button"><span class="fui-plus"></span>Go</button>
-    </%def>
-
     <form id="build-image-form" class="form-horizontal" action="">
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">App</label>
@@ -79,18 +74,21 @@
         </div>
       </div>
     </form>
+
+    <%def name="footer()">
+      <button class="btn btn-warning" id="close-modal" data-dismiss="modal"><span class="fui-cross"></span>Close</button>
+      <button class="btn btn-info" id="build-image-button"><span class="fui-plus"></span>Go</button>
+    </%def>
+
   </%call>
 
   <%call expr="utils.modal('add-container-modal')">
+
     <%def name="header()">
       <h3 class="modal-title">Add Container</h3>
     </%def>
-    <%def name="footer()">
-      <button class="btn btn-warning" id="close-modal" data-dismiss="modal"><span class="fui-cross"></span>Close</button>
-      <button class="btn btn-info" id="add-container-button"><span class="fui-plus"></span>Go</button>
-    </%def>
 
-    <form id="add-container-form" class="form-horizontal" action="">
+    <form id="add-container-form collapse advance-form-group" class="form-horizontal" action="">
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">Release</label>
         <div class="col-sm-10">
@@ -107,7 +105,7 @@
           </select>
         </div>
       </div>
-      <div class="form-group">
+      <div class="form-group collapse advance-form-group">
         <label class="col-sm-2 control-label" for="">Node</label>
         <div class="col-sm-10">
           <select class="form-control" name="node">
@@ -154,7 +152,7 @@
           </select>
         </div>
       </div>
-      <div class="form-group">
+      <div class="form-group collapse advance-form-group">
         <label class="col-sm-2 control-label" for="">Extra Env</label>
         <div class="col-sm-10">
           <input class="form-control" type="text" name="envs" value="" placeholder="例如a=1;b=2;">
@@ -171,7 +169,7 @@
         </div>
       </div>
       % if g.user.privilege:
-        <div class="form-group">
+        <div class="form-group collapse advance-form-group">
           <label class="col-sm-2 control-label" for="">Raw</label>
           <div class="col-sm-10">
             <input class="form-control" type="checkbox" name="raw" value="">
@@ -179,6 +177,13 @@
         </div>
       % endif
     </form>
+
+    <%def name="footer()">
+      <button class="btn btn-warning pull-left" data-toggle="collapse" data-target=".advance-form-group">老子搞点高级的</button>
+      <button class="btn btn-warning" id="close-modal" data-dismiss="modal"><span class="fui-cross"></span>Close</button>
+      <button class="btn btn-info" id="add-container-button"><span class="fui-plus"></span>Go</button>
+    </%def>
+
   </%call>
 
   <%call expr="utils.modal('container-progress')">
