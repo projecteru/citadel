@@ -187,14 +187,14 @@ class AppUserRelation(BaseModelMixin):
     @classmethod
     def get_user_id_by_appname(cls, appname, start=0, limit=20):
         rs = cls.query.filter_by(appname=appname)
-        return [r.user_id for r in rs[start:start+limit] if r]
+        return [r.user_id for r in rs[start:start + limit] if r]
 
     @classmethod
     def get_appname_by_user_id(cls, user_id, start=0, limit=20):
         rs = cls.query.filter_by(user_id=user_id)
         if limit:
-            res = [r.appname for r in rs[start:start+limit] if r]
+            res = rs[start:start + limit]
         else:
             res = rs.all()
 
-        return res
+        return [r.appname for r in res if r]
