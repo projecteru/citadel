@@ -16,6 +16,7 @@ from citadel.models.env import Environment
 from citadel.models.combo import Combo
 from citadel.models.loadbalance import (Route, ELBInstance, add_route_analysis,
                                         delete_route_analysis, refresh_routes)
+from citadel.config import ELB_APP_NAME
 from citadel.models.oplog import OPType, OPLog
 from citadel.views.helper import bp_get_app, bp_get_balancer
 
@@ -62,6 +63,9 @@ def deploy_release(release_id):
     release = Release.get(release_id)
     if not release:
         abort(404, 'Release %s not found' % release_id)
+
+    if release.name == ELB_APP_NAME:
+        abort(400, 'Do not deploy %s through this API' % ELB_APP_NAME)
 
     if not (release.specs and release.specs.entrypoints):
         abort(404, 'Release %s has no entrypoints')
@@ -122,7 +126,11 @@ def get_release_entrypoints(release_id):
 
 @bp.route('/rmcontainer', methods=['POST'])
 def remove_containers():
+    # 过滤掉ELB的容器, ELB不要走这个方式下线
     container_ids = request.form.getlist('container_id')
+    containers = [Container.get_by_container_id(i) for i in container_ids]
+    container_ids = [c.container_id for c in containers if c and c.appname != ELB_APP_NAME]
+
     try:
         q = remove_container(container_ids)
     except ActionError as e:
@@ -145,6 +153,8 @@ def upgrade_containers():
     app = App.get_by_name(appname)
     if not app:
         abort(400, 'App %s not found' % appname)
+    if app.name == ELB_APP_NAME:
+        abort(400, 'Do not upgrade %s through this API' % ELB_APP_NAME)
 
     try:
         q = upgrade_container(container_ids, app.git, sha)

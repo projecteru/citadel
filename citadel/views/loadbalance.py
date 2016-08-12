@@ -45,6 +45,9 @@ def elb(name):
         podname = request.form['podname']
         entrypoint = request.form['entrypoint']
 
+        if appname == ELB_APP_NAME:
+            abort(400, 'Can not add ELB route for ELB')
+
         route = Route.create(podname, appname, entrypoint, domain, name)
         if not route:
             abort(400, 'Create route error')
@@ -56,6 +59,6 @@ def elb(name):
 
     routes = Route.get_by_elb(name)
 
-    all_apps = [a for a in App.get_all(limit=100) if a]
+    all_apps = [a for a in App.get_all(limit=100) if a and a.name != ELB_APP_NAME]
     return render_template('/loadbalance/elb.mako', name=name, elbs=elbs,
                            routes=routes, all_apps=all_apps)
