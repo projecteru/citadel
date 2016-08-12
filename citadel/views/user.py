@@ -31,5 +31,5 @@ def login():
 
 @bp.route('/logout')
 def logout():
-    session.pop('sso')
+    session.pop('sso', None)
     return redirect(url_for('index.index'))

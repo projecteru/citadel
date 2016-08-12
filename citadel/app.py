@@ -78,6 +78,8 @@ def create_app():
         token = request.headers.get('X-Neptulon-Token', '')
         g.user = token and get_current_user_via_auth(token) or (get_current_user() if 'sso' in session or debug else None)
 
+        if not g.user:
+            session.pop('sso', None)
         if not g.user and not anonymous_path(request.path):
             abort(401, 'Must login')
 

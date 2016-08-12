@@ -38,11 +38,11 @@ class Route(BaseModelMixin):
     用名字来对应, 也就是说一组名字相同的ELB互为热备, 他们具有同样的路由.
     """
     __tablename__ = 'elb_route'
-    __table_args = (
+    __table_args__ = (
         db.UniqueConstraint('elbname', 'appname', 'entrypoint', 'podname'),
     )
 
-    elbname = db.Column(db.String(64), index=True)
+    elbname = db.Column(db.String(64))
     appname = db.Column(db.String(255), index=True)
     entrypoint = db.Column(db.String(255), index=True)
     podname = db.Column(db.String(255))
