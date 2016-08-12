@@ -7,13 +7,14 @@ import json
 import logging
 from threading import Thread
 from Queue import Queue
+from optparse import OptionParser
 
 from etcd import EtcdWatchTimedOut, EtcdConnectionFailed
 
 from citadel.ext import etcd
 from citadel.publish import publisher
 from citadel.models import Container
-from citadel.models.loadbalance import update_elb_for_containers
+from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
 from citadel.libs.utils import with_appcontext
 
 
@@ -44,22 +45,22 @@ def deal(key, data):
         return
 
     if alive:
-        _log.info('add {}'.format(container_id))
+        _log.info('[%s, %s, %s] ADD [%s]', container.appname, container.podname, container.entrypoint, container_id)
         publisher.add_container(container)
         update_elb_for_containers(container)
     else:
-        _log.info('remove {}'.format(container_id))
+        _log.info('[%s, %s, %s] REMOVE [%s]', container.appname, container.podname, container.entrypoint, container_id)
         publisher.remove_container(container)
-        update_elb_for_containers(exclude=container)
+        update_elb_for_containers(container, UpdateELBAction.REMOVE)
 
     publisher.publish_app(appname)
 
 
-def producer():
-    _log.info('start watching...')
+def producer(etcd_path):
+    _log.info('Start watching %s...', etcd_path)
     while True:
         try:
-            resp = etcd.watch('/agent2', recursive=True, timeout=0)
+            resp = etcd.watch(etcd_path, recursive=True, timeout=0)
         except (KeyError, EtcdWatchTimedOut, EtcdConnectionFailed):
             continue
 
@@ -76,18 +77,18 @@ def producer():
 
 
 def consumer():
-    _log.info('start consuming...')
+    _log.info('Start consuming...')
     while True:
         action, key, data = _queue.get()
-        _log.info('%s changed' % key)
+        _log.info('%s changed', key)
 
         t = Thread(target=deal, args=(key, data))
         t.daemon = True
         t.start()
 
 
-def main():
-    ts = [Thread(target=producer), Thread(target=consumer)]
+def main(etcd_path):
+    ts = [Thread(target=producer, args=(etcd_path,)), Thread(target=consumer)]
     for t in ts:
         t.daemon = True
         t.start()
@@ -99,5 +100,13 @@ def main():
             break
 
 
+def get_etcd_path():
+    parser = OptionParser()
+    parser.add_option('-w', '--watch', dest='etcd_path', default='/agent2', help='etcd directory to watch recursively')
+    options, _ = parser.parse_args()
+    return options.etcd_path
+
+
 if __name__ == '__main__':
-    main()
+    etcd_path = get_etcd_path()
+    main(etcd_path)

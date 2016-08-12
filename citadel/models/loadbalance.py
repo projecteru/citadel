@@ -1,5 +1,6 @@
 # coding: utf-8
 
+import enum
 import requests
 from sqlalchemy.exc import IntegrityError
 from collections import Iterable
@@ -7,6 +8,7 @@ from collections import Iterable
 from citadel.ext import db
 from citadel.libs.json import Jsonized
 from citadel.libs.utils import normalize_domain
+
 from citadel.models.base import BaseModelMixin
 from citadel.models.container import Container
 
@@ -19,8 +21,11 @@ from citadel.models.container import Container
 """
 
 
-def get_app_backends(podname, appname, entrypoint, exclude=()):
+def get_app_backends(podname, appname, entrypoint, exclude=None):
     """when removing containers, exclude those which'll be removed"""
+    if exclude is None:
+        exclude = []
+
     containers = [c for c in Container.get_by_app(appname, limit=None) if c not in exclude]
     if entrypoint == '_all':
         return [b for c in containers for b in c.get_backends() if c.podname == podname]
@@ -34,7 +39,7 @@ class Route(BaseModelMixin):
     """
     __tablename__ = 'elb_route'
     __table_args = (
-        db.UniqueConstraint('elbname', 'appname', 'entrypoint'),
+        db.UniqueConstraint('elbname', 'appname', 'entrypoint', 'podname'),
     )
 
     elbname = db.Column(db.String(64), index=True)
@@ -280,33 +285,35 @@ def delete_route_analysis(route):
         client.delete_analysis(route.domain)
 
 
-def update_elb_for_containers(containers=(), exclude=()):
-    """when removing containers, exclude the ones that'll be removed"""
+class UpdateELBAction(enum.Enum):
+    ADD = 0
+    REMOVE = 1
+
+
+def update_elb_for_containers(containers, action=UpdateELBAction.ADD):
+    """看action来决定到底是要怎么搞.
+    如果是ADD就很简单, 直接加;
+    如果是REMOVE就要剔除这些容器的服务节点, 再更新."""
     if not isinstance(containers, Iterable):
         containers = [containers]
 
-    if not isinstance(exclude, Iterable):
-        exclude = [exclude]
-
-    # 所有要处理的容器都要瞅瞅backend
-    all_the_containers = tuple(containers) + tuple(exclude)
-    route_backends = set((c.appname, c.entrypoint, c.podname) for c in all_the_containers)
+    route_backends = set((c.appname, c.entrypoint, c.podname) for c in containers)
 
     for appname, entrypoint, podname in route_backends:
-        routes = Route.get_by_backend(appname, entrypoint, podname)
-        if not routes:
-            continue
-        elbnames = set(r.elbname for r in routes)
-        elbs = [elb for elb_list in [ELBInstance.get_by_name(n) for n in elbnames] for elb in elb_list]
-        lb_clients = [elb.lb_client for elb in elbs]
-
-        # routes 就是不同 ELB 上边的 route 组成的数组
-        # 它们其实是一样的路由，随便取一个 backend_name 就好了
-        backend_name = routes[0].backend_name
+        # REMOVE的时候就剔除这些容器
+        exclude = containers if action == UpdateELBAction.REMOVE else []
         backends = get_app_backends(podname, appname, entrypoint, exclude=exclude)
-        servers = ['server %s;' % b for b in backends]
-        for lb_client in lb_clients:
-            if servers:
-                lb_client.update_upstream(backend_name, servers)
-            else:
-                lb_client.delete_upstream(backend_name)
+
+        # 理论上appname, entrypoint, podname决定的一组route应该只有elbname不同
+        # 如果会有其他的不同, 那就是数据不一致了.
+        for route in Route.get_by_backend(appname, entrypoint, podname):
+            # 每个elbname可能有多个ELB的实例
+            elbs = ELBInstance.get_by_name(route.elbname)
+            lb_clients = [elb.lb_client for elb in elbs]
+
+            servers = ['server %s;' % b for b in backends]
+            for lb_client in lb_clients:
+                if servers:
+                    lb_client.update_upstream(route.backend_name, servers)
+                else:
+                    lb_client.delete_upstream(route.backend_name)

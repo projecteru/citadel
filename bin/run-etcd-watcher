@@ -1,2 +1,2 @@
 #!/bin/sh
-python -m citadel.bin.watch_etcd
+python -m citadel.bin.watch_etcd $@
