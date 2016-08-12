@@ -24,6 +24,11 @@ class Container(BaseModelMixin):
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
 
+    def __repr__(self):
+        return '{c.__class__} object at {hex_id}, cid {c.short_id}'.format(
+            hex_id=hex(id(self)), c=self
+        )
+
     @classmethod
     def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, podname, nodename):
         try:

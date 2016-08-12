@@ -19,8 +19,9 @@ from citadel.models.container import Container
 """
 
 
-def get_app_backends(podname, appname, entrypoint):
-    containers = Container.get_by_app(appname, limit=100)
+def get_app_backends(podname, appname, entrypoint, exclude=()):
+    """when removing containers, exclude those which'll be removed"""
+    containers = [c for c in Container.get_by_app(appname, limit=None) if c not in exclude]
     if entrypoint == '_all':
         return [b for c in containers for b in c.get_backends() if c.podname == podname]
     return [b for c in containers for b in c.get_backends() if c.entrypoint == entrypoint and c.podname == podname]
@@ -279,11 +280,17 @@ def delete_route_analysis(route):
         client.delete_analysis(route.domain)
 
 
-def update_elb_for_containers(containers):
+def update_elb_for_containers(containers=(), exclude=()):
+    """when removing containers, exclude the ones that'll be removed"""
     if not isinstance(containers, Iterable):
         containers = [containers]
 
-    route_backends = set((c.appname, c.entrypoint, c.podname) for c in containers)
+    if not isinstance(exclude, Iterable):
+        exclude = [exclude]
+
+    # 所有要处理的容器都要瞅瞅backend
+    all_the_containers = tuple(containers) + tuple(exclude)
+    route_backends = set((c.appname, c.entrypoint, c.podname) for c in all_the_containers)
 
     for appname, entrypoint, podname in route_backends:
         routes = Route.get_by_backend(appname, entrypoint, podname)
@@ -296,7 +303,10 @@ def update_elb_for_containers(containers):
         # routes 就是不同 ELB 上边的 route 组成的数组
         # 它们其实是一样的路由，随便取一个 backend_name 就好了
         backend_name = routes[0].backend_name
-        backends = get_app_backends(podname, appname, entrypoint)
+        backends = get_app_backends(podname, appname, entrypoint, exclude=exclude)
         servers = ['server %s;' % b for b in backends]
         for lb_client in lb_clients:
-            lb_client.update_upstream(backend_name, servers)
+            if servers:
+                lb_client.update_upstream(backend_name, servers)
+            else:
+                lb_client.delete_upstream(backend_name)
