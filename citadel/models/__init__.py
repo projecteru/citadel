@@ -6,4 +6,4 @@ from .oplog import OPLog
 from .loadbalance import ELBInstance, Route
 
 
-__all__ = ['User', 'App', 'Release', 'AppUserRelation', 'Container', 'LoadBalancer', 'Route', 'OPLog']
+__all__ = ['User', 'App', 'Release', 'AppUserRelation', 'Container', 'ELBInstance', 'Route', 'OPLog']

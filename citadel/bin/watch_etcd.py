@@ -45,11 +45,18 @@ def deal(key, data):
         return
 
     if alive:
-        _log.info('[%s, %s, %s] ADD [%s]', container.appname, container.podname, container.entrypoint, container_id)
+        _log.info('[%s, %s, %s] ADD [%s] [%s]',
+                  container.appname, container.podname,
+                  container.entrypoint, container_id,
+                  ','.join(container.get_backends()))
         publisher.add_container(container)
         update_elb_for_containers(container)
     else:
-        _log.info('[%s, %s, %s] REMOVE [%s]', container.appname, container.podname, container.entrypoint, container_id)
+        # 嗯这里已经没有办法取到IP了, 只好暂时作罢.
+        # 可能可以找个方法把IP给缓存起来.
+        _log.info('[%s, %s, %s] REMOVE [%s]',
+                  container.appname, container.podname,
+                  container.entrypoint, container_id)
         publisher.remove_container(container)
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
 
