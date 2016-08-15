@@ -245,12 +245,13 @@ def remove_loadbalance(id):
     except ActionError as e:
         return {'error': e.message}
 
-    # TODO 这里是同步的... 会不会太久
     for line in action_stream(q):
         m = json.loads(line)
         if m['success'] and elb.container_id == m['id']:
             log.info('ELB [%s] deleted', elb.name)
             elb.delete()
+        else:
+            log.error('ELB [%s] delete error, container [%s]', elb.name, m['id'])
     return DEFAULT_RETURN_VALUE
 
 
