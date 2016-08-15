@@ -5,6 +5,7 @@ run use citadel/bin/run-etcd-watcher
 import time
 import json
 import logging
+from thread import get_ident
 from threading import Thread
 from Queue import Queue
 from optparse import OptionParser
@@ -24,48 +25,58 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(asctime)s: %(m
 _log = logging.getLogger(__name__)
 _queue = Queue()
 _missing = object()
+_jobs = {}
+_quit = False
 
 
 @with_appcontext
 def deal(key, data):
+    global _jobs
+
     container_id = data.get('ID', '')
     if not container_id:
         return
 
-    alive = data.get('Alive', _missing)
-    if alive is _missing:
-        return
+    ident = get_ident()
+    _jobs[ident] = container_id
 
-    appname = data.get('Name', _missing)
-    if appname is _missing:
-        return
+    try:
+        alive = data.get('Alive', _missing)
+        if alive is _missing:
+            return
 
-    container = Container.get_by_container_id(container_id)
-    if not container:
-        return
+        appname = data.get('Name', _missing)
+        if appname is _missing:
+            return
 
-    if alive:
-        _log.info('[%s, %s, %s] ADD [%s] [%s]',
-                  container.appname, container.podname,
-                  container.entrypoint, container_id,
-                  ','.join(container.get_backends()))
-        publisher.add_container(container)
-        update_elb_for_containers(container)
-    else:
-        # 嗯这里已经没有办法取到IP了, 只好暂时作罢.
-        # 可能可以找个方法把IP给缓存起来.
-        _log.info('[%s, %s, %s] REMOVE [%s]',
-                  container.appname, container.podname,
-                  container.entrypoint, container_id)
-        publisher.remove_container(container)
-        update_elb_for_containers(container, UpdateELBAction.REMOVE)
+        container = Container.get_by_container_id(container_id)
+        if not container:
+            return
 
-    publisher.publish_app(appname)
+        if alive:
+            _log.info('[%s, %s, %s] ADD [%s] [%s]',
+                      container.appname, container.podname,
+                      container.entrypoint, container_id,
+                      ','.join(container.get_backends()))
+            publisher.add_container(container)
+            update_elb_for_containers(container)
+        else:
+            # 嗯这里已经没有办法取到IP了, 只好暂时作罢.
+            # 可能可以找个方法把IP给缓存起来.
+            _log.info('[%s, %s, %s] REMOVE [%s]',
+                      container.appname, container.podname,
+                      container.entrypoint, container_id)
+            publisher.remove_container(container)
+            update_elb_for_containers(container, UpdateELBAction.REMOVE)
+
+        publisher.publish_app(appname)
+    finally:
+        _jobs.pop(ident, None)
 
 
 def producer(etcd_path):
     _log.info('Start watching %s...', etcd_path)
-    while True:
+    while not _quit:
         try:
             resp = etcd.watch(etcd_path, recursive=True, timeout=0)
         except (KeyError, EtcdWatchTimedOut, EtcdConnectionFailed):
@@ -85,7 +96,7 @@ def producer(etcd_path):
 
 def consumer():
     _log.info('Start consuming...')
-    while True:
+    while not _quit:
         action, key, data = _queue.get()
         _log.info('%s changed', key)
 
@@ -95,6 +106,8 @@ def consumer():
 
 
 def main(etcd_path):
+    global _quit, _jobs
+
     ts = [Thread(target=producer, args=(etcd_path,)), Thread(target=consumer)]
     for t in ts:
         t.daemon = True
@@ -104,7 +117,19 @@ def main(etcd_path):
         try:
             time.sleep(1)
         except KeyboardInterrupt:
+            _quit = True
             break
+
+    t = 0
+    while _jobs:
+        time.sleep(3)
+        t += 3
+        _log.info('%d jobs still running', len(_jobs))
+
+        if t >= 30:
+            _log.info('30s passed, all jobs quit')
+            break
+    _log.info('quit')
 
 
 def get_etcd_path():
