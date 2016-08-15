@@ -1,6 +1,6 @@
 # coding: utf-8
 
-from flask import g, request, abort
+from flask import g, request, abort, redirect, url_for
 from flask_mako import render_template
 
 from citadel.ext import core
@@ -36,7 +36,7 @@ def index():
 def elb(name):
     elbs = ELBInstance.get_by_name(name)
     if not elbs:
-        abort(404, 'No elb found')
+        return redirect(url_for('loadbalance.index'))
 
     # 不是admin就别乱改了
     if request.method == 'POST' and g.user.privilege:
