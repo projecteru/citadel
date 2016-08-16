@@ -59,7 +59,7 @@ class Node(_CoreRPC):
     def used_cpu_count(self):
         from citadel.models import Container
         containers = Container.get_by_node(self.name, limit=None)
-        return sum([c.info['HostConfig']['CpuQuota'] / c.info['HostConfig']['CpuPeriod'] for c in containers])
+        return sum([c.cpu_quota for c in containers])
 
     @property
     def cpu_count(self):
