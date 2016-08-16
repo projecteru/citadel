@@ -190,6 +190,7 @@ def remove_container(ids):
     for c in containers:
         if not c:
             continue
+        c.mark_removing()
         publisher.remove_container(c)
 
     # TODO: handle the situations where core try-and-fail to delete container
@@ -250,6 +251,7 @@ def upgrade_container(ids, repo, sha):
     for container in containers:
         if not container:
             continue
+        container.mark_removing()
         publisher.remove_container(container)
 
     ms = _peek_grpc(core.upgrade_container(ids, release.image))

@@ -5,11 +5,11 @@ import itertools
 from sqlalchemy.exc import IntegrityError
 
 from citadel.ext import db, core
-from citadel.models.base import BaseModelMixin
+from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
 from citadel.network.plugin import get_ips_by_container
 
 
-class Container(BaseModelMixin):
+class Container(BaseModelMixin, PropsMixin):
     __tablename__ = 'container'
     __table_args__ = (
         db.Index('appname_sha', 'appname', 'sha'),
@@ -24,10 +24,15 @@ class Container(BaseModelMixin):
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
 
+    removing = PropsItem('removing', default=0, type=int)
+
     def __repr__(self):
         return '{c.__class__} object at {hex_id}, cid {c.short_id}'.format(
             hex_id=hex(id(self)), c=self
         )
+
+    def get_uuid(self):
+        return '/container/%s' % self.container_id
 
     @classmethod
     def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, podname, nodename):
@@ -104,11 +109,6 @@ class Container(BaseModelMixin):
         cs = super(Container, cls).get_all(start, limit)
         return [c.inspect() for c in cs]
 
-    @classmethod
-    def delete_by_container_id(cls, container_id):
-        cls.query.filter_by(container_id=container_id).delete()
-        db.session.commit()
-
     @property
     def ident(self):
         return self.name.rsplit('_', 2)[-1]
@@ -117,15 +117,26 @@ class Container(BaseModelMixin):
     def short_id(self):
         return self.container_id[:7]
 
+    def mark_removing(self):
+        self.removing = 1
+
     def inspect(self):
         """must be called after get / create"""
-        cs = core.get_containers([self.container_id])
-        if len(cs) != 1:
+        # 太尼玛假了...
+        # docker inspect在删除容器的时候可能需要比较长的时间才有响应
+        # 也可能响应过后就直接报错了
+        # 所以不如正在删除的容器就不要去inspect了
+        if self.removing:
+            self.name = 'unknown'
+            self.info = {'State': {'Status': 'removing'}}
+            return self
+
+        c = core.get_container(self.container_id)
+        if not c:
             self.name = 'unknown'
             self.info = {}
             return self
 
-        c = cs[0]
         self.name = c.name
         self.info = json.loads(c.info)
         return self
@@ -151,6 +162,10 @@ class Container(BaseModelMixin):
 
         ports = [p.port for p in ports]
         return ['%s:%s' % (ip, port) for ip, port in itertools.product(ips, ports)]
+
+    def delete(self):
+        self.destroy_props()
+        super(Container, self).delete()
 
     def to_dict(self):
         d = super(Container, self).to_dict()

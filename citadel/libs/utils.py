@@ -1,10 +1,14 @@
 # coding:utf-8
 
+import logging
 from functools import wraps, partial
 
 from etcd import EtcdException
 from flask import session
 from gitlab import GitlabError
+
+
+_log = logging.getLogger(__name__)
 
 
 def with_appcontext(f):
@@ -23,7 +27,8 @@ def handle_exception(exceptions, default=None):
         def _(*args, **kwargs):
             try:
                 return f(*args, **kwargs)
-            except exceptions:
+            except exceptions as e:
+                _log.error('Call %s error: %s', f.func_name, e)
                 if callable(default):
                     return default()
                 return default
