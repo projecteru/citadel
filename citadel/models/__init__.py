@@ -3,7 +3,7 @@ from .user import User
 from .app import App, Release, AppUserRelation
 from .container import Container
 from .oplog import OPLog
-from .loadbalance import ELBInstance, Route
+from .loadbalance import ELBInstance, Route, ELBRule
 
 
-__all__ = ['User', 'App', 'Release', 'AppUserRelation', 'Container', 'ELBInstance', 'Route', 'OPLog']
+__all__ = ['User', 'App', 'Release', 'AppUserRelation', 'Container', 'ELBInstance', 'Route', 'OPLog', 'ELBRule']

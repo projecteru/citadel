@@ -31,6 +31,49 @@ def get_app_backends(podname, appname, entrypoint, exclude=None):
         return [b for c in containers for b in c.get_backends() if c.podname == podname]
     return [b for c in containers for b in c.get_backends() if c.entrypoint == entrypoint and c.podname == podname]
 
+class ELBRule(BaseModelMixin):
+
+    """
+    ELB上所有的domain，
+    每个domain会对应相应的rule，但是rule就不保存在mysql了，到时候再到ELB上面查吧
+    """
+
+    __tablename__ = 'elb_rule'
+    __tablen_args__ = (
+        db.UniqueConstraint('elbname', 'domain'),
+    )
+
+    elbname = db.Column(db.String(64))
+    domain = db.Column(db.String(255))
+
+    def __hash__(self):
+        return self.id
+
+    @classmethod
+    def create(cls, elbname, domain):
+        try:
+            r = cls(elbname=elbname, domain=domain)
+            db.session.add(r)
+            db.session.commit()
+        except Exception:
+            db.rollback()
+            return
+        return r
+
+    @classmethod
+    def get_by_elb(cls, elbname):
+        return cls.query.filter_by(elbname=elbname).order_by(cls.id.desc()).all()
+
+    @classmethod
+    def delete(cls, elbname, domain):
+        cls.query.filter_by(elbname=elbname, domain=domain).delete()
+        db.session.commit()
+
+    def to_dict(self):
+        return {
+            'elbname': self.elbname,
+            'domain': self.domain,
+        }
 
 class Route(BaseModelMixin):
     """
@@ -170,6 +213,7 @@ class LBClient(Jsonized):
         self.domain_addr = '%s/__erulb__/domain' % addr
         self.upstream_addr = '%s/__erulb__/upstream' % addr
         self.analysis_addr = '%s/__erulb__/analysis' % addr
+        self.rule_addr = '%s/__erulb__/rule' % addr
 
     def _get(self, url):
         resp = requests.get(url)
@@ -183,16 +227,19 @@ class LBClient(Jsonized):
         resp = requests.delete(url, json=data)
         return resp.status_code == 200
 
+    def get_rule(self):
+        return self._get(self.rule_addr)
+
+    def update_rule(self, domain, rule):
+        data = {'domain': domain, 'rule': rule}
+        return self._put(self.rule_addr, data)
+
+    def delete_rule(self, domain):
+        data = {'domain': domain}
+        return self._delete(self.rule_addr, domain)
+
     def get_domain(self):
         return self._get(self.domain_addr)
-
-    def update_domain(self, backend_name, domain):
-        data = {'backend': backend_name, 'name': domain}
-        return self._put(self.domain_addr, data)
-
-    def delete_domain(self, domain):
-        data = {'name': domain}
-        return self._delete(self.domain_addr, data)
 
     def get_upstream(self):
         return self._get(self.upstream_addr)

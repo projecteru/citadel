@@ -17,11 +17,13 @@ def add_elb():
         num = random.randint(1, 110)
         container_id = hashlib.sha256(str(num)).hexdigest()
         ELBInstance.create('10.0.0.%s' % num, '10056', container_id, 'ELB-External', 'ELB for external network')
-    
+
     for _ in range(3):
         num = random.randint(111, 255)
         container_id = hashlib.sha256(str(num)).hexdigest()
         ELBInstance.create('10.0.0.%s' % num, '10056', container_id, 'ELB-Internal', 'ELB for internal network')
+
+    ELBInstance.create('127.0.0.1', '10086', container_id, 'ELB-test', 'ELB for test')
 
 
 @with_appcontext
