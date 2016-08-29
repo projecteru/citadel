@@ -203,19 +203,19 @@ def remove_container(ids):
     @with_appcontext
     def _stream_producer():
         for m in ms:
-            if m.success:
-                container = Container.get_by_container_id(m.id)
-                if not container:
-                    _log.info('Container [%s] not found when deleting', m.id)
-                    continue
+            container = Container.get_by_container_id(m.id)
+            if not container:
+                _log.info('Container [%s] not found when deleting', m.id)
+                continue
 
+            if m.success:
                 # 记录oplog
                 op_content = {'container_id': m.id}
                 OPLog.create(user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
-
-                container.delete()
-
                 _log.info('Container [%s] deleted', m.id)
+            else:
+                _log.info('Container [%s] error, but still deleted', m.id)
+            container.delete()
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
         q.put(_eof)
 
