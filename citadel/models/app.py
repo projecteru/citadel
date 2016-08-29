@@ -87,8 +87,8 @@ class Release(BaseModelMixin):
         if not commit:
             return None
 
-        content = get_file_content(app.project_name, 'app.yaml', sha)
-        if not content:
+        specs_text = get_file_content(app.project_name, 'app.yaml', sha)
+        if not specs_text:
             return None
 
         try:
@@ -140,8 +140,8 @@ class Release(BaseModelMixin):
     @cached_property
     def specs(self):
         """load app.yaml from GitLab"""
-        content = get_file_content(self.app.project_name, 'app.yaml', self.sha)
-        return content and Specs.from_string(content) or None
+        specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
+        return specs_text and Specs.from_string(specs_text) or None
 
     def update_image(self, image):
         self.image = image

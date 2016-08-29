@@ -70,11 +70,11 @@ def _peek_grpc(call):
 
 def build_image(repo, sha, uid='', artifact=''):
     project_name = get_project_name(repo)
-    content = get_file_content(project_name, 'app.yaml', sha)
-    if not content:
+    specs_text = get_file_content(project_name, 'app.yaml', sha)
+    if not specs_text:
         raise ActionError(400, 'repo %s does not have app.yaml in root directory' % repo)
 
-    specs = yaml.load(content)
+    specs = yaml.load(specs_text)
     appname = specs.get('appname', '')
     app = App.get_by_name(appname)
     if not app:
@@ -115,11 +115,11 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, coun
             raise ActionError(400, 'node %s, %s not exist' % (podname, nodename))
 
     project_name = get_project_name(repo)
-    content = get_file_content(project_name, 'app.yaml', sha)
-    if not content:
+    specs_text = get_file_content(project_name, 'app.yaml', sha)
+    if not specs_text:
         raise ActionError(400, 'repo %s, %s does not have app.yaml in root directory' % (repo, sha))
 
-    specs = yaml.load(content)
+    specs = yaml.load(specs_text)
     appname = specs.get('appname', '')
     release = Release.get_by_app_and_sha(appname, sha)
     if not release:
@@ -139,7 +139,7 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, coun
         _log.error('repo %s, %s has no image, may not been built yet', repo, sha)
         raise ActionError(400, 'repo %s, %s has no image, may not been built yet' % (repo, sha))
 
-    ms = _peek_grpc(core.create_container(content, appname, image, podname, nodename, entrypoint, cpu, memory, count, networks, env, raw))
+    ms = _peek_grpc(core.create_container(specs_text, appname, image, podname, nodename, entrypoint, cpu, memory, count, networks, env, raw))
     q = Queue()
 
     user_id = _get_current_user_id()
@@ -233,11 +233,11 @@ def upgrade_container(ids, repo, sha):
         raise ActionError(400, 'No containers to upgrade')
 
     project_name = get_project_name(repo)
-    content = get_file_content(project_name, 'app.yaml', sha)
-    if not content:
+    specs_text = get_file_content(project_name, 'app.yaml', sha)
+    if not specs_text:
         raise ActionError(400, 'repo %s, %s does not have app.yaml in root directory' % (repo, sha))
 
-    specs = yaml.load(content)
+    specs = yaml.load(specs_text)
     appname = specs.get('appname', '')
 
     release = Release.get_by_app_and_sha(appname, sha)
