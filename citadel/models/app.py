@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
 
@@ -198,3 +198,10 @@ class AppUserRelation(BaseModelMixin):
             res = rs.all()
 
         return [r.appname for r in res if r]
+
+
+event.listen(
+    App.__table__,
+    "after_create",
+    DDL("ALTER TABLE %(table)s AUTO_INCREMENT = 10001;")
+)
