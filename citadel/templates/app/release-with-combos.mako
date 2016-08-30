@@ -91,7 +91,9 @@
     <ul class="nav nav-tabs" id="add-container-form">
 
       % for mode, combo in release.combos.items():
-        <li><a data-target="#${ mode }" data-toggle="tab">${ mode }</a></li>
+        % if ('who' in combo and g.user.name in combo['who']) or ('who' not in combo) or g.user.privilege:
+          <li><a data-target="#${ mode }" data-toggle="tab">${ mode }</a></li>
+        % endif
       % endfor
 
     </ul>
