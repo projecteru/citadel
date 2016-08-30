@@ -20,14 +20,27 @@ $ ./bin/run-etcd-watcher
 
 ## DEV
 
+#### Setup
+
 ```shell
-$ pip install -U -r requirements.txt
-$ export GRPC_VERBOSITY=ERROR
-$ export FLASK_APP=app.py
-$ flask run --reload --debugger
+python tools/flushdb.py
+# inside project git@gitlab.ricebook.net:tonic/ci-test.git
+corecli register
+# inside project erulb: git@gitlab.ricebook.net:platform/eru-lb.git
+corecli register
+corecli build
 ```
 
-跑测试.
+#### Deploy
+
+```shell
+pip install -U -r requirements.txt
+export GRPC_VERBOSITY=ERROR
+export FLASK_APP=app.py
+flask run --reload --debugger
+```
+
+## TEST
 
 可千万别连着线上的 redis mysql 什么的就跑测试了...
 
@@ -38,12 +51,3 @@ $ ./bin/run-tests
 ## NOTE
 
 一定要记得 `export GRPC_VERBOSITY=ERROR` 不然你会被 grpc 无穷无尽的 debug 输出烦死. issue 在 [这里](https://github.com/grpc/grpc/issues/6584), 找了老子好久啊... 文档好像也没有写怎么关闭的, X 了 Y 了!
-
-## TODO
-
-- [x] API, deploy / build / remove / upgrade
-- [x] Publish services
-- [ ] UI
-- [ ] 身份认证, 权限鉴定, 关系存储
-- [ ] 操作日志记录
-- [x] watch etcd 更改容器状态(取决于容器状态要不要直接在这里改了... 现在很简单)
