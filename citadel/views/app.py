@@ -46,10 +46,10 @@ def get_release(name, sha):
 
     pods = core.list_pods()
     nodes = get_nodes_for_first_pod(pods)
-    # TODO: combo
-    return render_template('/app/release.mako', app=app, release=release,
+    template_name = '/app/release-with-combos.mako' if release.combos else '/app/release.mako'
+    return render_template(template_name, app=app, release=release,
                            envs=envs, appspecs=appspecs, containers=containers,
-                           networks=networks, nodes=nodes, pods=pods, combos=None)
+                           networks=networks, nodes=nodes, pods=pods)
 
 
 @bp.route('/<name>/env', methods=['GET', 'POST'])
