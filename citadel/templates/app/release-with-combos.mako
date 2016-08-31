@@ -90,17 +90,21 @@
 
     <ul class="nav nav-tabs" id="add-container-form">
 
+      <% active_ = {'active': 'active'} %>
       % for mode, combo in release.combos.items():
         % if ('who' in combo and g.user.name in combo['who']) or ('who' not in combo) or g.user.privilege:
-          <li><a data-target="#${ mode }" data-toggle="tab">${ mode }</a></li>
+          <li class="${ active_.pop('active', '') }"><a data-target="#${ mode }" data-toggle="tab">${ mode }</a></li>
+        % else:
+          <li class="${ active_.pop('active', '') } disabled"><a data-target="#${ mode }">${ mode }</a></li>
         % endif
       % endfor
 
     </ul>
 
     <div class="tab-content">
+      <% active_ = {'active': 'active'} %>
       % for mode, combo in release.combos.items():
-        <div class="tab-pane" id="${ mode }">
+        <div class="tab-pane ${ active_.pop('active', '') }" id="${ mode }">
           <br>
 
           <form id="add-container-form" class="form-horizontal" action="">

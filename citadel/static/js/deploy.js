@@ -45,15 +45,25 @@ $('#add-container-button').click(function(e){
     networks.push($(ns[i]).val());
   }
 
-  data.envname = $('#add-container-form select[name=envname]').val() || '';
-  data.podname = $('#add-container-form select[name=pod]').val();
-  data.nodename = $('#add-container-form select[name=node]').val();
-  data.entrypoint = $('#add-container-form select[name=entrypoint]').val();
-  data.combo = $('#add-container-form select[name=combo]').val();
-  data.count = $('#add-container-form input[name=count]').val() || '1';
-  data.envs = $('#add-container-form input[name=envs]').val();
-  data.networks = networks;
-  data.raw = $('#add-container-form input[name=raw]:checked').length;
+  if ($('div.active #add-container-form')) {
+    data.envname = $('div.active #add-container-form select[name=envname]').val() || '';
+    data.podname = $('div.active #add-container-form select[name=pod]').val();
+    data.nodename = $('div.active #add-container-form select[name=node]').val();
+    data.entrypoint = $('div.active #add-container-form select[name=entrypoint]').val();
+    data.count = $('div.active #add-container-form input[name=count]').val() || '1';
+    data.envs = $('div.active #add-container-form input[name=envs]').val();
+    data.networks = networks;
+    data.raw = $('div.active #add-container-form input[name=raw]:checked').length;
+  } else {
+    data.envname = $('#add-container-form select[name=envname]').val() || '';
+    data.podname = $('#add-container-form select[name=pod]').val();
+    data.nodename = $('#add-container-form select[name=node]').val();
+    data.entrypoint = $('#add-container-form select[name=entrypoint]').val();
+    data.count = $('#add-container-form input[name=count]').val() || '1';
+    data.envs = $('#add-container-form input[name=envs]').val();
+    data.networks = networks;
+    data.raw = $('#add-container-form input[name=raw]:checked').length;
+  }
 
   console.log(data);
   $.post(url, data, function(r){
