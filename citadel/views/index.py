@@ -47,11 +47,11 @@ def hook():
         return 'build status not success: %s' % data['build_status']
 
     project_name = get_project_name(repo)
-    content = get_file_content(project_name, 'app.yaml', sha)
-    if not content:
+    specs_text = get_file_content(project_name, 'app.yaml', sha)
+    if not specs_text:
         return 'app.yaml not found'
 
-    specs = yaml.load(content)
+    specs = yaml.load(specs_text)
     appname = specs.get('appname', '')
     app = App.get_or_create(appname, repo)
     if not app:

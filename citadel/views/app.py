@@ -8,7 +8,6 @@ from citadel.config import GITLAB_URL
 from citadel.ext import core
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
-from citadel.models.combo import ALL_COMBOS
 from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_file_content
@@ -47,9 +46,10 @@ def get_release(name, sha):
 
     pods = core.list_pods()
     nodes = get_nodes_for_first_pod(pods)
-    return render_template('/app/release.mako', app=app, release=release,
+    template_name = '/app/release-with-combos.mako' if release.combos else '/app/release.mako'
+    return render_template(template_name, app=app, release=release,
                            envs=envs, appspecs=appspecs, containers=containers,
-                           networks=networks, nodes=nodes, pods=pods, combos=ALL_COMBOS)
+                           networks=networks, nodes=nodes, pods=pods)
 
 
 @bp.route('/<name>/env', methods=['GET', 'POST'])

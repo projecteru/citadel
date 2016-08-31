@@ -1,4 +1,5 @@
 # coding: utf-8
+from citadel.libs.utils import to_number
 
 import json
 import logging
@@ -13,7 +14,6 @@ from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import AppUserRelation, Release, App
 from citadel.models.container import Container
 from citadel.models.env import Environment
-from citadel.models.combo import Combo
 from citadel.models.loadbalance import (Route, ELBInstance, add_route_analysis,
                                         delete_route_analysis, refresh_routes)
 from citadel.config import ELB_APP_NAME
@@ -72,8 +72,9 @@ def deploy_release(release_id):
 
     podname = request.form['podname']
     entrypoint = request.form['entrypoint']
-    combo_label = request.form.get('combo', default='')
     count = request.form.get('count', type=int, default=1)
+    cpu = request.form.get('cpu', type=int, default=1)
+    memory = to_number(request.form.get('memory', default='512MB'))
     envname = request.form.get('envname', '')
     envs = request.form.get('envs', '')
     nodename = request.form.get('nodename', '')
@@ -81,10 +82,6 @@ def deploy_release(release_id):
 
     if raw and not g.user.privilege:
         abort(400, 'Raw deploy only supported for admins')
-
-    combo = Combo.get(combo_label)
-    if not combo:
-        abort(400, 'Bad combo: %s' % combo_label)
 
     # 比较诡异, jQuery传个list是这样的...
     networks = request.form.getlist('networks[]')
@@ -98,7 +95,7 @@ def deploy_release(release_id):
     networks = {key: '' for key in networks}
 
     try:
-        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, combo.cpu, combo.memory, count, networks, envname, extra_env, bool(raw))
+        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env, bool(raw))
     except ActionError as e:
         log.error('error when creating container: %s', e.message)
         return {'error': e.message}

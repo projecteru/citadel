@@ -5,3 +5,4 @@ test.ipynb
 local_config.py
 tests/__pycache__/*
 .ropeproject
+migrations

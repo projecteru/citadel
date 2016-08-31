@@ -1,8 +1,8 @@
 # coding: utf-8
-
 import json
 from datetime import datetime
 
+import sqlalchemy.types as types
 from flask_sqlalchemy import sqlalchemy as sa
 
 from citadel.ext import db, rds
@@ -104,3 +104,39 @@ class PropsItem(object):
 
     def __delete__(self, obj):
         obj.delete_props_item(self.name)
+
+
+class JsonType(types.TypeDecorator):
+    impl = types.Text
+
+    def process_bind_param(self, value, engine):
+        try:
+            return json.dumps(value)
+        except ValueError:
+            return '{}'
+
+    def process_result_value(self, value, engine):
+        try:
+            return json.loads(value)
+        except ValueError:
+            return {}
+
+
+class Enum34(types.TypeDecorator):
+    impl = types.Integer
+
+    def __init__(self, enum_class, *args, **kwargs):
+        super(Enum34, self).__init__(*args, **kwargs)
+        self.enum_class = enum_class
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if value not in self.enum_class:
+            raise ValueError("'%s' is not a valid enum value" % repr(value))
+        return value.value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            return self.enum_class(value)
+        return None

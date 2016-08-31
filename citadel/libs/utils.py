@@ -1,6 +1,7 @@
 # coding:utf-8
-
 import logging
+import re
+import types
 from functools import wraps, partial
 
 from etcd import EtcdException
@@ -76,3 +77,30 @@ def parse_domain(domain):
     else:
         domain, location = s[:2]
     return domain, '/' + location
+
+
+_UNIT = re.compile(r'^(\d+)([kKmMgG][bB])$')
+_UNIT_DICT = {
+    'kb': 1024,
+    'mb': 1024 * 1024,
+    'gb': 1024 * 1024 * 1024,
+}
+
+
+def to_number(memory):
+    """把字符串的内存转成数字.
+    可以是纯数字, 纯数字的字符串, 也可以是带单位的字符串.
+    如果出错会返回负数, 让部署的时候出错.
+    因为0是不限制, 不能便宜了出错的容器..."""
+    if isinstance(memory, (types.IntType, types.LongType)):
+        return memory
+    if isinstance(memory, basestring) and memory.isdigit():
+        return int(memory)
+
+    r = _UNIT.match(memory)
+    if not r:
+        return -1
+
+    number = r.group(1)
+    unit = r.group(2).lower()
+    return int(number) * _UNIT_DICT.get(unit, -1)

@@ -136,18 +136,28 @@
           </select>
         </div>
       </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Number</label>
+      <div class="form-group collapse advance-form-group">
+        <label class="col-sm-2 control-label" for="">几个？</label>
         <div class="col-sm-10">
           <input class="form-control" type="number" name="count" value="1">
         </div>
       </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Combo</label>
+      <div class="form-group collapse advance-form-group">
+        <label class="col-sm-2 control-label" for="">CPU</label>
         <div class="col-sm-10">
-          <select class="form-control" name="combo">
-            % for combo in combos:
-              <option value="${combo.label}">${combo.label}: ${combo.cpu} CPU, ${combo.memory_str} Memory</option>
+          <select class="form-control" name="cpu">
+            % for cpu_value in (0.5, 1, 2, 4, 8):
+              <option value="${ cpu_value }" type="number">${ cpu_value }</option>
+            % endfor
+          </select>
+        </div>
+      </div>
+      <div class="form-group collapse advance-form-group">
+        <label class="col-sm-2 control-label" for="">Memory</label>
+        <div class="col-sm-10">
+          <select class="form-control" name="memory">
+            % for memory_value in ('512MB', '1GB', '4GB', '8GB', '16GB'):
+              <option value="${ memory_value }">${ memory_value }</option>
             % endfor
           </select>
         </div>
