@@ -45,7 +45,7 @@ $('#add-container-button').click(function(e){
     networks.push($(ns[i]).val());
   }
 
-  if ($('div.active #add-container-form')) {
+  if ($('div.active #add-container-form').length) {
     data.envname = $('div.active #add-container-form select[name=envname]').val() || '';
     data.podname = $('div.active #add-container-form select[name=pod]').val();
     data.nodename = $('div.active #add-container-form select[name=node]').val();
