@@ -142,6 +142,10 @@ class Container(BaseModelMixin, PropsMixin):
         return self
 
     def status(self):
+        # patch, 暂时docker不返回
+        # 我估计也没办法返回这个状态... 删除的时候好像没办法inspect的
+        if self.removing:
+            return 'InRemoval'
         return self.info.get('State', {}).get('Status', 'unknown')
 
     def get_ips(self):
