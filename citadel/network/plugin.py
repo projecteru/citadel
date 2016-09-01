@@ -2,7 +2,8 @@
 
 import json
 
-from citadel.ext import etcd, core
+from citadel.ext import etcd
+from citadel.rpc import core
 from citadel.libs.utils import handle_etcd_exception
 
 

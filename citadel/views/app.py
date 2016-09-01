@@ -5,13 +5,15 @@ from flask import g, request, url_for, redirect
 from flask_mako import render_template
 
 from citadel.config import GITLAB_URL
-from citadel.ext import core
+from citadel.rpc import core
 from citadel.libs.view import create_page_blueprint
+
 from citadel.models.app import App, Release
 from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_file_content
 from citadel.models.oplog import OPLog, OPType
+
 from citadel.network.plugin import get_all_pools
 from citadel.views.helper import bp_get_app, bp_get_release, get_nodes_for_first_pod
 

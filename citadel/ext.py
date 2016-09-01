@@ -9,7 +9,6 @@ from gitlab import Gitlab
 
 from urlparse import urlparse
 
-from citadel.rpc.client import CoreRPC
 from citadel.config import (
     REDIS_URL,
     ETCD_URL,
@@ -20,8 +19,6 @@ from citadel.config import (
     OAUTH2_AUTHORIZE_URL,
     GITLAB_URL,
     GITLAB_PRIVATE_TOKEN,
-    GRPC_HOST,
-    GRPC_PORT,
 )
 
 
@@ -35,7 +32,6 @@ mako = MakoTemplates()
 oauth = OAuth()
 rds = Redis.from_url(REDIS_URL)
 etcd = get_etcd_client(ETCD_URL)
-core = CoreRPC(GRPC_HOST, GRPC_PORT)
 
 sso = oauth.remote_app(
     'sso',

@@ -38,3 +38,7 @@ def cache(fmt=None, ttl=None):
             return r
         return _
     return _cache
+
+
+def clean_cache(key):
+    rds.delete(key)

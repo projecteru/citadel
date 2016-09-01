@@ -1,7 +1,7 @@
 # coding: utf-8
 from flask import abort, g
 
-from citadel.ext import core
+from citadel.rpc import core
 from citadel.libs.view import create_api_blueprint
 from citadel.models.container import Container
 

@@ -4,7 +4,8 @@ import json
 import itertools
 from sqlalchemy.exc import IntegrityError
 
-from citadel.ext import db, core
+from citadel.ext import db
+from citadel.rpc import core
 from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
 from citadel.network.plugin import get_ips_by_container
 

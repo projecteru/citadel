@@ -2,7 +2,7 @@
 
 from flask import abort, g
 
-from citadel.ext import core
+from citadel.rpc import core
 from citadel.models.app import App, Release, AppUserRelation
 from citadel.models.loadbalance import ELBInstance
 

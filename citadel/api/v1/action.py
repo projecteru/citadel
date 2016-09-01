@@ -7,7 +7,7 @@ from citadel.libs.view import create_api_blueprint
 from citadel.libs.datastructure import AbortDict
 from citadel.libs.agent import EruAgentError, EruAgentClient
 
-from citadel.ext import core
+from citadel.rpc import core
 from citadel.action import (build_image, create_container, remove_container,
         upgrade_container, action_stream, ActionError)
 

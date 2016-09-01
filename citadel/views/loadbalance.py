@@ -3,7 +3,7 @@
 from flask import g, request, abort, redirect, url_for
 from flask_mako import render_template
 
-from citadel.ext import core
+from citadel.rpc import core
 from citadel.config import ELB_APP_NAME
 from citadel.libs.view import create_page_blueprint
 

@@ -4,8 +4,13 @@ from functools import partial
 from grpc.beta import implementations
 from grpc.framework.interfaces.face.face import AbortionError
 
-import citadel.rpc.core_pb2 as pb
+from citadel.rpc.core_pb2 import (beta_create_CoreRPC_stub, Empty,
+        AddPodOptions, GetPodOptions, ListNodesOptions, GetNodeOptions,
+        AddNodeOptions, BuildImageOptions, DeployOptions, UpgradeOptions,
+        ContainerID, ContainerIDs)
 from citadel.libs.utils import handle_exception
+from citadel.libs.cache import cache, clean_cache, ONE_DAY
+
 from citadel.rpc.exceptions import NoStubError
 from citadel.rpc.core import (Pod, Node, BuildImageMessage,
         CreateContainerMessage, UpgradeContainerMessage, RemoveContainerMessage)
@@ -14,6 +19,11 @@ from citadel.rpc.core import (Pod, Node, BuildImageMessage,
 handle_rpc_exception = partial(handle_exception, (NoStubError, AbortionError))
 _STREAM_TIMEOUT = 3600
 _UNARY_TIMEOUT = 5
+
+_LIST_PODS_KEY = 'citadel:listpods'
+_GET_POD = 'citadel:getpod:{name}'
+_GET_POD_NODES = 'citadel:getpodnodes:{name}'
+_GET_NODE = 'citadel:getnode:{podname}:{nodename}'
 
 
 class CoreRPC(object):
@@ -25,48 +35,55 @@ class CoreRPC(object):
     def _get_stub(self):
         try:
             channel = implementations.insecure_channel(self.grpc_host, self.grpc_port)
-            return pb.beta_create_CoreRPC_stub(channel)
+            return beta_create_CoreRPC_stub(channel)
         except Exception as e:
             raise NoStubError(e.message)
 
     @handle_rpc_exception(default=list)
+    @cache(_LIST_PODS_KEY, ttl=ONE_DAY)
     def list_pods(self):
         stub = self._get_stub()
-        r = stub.ListPods(pb.Empty(), _UNARY_TIMEOUT)
+        r = stub.ListPods(Empty(), _UNARY_TIMEOUT)
         return [Pod(p) for p in r.pods]
 
     @handle_rpc_exception(default=None)
     def create_pod(self, name, desc):
         stub = self._get_stub()
-        opts = pb.AddPodOptions(name=name, desc=desc)
+        opts = AddPodOptions(name=name, desc=desc)
         p = stub.AddPod(opts, _UNARY_TIMEOUT)
+
+        clean_cache(_LIST_PODS_KEY)
+        clean_cache(_GET_POD.format(name=name))
         return p and Pod(p)
 
     @handle_rpc_exception(default=None)
+    @cache(_GET_POD, ttl=ONE_DAY)
     def get_pod(self, name):
         stub = self._get_stub()
-        opts = pb.GetPodOptions(name=name)
+        opts = GetPodOptions(name=name)
         p = stub.GetPod(opts, _UNARY_TIMEOUT)
         return p and Pod(p)
 
     @handle_rpc_exception(default=list)
+    @cache(_GET_POD_NODES, ttl=ONE_DAY)
     def get_pod_nodes(self, name):
         stub = self._get_stub()
-        opts = pb.ListNodesOptions(podname=name)
+        opts = ListNodesOptions(podname=name)
         r = stub.ListPodNodes(opts, _UNARY_TIMEOUT)
         return [Node(n) for n in r.nodes]
 
     @handle_rpc_exception(default=None)
+    @cache(_GET_NODE, ttl=ONE_DAY)
     def get_node(self, podname, nodename):
         stub = self._get_stub()
-        opts = pb.GetNodeOptions(podname=podname, nodename=nodename)
+        opts = GetNodeOptions(podname=podname, nodename=nodename)
         n = stub.GetNode(opts, _UNARY_TIMEOUT)
         return n and Node(n)
 
     @handle_rpc_exception(default=None)
     def add_node(self, nodename, endpoint, podname, cafile, certfile, keyfile, public):
         stub = self._get_stub()
-        opts = pb.AddNodeOptions(nodename=nodename,
+        opts = AddNodeOptions(nodename=nodename,
                                  endpoint=endpoint,
                                  podname=podname,
                                  cafile=cafile,
@@ -75,12 +92,15 @@ class CoreRPC(object):
                                  public=public)
 
         n = stub.AddNode(opts, _UNARY_TIMEOUT)
+
+        clean_cache(_GET_POD_NODES.format(name=podname))
+        clean_cache(_GET_NODE.format(podname=podname, nodename=nodename))
         return n and Node(n)
 
     @handle_rpc_exception(default=list)
     def build_image(self, repo, version, uid, artifact=''):
         stub = self._get_stub()
-        opts = pb.BuildImageOptions(repo=repo, version=version, uid=uid, artifact=artifact)
+        opts = BuildImageOptions(repo=repo, version=version, uid=uid, artifact=artifact)
 
         for m in stub.BuildImage(opts, _STREAM_TIMEOUT):
             yield BuildImageMessage(m)
@@ -89,7 +109,7 @@ class CoreRPC(object):
     def create_container(self, specs, appname, image, podname, nodename, entrypoint,
                          cpu_quota, memory, count, networks, env, raw):
         stub = self._get_stub()
-        opts = pb.DeployOptions(specs=specs,
+        opts = DeployOptions(specs=specs,
                                 appname=appname,
                                 image=image,
                                 podname=podname,
@@ -108,7 +128,7 @@ class CoreRPC(object):
     @handle_rpc_exception(default=list)
     def remove_container(self, ids):
         stub = self._get_stub()
-        ids = pb.ContainerIDs(ids=[pb.ContainerID(id=i) for i in ids])
+        ids = ContainerIDs(ids=[ContainerID(id=i) for i in ids])
 
         for m in stub.RemoveContainer(ids, _STREAM_TIMEOUT):
             yield RemoveContainerMessage(m)
@@ -116,7 +136,7 @@ class CoreRPC(object):
     @handle_rpc_exception(default=list)
     def upgrade_container(self, ids, image):
         stub = self._get_stub()
-        opts = pb.UpgradeOptions(ids=[pb.ContainerID(id=i) for i in ids], image=image)
+        opts = UpgradeOptions(ids=[ContainerID(id=i) for i in ids], image=image)
 
         for m in stub.UpgradeContainer(opts, _STREAM_TIMEOUT):
             yield UpgradeContainerMessage(m)
@@ -124,7 +144,7 @@ class CoreRPC(object):
     @handle_rpc_exception(default=list)
     def get_containers(self, ids):
         stub = self._get_stub()
-        ids = pb.ContainerIDs(ids=[pb.ContainerID(id=i) for i in ids])
+        ids = ContainerIDs(ids=[ContainerID(id=i) for i in ids])
 
         cs = stub.GetContainers(ids, _UNARY_TIMEOUT)
         return [c for c in cs.containers]
@@ -132,5 +152,5 @@ class CoreRPC(object):
     @handle_rpc_exception(default=None)
     def get_container(self, id):
         stub = self._get_stub()
-        id = pb.ContainerID(id=id)
+        id = ContainerID(id=id)
         return stub.GetContainer(id, _UNARY_TIMEOUT)

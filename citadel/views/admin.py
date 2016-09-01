@@ -3,7 +3,7 @@
 from flask import g, request, url_for, redirect, abort
 from flask_mako import render_template
 
-from citadel.ext import core
+from citadel.rpc import core
 from citadel.libs.view import create_page_blueprint
 
 from citadel.models.app import AppUserRelation, App

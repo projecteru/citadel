@@ -7,7 +7,7 @@ import logging
 from flask import g, request, abort
 
 from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
-from citadel.ext import core
+from citadel.rpc import core
 from citadel.libs.utils import with_appcontext
 from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
 

@@ -10,7 +10,7 @@ from flask import g
 from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 
-from citadel.ext import core
+from citadel.rpc import core
 from citadel.libs.json import JSONEncoder
 from citadel.libs.utils import with_appcontext
 from citadel.publish import publisher
