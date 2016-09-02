@@ -91,8 +91,8 @@
     <ul class="nav nav-tabs" id="add-container-form">
 
       <% active_ = {'active': 'active'} %>
-      % for mode, combo in release.combos.items():
-        % if ('who' in combo and g.user.name in combo['who']) or ('who' not in combo) or g.user.privilege:
+      % for mode, combo in combos.items():
+        % if combo.allow(g.user.name) or g.user.privilege:
           <li class="${ active_.pop('active', '') }"><a data-target="#${ mode }" data-toggle="tab">${ mode }</a></li>
         % else:
           <li class="${ active_.pop('active', '') } disabled"><a data-target="#${ mode }">${ mode }</a></li>
@@ -103,7 +103,7 @@
 
     <div class="tab-content">
       <% active_ = {'active': 'active'} %>
-      % for mode, combo in release.combos.items():
+      % for mode, combo in combos.items():
         <div class="tab-pane ${ active_.pop('active', '') }" id="${ mode }">
           <br>
 
@@ -118,7 +118,7 @@
               <label class="col-sm-2 control-label" for="">Pod</label>
               <div class="col-sm-10">
                 <select name="pod" class="form-control" disabled>
-                  <option value="${ combo['podname'] }">${ combo['podname'] }</option>
+                  <option value="${ combo.podname }">${ combo.podname }</option>
                 </select>
               </div>
             </div>
@@ -134,7 +134,7 @@
               <label class="col-sm-2 control-label" for="">Entrypoint</label>
               <div class="col-sm-10">
                 <select class="form-control" name="entrypoint" disabled>
-                  <option value="${ combo['entrypoint'] }">${ combo['entrypoint'] }</option>
+                  <option value="${ combo.entrypoint }">${ combo.entrypoint }</option>
                 </select>
               </div>
             </div>
@@ -142,21 +142,21 @@
               <label class="col-sm-2 control-label" for="">Env</label>
               <div class="col-sm-10">
                 <select class="form-control" name="envname" disabled>
-                  <option value="${ combo.get('envname') }">${ combo.get('envname') }</option>
+                  <option value="${ combo.envname }">${ combo.envname }</option>
                 </select>
               </div>
             </div>
-            <div class="form-group collapse advance-form-group">
+            <div class="form-group">
               <label class="col-sm-2 control-label" for="">几个？</label>
               <div class="col-sm-10">
-                <input class="form-control" type="number" name="count" value="1">
+                <input class="form-control" type="number" name="count" value="${combo.count}">
               </div>
             </div>
             <div class="form-group collapse advance-form-group">
               <label class="col-sm-2 control-label" for="">CPU</label>
               <div class="col-sm-10">
                 <select class="form-control" name="cpu" disabled>
-                  <option value="${ combo['cpu'] }" type="number">${ combo['cpu'] }</option>
+                  <option value="${ combo.cpu }" type="number">${ combo.cpu }</option>
                 </select>
               </div>
             </div>
@@ -164,21 +164,21 @@
               <label class="col-sm-2 control-label" for="">Memory</label>
               <div class="col-sm-10">
                 <select class="form-control" name="memory" disabled>
-                  <option value="${ combo['memory'] }">${ combo['memory'] }</option>
+                  <option value="${ combo.memory }">${ combo.memory_str }</option>
                 </select>
               </div>
             </div>
             <div class="form-group collapse advance-form-group">
               <label class="col-sm-2 control-label" for="">Extra Env</label>
               <div class="col-sm-10">
-                <input class="form-control" type="text" name="envs" value="${ combo.get('envs') }" disabled>
+                <input class="form-control" type="text" name="envs" value="${ combo.env_string() }" disabled>
               </div>
             </div>
             <div class="form-group">
               <label class="col-sm-2 control-label" for="">Network</label>
               <div class="col-sm-10">
                 % for name, cidr in networks.iteritems():
-                  % if name in combo.get('networks', {}):
+                  % if name in combo.networks:
                     <label class="checkbox" for="">
                       <input type="checkbox" name="network" value="${ name }" checked disabled>${ name } - ${ cidr }
                     </label>

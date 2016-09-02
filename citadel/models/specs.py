@@ -2,6 +2,7 @@
 
 import yaml
 from citadel.libs.json import Jsonized
+from citadel.libs.utils import to_number
 
 
 class Port(object):
@@ -78,9 +79,59 @@ class Entrypoint(object):
                 health_check, hosts, permdir, privileged, log_config, working_dir)
 
 
+class Combo(object):
+
+    def __init__(self, podname, entrypoint, envname='', cpu=0, memory='0',
+            count=1, envs={}, raw=False, networks=[], permitted_users=[]):
+        self.podname = podname
+        self.entrypoint = entrypoint
+        self.envname = envname
+        self.cpu = cpu
+        self.memory = to_number(memory)
+        self.memory_str = memory
+        self.count = count
+        self.envs = envs
+        self.raw = raw
+        self.networks = networks
+        self.permitted_users = permitted_users
+
+    @classmethod
+    def from_dict(cls, data):
+        podname = data['podname']
+        entrypoint = data['entrypoint']
+        envname = data.get('envname', '')
+        cpu = float(data.get('cpu', 1))
+        memory = data.get('memory', '0')
+        count = int(data.get('count', 1))
+        raw = bool(data.get('raw', False))
+        networks = data.get('networks', [])
+        permitted_users = data.get('permitted_users', [])
+
+        envs = data.get('envs', {})
+        if isinstance(envs, basestring):
+            parts = envs.split(';')
+            envs = {}
+            for p in parts:
+                if not p:
+                    continue
+                k, v = p.split('=', 1)
+                envs[k] = v
+
+        return cls(podname, entrypoint, envname, cpu, memory,
+                count, envs, raw, networks, permitted_users)
+
+    def allow(self, user):
+        if not self.permitted_users:
+            return True
+        return user in self.permitted_users
+
+    def env_string(self):
+        return ';'.join('%s=%s' % (k, v) for k, v in self.envs.iteritems())
+
+
 class Specs(Jsonized):
 
-    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base, mount_paths, raw):
+    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, raw):
         # raw to jsonize
         self.appname = appname
         self.entrypoints = entrypoints
@@ -90,6 +141,7 @@ class Specs(Jsonized):
         self.meta = meta
         self.base = base
         self.mount_paths = mount_paths
+        self.combos = combos
         self._raw = raw
 
     @classmethod
@@ -102,7 +154,8 @@ class Specs(Jsonized):
         meta = data.get('meta', {})
         base = data.get('base')
         mount_paths = data.get('mount_paths', [])
-        return cls(appname, entrypoints, build, volumes, binds, meta, base, mount_paths, data)
+        combos = {key: Combo.from_dict(value) for key, value in data.get('combos', {}).iteritems()}
+        return cls(appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, data)
 
     @classmethod
     def from_string(cls, string):

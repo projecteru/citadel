@@ -227,6 +227,9 @@ def remove_container(ids):
 
 
 def upgrade_container(ids, repo, sha):
+    if len(sha) != 40:
+        raise ActionError(400, 'SHA must be in length 40')
+
     containers = [Container.get_by_container_id(i) for i in ids]
     containers = [c for c in containers if c and c.sha != sha]
     if not containers:

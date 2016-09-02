@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-import yaml
+
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
 
 from citadel.ext import db
-from citadel.libs.utils import to_number
-from citadel.models.base import JsonType, BaseModelMixin
+from citadel.models.base import BaseModelMixin
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
 from citadel.models.specs import Specs
 
@@ -91,27 +90,6 @@ class Release(BaseModelMixin):
     sha = db.Column(db.CHAR(64), nullable=False, index=True)
     app_id = db.Column(db.Integer, nullable=False)
     image = db.Column(db.String(255), nullable=False, default='')
-    # store all deploy options
-    combos = db.Column(JsonType, default={})
-
-    @staticmethod
-    def validate_combo(combos):
-        if not combos:
-            return combos
-        problematic_modes = []
-        for k, combo in combos.viewitems():
-            _copy = DEFAULT_COMBO.copy()
-            _copy.update(combo)
-            combos[k] = _copy
-            if not all(map(_copy.get, COMBO_MUST_HAVE_FIELD)):
-                problematic_modes.append(k)
-            # convert MB GB to int
-            _copy['memory'] = to_number(_copy['memory'])
-
-        for k in problematic_modes:
-            del combos[k]
-
-        return combos
 
     @classmethod
     def create(cls, app, sha):
@@ -123,11 +101,9 @@ class Release(BaseModelMixin):
         specs_text = get_file_content(app.project_name, 'app.yaml', sha)
         if not specs_text:
             return None
-        specs = yaml.load(specs_text)
 
         try:
-            combos = cls.validate_combo(specs.get('combos'))
-            r = cls(sha=commit.id, app_id=app.id, combos=combos)
+            r = cls(sha=commit.id, app_id=app.id)
             db.session.add(r)
             db.session.commit()
             return r
@@ -177,6 +153,9 @@ class Release(BaseModelMixin):
         """load app.yaml from GitLab"""
         specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
         return specs_text and Specs.from_string(specs_text) or None
+
+    def get_combos(self):
+        return self.specs.combos
 
     def update_image(self, image):
         self.image = image

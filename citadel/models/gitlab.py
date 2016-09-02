@@ -23,7 +23,7 @@ def get_project_name(repo):
     return u.path[1:-4]
 
 
-@cache('core-api:filecontent:{project_name}:{file_path}:{ref}', ttl=ONE_DAY)
+@cache('citadel:filecontent:{project_name}:{file_path}:{ref}', ttl=ONE_DAY)
 def get_file_content(project_name, file_path, ref):
 
     @handle_gitlab_exception(default=None)
