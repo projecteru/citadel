@@ -15,7 +15,10 @@
     <%def name="header()">
       <h3 class="panel-title">App
         <a href="${ url_for('app.app_env', name=app.name) }" class="btn-xs" target="_blank">
-          <span class="fui-arrow-right"></span> Environment Variables
+          • Environment Variables
+        </a>
+        <a href="${ url_for('app.app_permitted_users', name=app.name) }" class="btn-xs" target="_blank">
+          • Permitted Users
         </a>
       </h3>
     </%def>

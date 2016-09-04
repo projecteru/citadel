@@ -5,16 +5,15 @@ from flask import g, request, url_for, redirect
 from flask_mako import render_template
 
 from citadel.config import GITLAB_URL
-from citadel.rpc import core
 from citadel.libs.view import create_page_blueprint
-
-from citadel.models.app import App, Release
+from citadel.models.app import App, Release, AppUserRelation
 from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_file_content
 from citadel.models.oplog import OPLog, OPType
-
+from citadel.models.user import User
 from citadel.network.plugin import get_all_pools
+from citadel.rpc import core
 from citadel.views.helper import bp_get_app, bp_get_release, get_nodes_for_first_pod
 
 
@@ -75,6 +74,17 @@ def app_env(name):
     OPLog.create(g.user.id, OPType.CREATE_ENV, app.name, content=op_content)
 
     return redirect(url_for('app.app_env', name=name))
+
+
+@bp.route('/<name>/permitted-users', methods=['GET', 'POST'])
+def app_permitted_users(name):
+    if request.method == 'POST':
+        user_id = request.form.get('user_id', type=int)
+        AppUserRelation.delete(name, user_id)
+
+    user_ids = AppUserRelation.get_user_id_by_appname(name)
+    users = [User.get(id_) for id_ in user_ids]
+    return render_template('/app/permitted-users.mako', users=users)
 
 
 @bp.route('/<name>/version/<sha>/gitlab')
