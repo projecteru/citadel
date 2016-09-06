@@ -8,6 +8,7 @@ from citadel.libs.utils import log
 from citadel.models.base import BaseModelMixin
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
 from citadel.models.specs import Specs
+from citadel.models.user import User
 
 
 COMBO_MUST_HAVE_FIELD = ('podname', 'entrypoint')
@@ -109,11 +110,23 @@ class Release(BaseModelMixin):
             r = cls(sha=commit.id, app_id=app.id)
             db.session.add(r)
             db.session.commit()
-            return r
         except IntegrityError:
             log.warn('fail to create Release %s %s, duplicate', app.name, sha)
             db.session.rollback()
             return None
+
+        # after the instance is created, manage app permission through combo
+        # permitted_users
+        combos = r.specs.combos.itervalues()
+        permitted_users = [combo.permitted_users for combo in combos]
+        all_permitted_users = [User.get(u) for g in permitted_users for u in g]
+        log.debug('grant %s on app %s', all_permitted_users, r.name)
+        for u in all_permitted_users:
+            if not u:
+                continue
+            AppUserRelation.add(r.name, u.id)
+
+        return r
 
     @classmethod
     def get(cls, id):
@@ -221,6 +234,6 @@ class AppUserRelation(BaseModelMixin):
 
 event.listen(
     App.__table__,
-    "after_create",
-    DDL("ALTER TABLE %(table)s AUTO_INCREMENT = 10001;")
+    'after_create',
+    DDL('ALTER TABLE %(table)s AUTO_INCREMENT = 10001;')
 )
