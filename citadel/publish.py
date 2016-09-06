@@ -1,7 +1,5 @@
 # coding: utf-8
-
 import json
-import logging
 
 from citadel.ext import rds, etcd
 from citadel.libs.utils import handle_etcd_exception
@@ -9,7 +7,6 @@ from citadel.models.app import App
 from citadel.models.container import Container
 
 
-_log = logging.getLogger(__name__)
 _APP_DISCOVERY_KEY = 'eru:discovery:published'
 
 

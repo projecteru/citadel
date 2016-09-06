@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
 
 from citadel.ext import db
+from citadel.libs.utils import log
 from citadel.models.base import BaseModelMixin
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
 from citadel.models.specs import Specs
@@ -96,10 +96,13 @@ class Release(BaseModelMixin):
         """app must be an App instance"""
         commit = get_commit(app.project_name, sha)
         if not commit:
+            log.warn('error getting commit %s %s', app, sha)
             return None
 
         specs_text = get_file_content(app.project_name, 'app.yaml', sha)
+        log.debug('got specs:\n%s', specs_text)
         if not specs_text:
+            log.warn('empty specs %s %s', app.name, sha)
             return None
 
         try:
@@ -108,6 +111,7 @@ class Release(BaseModelMixin):
             db.session.commit()
             return r
         except IntegrityError:
+            log.warn('fail to create Release %s %s, duplicate', app.name, sha)
             db.session.rollback()
             return None
 
@@ -159,6 +163,7 @@ class Release(BaseModelMixin):
 
     def update_image(self, image):
         self.image = image
+        log.debug('set image %s for release %s', image, self.sha)
         db.session.add(self)
         db.session.commit()
 
