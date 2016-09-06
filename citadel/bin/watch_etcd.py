@@ -22,7 +22,7 @@ from citadel.libs.utils import with_appcontext
 logging.getLogger('requests').setLevel(logging.CRITICAL)
 logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(asctime)s: %(message)s')
-_log = logging.getLogger(__name__)
+log = logging.getLogger('etcd-watcher')
 _queue = Queue()
 _missing = object()
 _jobs = {}
@@ -54,7 +54,7 @@ def deal(key, data):
             return
 
         if alive:
-            _log.info('[%s, %s, %s] ADD [%s] [%s]',
+            log.info('[%s, %s, %s] ADD [%s] [%s]',
                       container.appname, container.podname,
                       container.entrypoint, container_id,
                       ','.join(container.get_backends()))
@@ -63,7 +63,7 @@ def deal(key, data):
         else:
             # 嗯这里已经没有办法取到IP了, 只好暂时作罢.
             # 可能可以找个方法把IP给缓存起来.
-            _log.info('[%s, %s, %s] REMOVE [%s]',
+            log.info('[%s, %s, %s] REMOVE [%s]',
                       container.appname, container.podname,
                       container.entrypoint, container_id)
             publisher.remove_container(container)
@@ -75,7 +75,7 @@ def deal(key, data):
 
 
 def producer(etcd_path):
-    _log.info('Start watching %s...', etcd_path)
+    log.info('Start watching %s...', etcd_path)
     while not _quit:
         try:
             resp = etcd.watch(etcd_path, recursive=True, timeout=0)
@@ -95,10 +95,10 @@ def producer(etcd_path):
 
 
 def consumer():
-    _log.info('Start consuming...')
+    log.info('Start consuming...')
     while not _quit:
         action, key, data = _queue.get()
-        _log.info('%s changed', key)
+        log.info('%s changed', key)
 
         t = Thread(target=deal, args=(key, data))
         t.daemon = True
@@ -124,12 +124,12 @@ def main(etcd_path):
     while _jobs:
         time.sleep(3)
         t += 3
-        _log.info('%d jobs still running', len(_jobs))
+        log.info('%d jobs still running', len(_jobs))
 
         if t >= 30:
-            _log.info('30s passed, all jobs quit')
+            log.info('30s passed, all jobs quit')
             break
-    _log.info('quit')
+    log.info('quit')
 
 
 def get_etcd_path():

@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-
 import json
-import logging
 from Queue import Queue, Empty
 from threading import Thread
 
@@ -10,21 +8,19 @@ from flask import g
 from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 
-from citadel.rpc import core
 from citadel.libs.json import JSONEncoder
-from citadel.libs.utils import with_appcontext
-from citadel.publish import publisher
-
+from citadel.libs.utils import log, with_appcontext
 from citadel.models.app import App, Release
 from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_name, get_file_content
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
+from citadel.publish import publisher
+from citadel.rpc import core
 
 
 _eof = object()
-_log = logging.getLogger(__name__)
 
 
 class ActionError(Exception):
@@ -136,7 +132,7 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, coun
     if raw:
         image = specs.get('base', '')
     if not image:
-        _log.error('repo %s, %s has no image, may not been built yet', repo, sha)
+        log.error('repo %s, %s has no image, may not been built yet', repo, sha)
         raise ActionError(400, 'repo %s, %s has no image, may not been built yet' % (repo, sha))
 
     ms = _peek_grpc(core.create_container(specs_text, appname, image, podname, nodename, entrypoint, cpu, memory, count, networks, env, raw))
@@ -157,7 +153,7 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, coun
                 container = Container.create(release.app.name, release.sha, m.id,
                                              entrypoint, envname, cpu, m.podname, m.nodename)
                 if not container:
-                    _log.error('Create [%s] created failed', m.id)
+                    log.error('Create [%s] created failed', m.id)
                     continue
 
                 # 记录oplog, cpu这里需要处理下, 因为返回的消息里也有这个值
@@ -168,7 +164,7 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, coun
 
                 containers.append(container)
                 publisher.add_container(container)
-                _log.info('Container [%s] created', m.id)
+                log.info('Container [%s] created', m.id)
             # 这里的顺序一定要注意
             # 必须在创建容器完成之后再把消息丢入队列
             # 否则调用者可能会碰到拿到了消息但是没有容器的状况.
@@ -205,16 +201,16 @@ def remove_container(ids):
         for m in ms:
             container = Container.get_by_container_id(m.id)
             if not container:
-                _log.info('Container [%s] not found when deleting', m.id)
+                log.info('Container [%s] not found when deleting', m.id)
                 continue
 
             if m.success:
                 # 记录oplog
                 op_content = {'container_id': m.id}
                 OPLog.create(user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
-                _log.info('Container [%s] deleted', m.id)
+                log.info('Container [%s] deleted', m.id)
             else:
-                _log.info('Container [%s] error, but still deleted', m.id)
+                log.info('Container [%s] error, but still deleted', m.id)
             container.delete()
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
         q.put(_eof)
@@ -284,7 +280,7 @@ def upgrade_container(ids, repo, sha):
                 update_elb_for_containers(old, UpdateELBAction.REMOVE)
                 old.delete()
 
-                _log.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
+                log.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
             # 这里也要注意顺序
             # 不要让外面出现拿到了消息但是数据还没有更新.
             q.put(json.dumps(m, cls=JSONEncoder) + '\n')
