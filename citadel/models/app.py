@@ -117,16 +117,33 @@ class Release(BaseModelMixin):
 
         # after the instance is created, manage app permission through combo
         # permitted_users
-        combos = r.specs.combos.itervalues()
-        permitted_users = [combo.permitted_users for combo in combos]
-        all_permitted_users = [User.get(u) for g in permitted_users for u in g]
-        log.debug('grant %s on app %s', all_permitted_users, r.name)
-        for u in all_permitted_users:
+        all_permitted_users = set(r.get_permitted_users())
+        previous_release = r.get_previous()
+        if previous_release:
+            old_folks = set(previous_release.get_permitted_users())
+        else:
+            old_folks = set()
+
+        come = all_permitted_users - old_folks
+        gone = old_folks - all_permitted_users
+        log.debug('release %s change permission: %s come, %s go', sha, come, gone)
+        for u in come:
             if not u:
                 continue
             AppUserRelation.add(r.name, u.id)
 
+        for u in gone:
+            if not u:
+                continue
+            AppUserRelation.delete(r.name, u.id)
+
         return r
+
+    def get_permitted_users(self):
+        combos = self.specs.combos.itervalues()
+        permitted_users = [combo.permitted_users for combo in combos]
+        all_permitted_users = [User.get(u) for g in permitted_users for u in g]
+        return all_permitted_users
 
     @classmethod
     def get(cls, id):

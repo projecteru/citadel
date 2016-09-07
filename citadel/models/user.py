@@ -96,6 +96,18 @@ class User(object):
         self.token = token
         self.pubkey = pubkey
 
+    def __repr__(self):
+        return '{class_} {u.name}'.format(
+            class_=self.__class__,
+            u=self,
+        )
+
+    def __hash__(self):
+        return hash((self.__class__, self.id))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.id == other.id
+
     @classmethod
     def from_dict(cls, info):
         if not info or not isinstance(info, dict):
