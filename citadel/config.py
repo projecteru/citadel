@@ -1,5 +1,4 @@
 # coding: utf-8
-
 from smart_getenv import getenv
 
 
@@ -32,6 +31,7 @@ OAUTH2_AUTHORIZE_URL = getenv('OAUTH2_AUTHORIZE_URL', default='http://sso.ricebo
 OAUTH2_CLIENT_ID = getenv('OAUTH2_CLIENT_ID', default='')
 OAUTH2_CLIENT_SECRET = getenv('OAUTH2_CLIENT_SECRET', default='')
 AUTH_AUTHORIZE_URL = getenv('AUTH_AUTHORIZE_URL', default='http://sso.ricebook.net/auth/profile')
+AUTH_GET_USER_URL = getenv('AUTH_GET_USER_URL', default='http://sso.ricebook.net/auth/user')
 
 
 MFS_LOG_FILE_PATH = getenv('MFS_LOG_FILE_PATH', default='/mnt/mfs/logs/eru/{app_name}/{entrypoint}/{dt}.log')

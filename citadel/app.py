@@ -1,6 +1,6 @@
 # coding: utf-8
-
 import logging
+
 from flask import g, abort, session, Flask, request
 from werkzeug.utils import import_string
 
@@ -78,7 +78,7 @@ def create_app():
         g.start = request.args.get('start', type=int, default=0)
         g.limit = request.args.get('limit', type=int, default=20)
 
-        token = request.headers.get('X-Neptulon-Token', '')
+        token = request.headers.get('X-Neptulon-Token', '') or request.values.get('X-Neptulon-Token')
         g.user = token and get_current_user_via_auth(token) or (get_current_user() if 'sso' in session or debug else None)
 
         if not g.user:
