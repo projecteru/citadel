@@ -1,8 +1,10 @@
 # coding: utf-8
-from flask import abort, g
+
+from flask import abort, g, request
 
 from citadel.rpc import core
 from citadel.libs.view import create_api_blueprint
+from citadel.libs.datastructure import AbortDict
 from citadel.models.container import Container
 
 
@@ -36,3 +38,24 @@ def get_pod_nodes(name):
 def get_pod_containers(name):
     pod = _get_pod(name)
     return Container.get_by_pod(pod.name, g.start, g.limit)
+
+
+@bp.route('/<name>/addnode', methods=['PUT', 'POST'])
+def add_node(name):
+    pod = _get_pod(name)
+    data = AbortDict(request.get_json())
+
+    nodename = data['nodename']
+    endpoint = data['endpoint']
+    public = bool(data.get('public', ''))
+
+    cafile = data.get('cafile', '')
+    certfile = data.get('certfile', '')
+    keyfile = data.get('keyfile', '')
+
+    bundle = (cafile, certfile, keyfile)
+
+    if not all(bundle) and any(bundle):
+        abort(400, 'cafile, certfile, keyfile must be either all empty or none empty')
+    
+    return core.add_node(nodename, endpoint, pod.name, cafile, certfile, keyfile, public)
