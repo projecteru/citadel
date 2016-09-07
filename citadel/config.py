@@ -4,6 +4,7 @@ from smart_getenv import getenv
 
 
 DEBUG = getenv('DEBUG', default=False, type=bool)
+LOGGER_NAME = 'citadel'
 SERVER_NAME = getenv('SERVER_NAME')
 SENTRY_DSN = getenv('SENTRY_DSN', default='')
 SECRET_KEY = getenv('SECRET_KEY', default='testsecretkey')

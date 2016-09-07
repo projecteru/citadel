@@ -50,6 +50,7 @@ def create_app():
     app.url_map.converters['date'] = DateConverter
     app.config.from_object('citadel.config')
     app.secret_key = app.config['SECRET_KEY']
+    logger = logging.getLogger(app.config['LOGGER_NAME'])
 
     app.url_map.strict_slashes = False
 
@@ -57,6 +58,8 @@ def create_app():
     mako.init_app(app)
 
     debug = app.config['DEBUG']
+    if debug:
+        logger.setLevel(logging.DEBUG)
 
     if not debug:
         sentry = SentryCollector(dsn=app.config['SENTRY_DSN'])
