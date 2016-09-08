@@ -60,5 +60,8 @@ def elb(name):
     routes = Route.get_by_elb(name)
 
     all_apps = [a for a in App.get_all(limit=100) if a and a.name != ELB_APP_NAME]
+    if not all_apps:
+        abort(404, 'no available apps except erulb')
+
     return render_template('/loadbalance/elb.mako', name=name, elbs=elbs,
                            routes=routes, all_apps=all_apps)

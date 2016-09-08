@@ -7,6 +7,7 @@ from citadel.ext import db
 from citadel.libs.utils import log
 from citadel.models.base import BaseModelMixin
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
+from citadel.models.loadbalance import Route
 from citadel.models.specs import Specs
 from citadel.models.user import User
 
@@ -92,9 +93,13 @@ class Release(BaseModelMixin):
     app_id = db.Column(db.Integer, nullable=False)
     image = db.Column(db.String(255), nullable=False, default='')
 
+    def __str__(self):
+        return '<app {r.name} release {r.sha} with image {r.image}>'
+
     @classmethod
     def create(cls, app, sha):
         """app must be an App instance"""
+        appname = app.name
         commit = get_commit(app.project_name, sha)
         if not commit:
             log.warn('error getting commit %s %s', app, sha)
@@ -103,22 +108,22 @@ class Release(BaseModelMixin):
         specs_text = get_file_content(app.project_name, 'app.yaml', sha)
         log.debug('got specs:\n%s', specs_text)
         if not specs_text:
-            log.warn('empty specs %s %s', app.name, sha)
+            log.warn('empty specs %s %s', appname, sha)
             return None
 
         try:
-            r = cls(sha=commit.id, app_id=app.id)
-            db.session.add(r)
+            new_release = cls(sha=commit.id, app_id=app.id)
+            db.session.add(new_release)
             db.session.commit()
         except IntegrityError:
-            log.warn('fail to create Release %s %s, duplicate', app.name, sha)
+            log.warn('fail to create Release %s %s, duplicate', appname, sha)
             db.session.rollback()
             return None
 
         # after the instance is created, manage app permission through combo
         # permitted_users
-        all_permitted_users = set(r.get_permitted_users())
-        previous_release = r.get_previous()
+        all_permitted_users = set(new_release.get_permitted_users())
+        previous_release = new_release.get_previous()
         if previous_release:
             old_folks = set(previous_release.get_permitted_users())
         else:
@@ -130,14 +135,44 @@ class Release(BaseModelMixin):
         for u in come:
             if not u:
                 continue
-            AppUserRelation.add(r.name, u.id)
+            AppUserRelation.add(appname, u.id)
 
         for u in gone:
             if not u:
                 continue
-            AppUserRelation.delete(r.name, u.id)
+            AppUserRelation.delete(appname, u.id)
 
-        return r
+        # create ELB routes, if there's any
+        new_routes = set()
+        for combo in new_release.specs.combos.itervalues():
+            if not combo.elb:
+                continue
+            for elbname_and_url in combo.elb:
+                elb_name, url = elbname_and_url.split()
+                r = Route.create(combo.podname, appname, combo.entrypoint, url, elb_name)
+                log.debug('create elb record: %s', r)
+                new_routes.add(r)
+
+        old_routes = set(previous_release.get_associated_elb_records()) if previous_release else set()
+        obsolete_routes = old_routes - new_routes
+        for r in obsolete_routes:
+            if r:
+                log.warn('delete obsolete route %s', r)
+                r.delete()
+
+        return new_release
+
+    def get_associated_elb_records(self):
+        """get elb routes from combo"""
+        res = set()
+        appname = self.name
+        for combo in self.specs.combos.itervalues():
+            for r in combo.elb:
+                elbname, url = r.split()
+                routes = Route.get_by_backend(podname=combo.podname, appname=appname, entrypoint=combo.entrypoint, domain=url, elbname=elbname)
+                res.update(routes)
+
+        return res
 
     def get_permitted_users(self):
         combos = self.specs.combos.itervalues()
