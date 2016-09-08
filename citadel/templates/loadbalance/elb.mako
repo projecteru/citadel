@@ -47,7 +47,7 @@
       <tbody>
         % for r in routes:
           <tr>
-            <td>${ r.appname }</td>
+            <td><a href="${ url_for('app.get_app', name=r.appname) }" target="_blank">${ r.appname }</a></td>
             <td>${ r.entrypoint }</td>
             <td>${ r.podname }</td>
             <td>${ r.domain }</td>
