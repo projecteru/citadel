@@ -64,13 +64,13 @@ class Entrypoint(object):
     @classmethod
     def from_dict(cls, data):
         command = data['cmd']
-        ports = [Port.from_string(p) for p in data.get('ports', [])]
-        exposes = [Expose.from_string(e) for e in data.get('exposes', [])]
+        ports = [Port.from_string(p) for p in data.get('ports', ())]
+        exposes = [Expose.from_string(e) for e in data.get('exposes', ())]
         network_mode = data.get('network_mode')
         mem_limit = data.get('mem_limit')
         restart = data.get('restart')
         health_check = data.get('health_check')
-        hosts = data.get('hosts', [])
+        hosts = data.get('hosts', ())
         permdir = bool(data.get('permdir'))
         privileged = bool(data.get('privileged'))
         log_config = data.get('log_config', 'json-file')
@@ -82,7 +82,7 @@ class Entrypoint(object):
 class Combo(object):
 
     def __init__(self, podname, entrypoint, envname='', cpu=0, memory='0',
-            count=1, envs={}, raw=False, networks=[], permitted_users=[]):
+            count=1, envs={}, raw=False, networks=(), permitted_users=(), elb=()):
         self.podname = podname
         self.entrypoint = entrypoint
         self.envname = envname
@@ -92,8 +92,9 @@ class Combo(object):
         self.count = count
         self.envs = envs
         self.raw = raw
-        self.networks = networks
-        self.permitted_users = permitted_users
+        self.networks = tuple(networks)
+        self.permitted_users = tuple(permitted_users)
+        self.elb = tuple(elb)
 
     @classmethod
     def from_dict(cls, data):
@@ -104,8 +105,9 @@ class Combo(object):
         memory = data.get('memory', '0')
         count = int(data.get('count', 1))
         raw = bool(data.get('raw', False))
-        networks = data.get('networks', [])
-        permitted_users = data.get('permitted_users', [])
+        networks = data.get('networks', ())
+        permitted_users = data.get('permitted_users', ())
+        elb = data.get('elb', ())
 
         envs = data.get('envs', {})
         if isinstance(envs, basestring):
@@ -118,7 +120,7 @@ class Combo(object):
                 envs[k] = v
 
         return cls(podname, entrypoint, envname, cpu, memory,
-                count, envs, raw, networks, permitted_users)
+                count, envs, raw, networks, permitted_users, elb)
 
     def allow(self, user):
         if not self.permitted_users:
@@ -148,12 +150,12 @@ class Specs(Jsonized):
     def from_dict(cls, data):
         appname = data['appname']
         entrypoints = {key: Entrypoint.from_dict(value) for key, value in data.get('entrypoints', {}).iteritems()}
-        build = data.get('build', [])
-        volumes = data.get('volumes', [])
+        build = data.get('build', ())
+        volumes = data.get('volumes', ())
         binds = {key: Bind.from_dict(value) for key, value in data.get('binds', {}).iteritems()}
         meta = data.get('meta', {})
         base = data.get('base')
-        mount_paths = data.get('mount_paths', [])
+        mount_paths = data.get('mount_paths', ())
         combos = {key: Combo.from_dict(value) for key, value in data.get('combos', {}).iteritems()}
         return cls(appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, data)
 

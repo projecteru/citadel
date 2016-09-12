@@ -39,26 +39,21 @@ class Route(BaseModelMixin):
     """
     __tablename__ = 'elb_route'
     __table_args__ = (
-        db.UniqueConstraint('elbname', 'appname', 'entrypoint', 'podname'),
+        db.UniqueConstraint('elbname', 'appname', 'entrypoint', 'podname', 'domain'),
     )
 
     elbname = db.Column(db.String(64))
-    appname = db.Column(db.String(255), index=True)
-    entrypoint = db.Column(db.String(255), index=True)
-    podname = db.Column(db.String(255))
-    domain = db.Column(db.String(255))
+    appname = db.Column(db.String(64), index=True)
+    entrypoint = db.Column(db.String(50), index=True)
+    podname = db.Column(db.String(50))
+    domain = db.Column(db.String(128))
 
-    def __hash__(self):
-        return self.id
+    def __str__(self):
+        return '<ELB {r.elbname} route with backend {r.appname}-{r.entrypoint}-{r.podname}-{r.domain}>'.format(r=self)
 
     @classmethod
     def create(cls, podname, appname, entrypoint, domain, elbname):
-        backends = get_app_backends(podname, appname, entrypoint)
-        if not backends:
-            return
-
         domain = normalize_domain(domain)
-
         try:
             r = cls(appname=appname, entrypoint=entrypoint,
                     domain=domain, elbname=elbname, podname=podname)
@@ -70,6 +65,10 @@ class Route(BaseModelMixin):
 
         add_route(r)
         return r
+
+    @classmethod
+    def get_by(cls, **kwargs):
+        return cls.query.filter_by(**kwargs).order_by(cls.id.desc()).all()
 
     @classmethod
     def get_by_elb(cls, elbname):
@@ -112,9 +111,6 @@ class ELBInstance(BaseModelMixin):
     container_id = db.Column(db.String(64), nullable=False, index=True)
     name = db.Column(db.String(64))
     comment = db.Column(db.Text)
-
-    def __hash__(self):
-        return self.id
 
     @classmethod
     def create(cls, addr, user_id, container_id, name, comment=''):
