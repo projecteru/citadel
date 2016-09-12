@@ -94,7 +94,7 @@ class Release(BaseModelMixin):
     image = db.Column(db.String(255), nullable=False, default='')
 
     def __str__(self):
-        return '<app {r.name} release {r.sha} with image {r.image}>'
+        return '<app {r.name} release {r.sha} with image {r.image}>'.format(r=self)
 
     @classmethod
     def create(cls, app, sha):
