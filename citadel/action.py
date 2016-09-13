@@ -183,9 +183,8 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, coun
 def remove_container(ids):
     # publish backends
     containers = [Container.get_by_container_id(i) for i in ids]
+    containers = [c for c in containers if c]
     for c in containers:
-        if not c:
-            continue
         c.mark_removing()
         publisher.remove_container(c)
 

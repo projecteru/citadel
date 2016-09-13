@@ -35,9 +35,8 @@ AUTH_GET_USER_URL = getenv('AUTH_GET_USER_URL', default='http://sso.ricebook.net
 
 
 MFS_LOG_FILE_PATH = getenv('MFS_LOG_FILE_PATH', default='/mnt/mfs/logs/eru/{app_name}/{entrypoint}/{dt}.log')
-ELB_SHA = getenv('ELB_SHA', default='').split(',')
 ELB_APP_NAME = getenv('ELB_APP_NAME', default='erulb')
-ELB_REPO = getenv('ELB_REPO', default='git@gitlab.ricebook.net:tonic/pathlb.git')
+ELB_BACKEND_NAME_DELIMITER = getenv('ELB_BACKEND_NAME_DELIMITER', default='___')
 
 
 try:

@@ -58,54 +58,54 @@
     </table>
   </%call>
 
-<div class="col-md-8 col-md-offset-2">
-  <form class="form-horizontal" action="${ url_for('loadbalance.elb', name=name) }" method="POST">
-    <div class="form-group">
-      <label class="col-sm-2 control-label" for="">App Name</label>
-      <div class="col-sm-10">
-        <select id="" class="form-control" name="appname">
-          % for app in all_apps:
-          <option value="${ app.name }">${ app.name }</option>
-          % endfor
-        </select>
+  <div class="col-md-8 col-md-offset-2">
+    <form class="form-horizontal" action="${ url_for('loadbalance.elb', name=name) }" method="POST">
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="">App Name</label>
+        <div class="col-sm-10">
+          <select id="" class="form-control" name="appname">
+            % for app in all_apps:
+              <option value="${ app.name }">${ app.name }</option>
+            % endfor
+          </select>
+        </div>
       </div>
-    </div>
-    <div class="form-group">
-      <label class="col-sm-2 control-label" for="">Entrypoint</label>
-      <div class="col-sm-10">
-        <% entrypoints = all_apps[0].get_online_entrypoints() %>
-        <select id="" class="form-control" name="entrypoint">
-          % for e in entrypoints:
-          <option value="${ e }">${ e }</option>
-          % endfor
-          <option value="_all">_all</option>
-        </select>
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="">Entrypoint</label>
+        <div class="col-sm-10">
+          <% entrypoints = all_apps[0].get_online_entrypoints() %>
+          <select id="" class="form-control" name="entrypoint">
+            % for e in entrypoints:
+              <option value="${ e }">${ e }</option>
+            % endfor
+            <option value="_all">_all</option>
+          </select>
+        </div>
       </div>
-    </div>
-    <div class="form-group">
-      <label class="col-sm-2 control-label" for="">Podname</label>
-      <div class="col-sm-10">
-        <% pods = all_apps[0].get_online_pods() %>
-        <select id="" class="form-control" name="podname">
-          % for p in pods:
-          <option value="${ p }">${ p }</option>
-          % endfor
-        </select>
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="">Podname</label>
+        <div class="col-sm-10">
+          <% pods = all_apps[0].get_online_pods() %>
+          <select id="" class="form-control" name="podname">
+            % for p in pods:
+              <option value="${ p }">${ p }</option>
+            % endfor
+          </select>
+        </div>
       </div>
-    </div>
-    <div class="form-group">
-      <label class="col-sm-2 control-label" for="">Domain</label>
-      <div class="col-sm-10">
-        <input class="form-control" type="text" name="domain">
+      <div class="form-group">
+        <label class="col-sm-2 control-label" for="">Domain</label>
+        <div class="col-sm-10">
+          <input class="form-control" type="text" name="domain">
+        </div>
       </div>
-    </div>
-    <div class="form-group">
-      <div class="col-sm-10 col-sm-offset-2">
-        <button class="btn btn-info" type="submit"><span class="fui-plus"></span> Add</button>
+      <div class="form-group">
+        <div class="col-sm-10 col-sm-offset-2">
+          <button class="btn btn-info" type="submit"><span class="fui-plus"></span> Add</button>
+        </div>
       </div>
-    </div>
-  </form>
-</div>
+    </form>
+  </div>
 
 </%block>
 

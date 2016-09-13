@@ -1,11 +1,11 @@
 # coding: utf-8
-
 from functools import wraps
+
 from flask import abort, g
 
-from citadel.rpc import core
 from citadel.models.app import App, Release, AppUserRelation
 from citadel.models.loadbalance import ELBInstance
+from citadel.rpc import core
 
 
 def bp_get_app(appname):
@@ -36,11 +36,13 @@ def bp_get_balancer(id):
         abort(404, 'ELB %s not found' % id)
     return elb
 
+
 def bp_get_balancer_by_name(name):
     elbs = ELBInstance.get_by_name(name)
     if not elbs:
-        abort(500, "No ELB named {}".format(name))
+        abort(404, "No ELB named {}".format(name))
     return elbs
+
 
 def get_nodes_for_first_pod(pods):
     """取一个pods列表里的第一个pod的nodes.
@@ -50,6 +52,7 @@ def get_nodes_for_first_pod(pods):
     if not pods:
         return []
     return core.get_pod_nodes(pods[0].name)
+
 
 def need_admin(f):
     @wraps(f)

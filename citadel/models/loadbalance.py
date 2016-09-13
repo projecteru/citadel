@@ -1,16 +1,17 @@
 # coding: utf-8
+import json
+from collections import Iterable
+from citadel.config import ELB_BACKEND_NAME_DELIMITER
 
 import enum
 import requests
 from sqlalchemy.exc import IntegrityError
-from collections import Iterable
 
 from citadel.ext import db
 from citadel.libs.json import Jsonized
-from citadel.libs.utils import normalize_domain
-
-from citadel.models.base import BaseModelMixin
+from citadel.models.base import BaseModelMixin, JsonType
 from citadel.models.container import Container
+from citadel.libs.utils import log
 
 
 """
@@ -21,21 +22,27 @@ from citadel.models.container import Container
 """
 
 
-def get_app_backends(podname, appname, entrypoint, exclude=None):
-    """when removing containers, exclude those which'll be removed"""
-    if exclude is None:
-        exclude = []
+def get_backends(backend_name, exclude_containers=()):
+    """get container backends for backend_name"""
+    components = backend_name.split(ELB_BACKEND_NAME_DELIMITER)
+    if len(components) == 3:
+        appname, entrypoint, podname = components
+        short_sha = None
+    else:
+        appname, entrypoint, podname, short_sha = components
 
-    containers = [c for c in Container.get_by_app(appname, limit=None) if c not in exclude]
-    if entrypoint == '_all':
-        return [b for c in containers for b in c.get_backends() if c.podname == podname]
-    return [b for c in containers for b in c.get_backends() if c.entrypoint == entrypoint and c.podname == podname]
+    containers = [c for c in Container.get_by(appname=appname,
+                                              entrypoint=entrypoint,
+                                              podname=podname,
+                                              sha=short_sha)
+                  if c not in exclude_containers]
+    return [b for c in containers for b in c.get_backends()]
+
 
 class ELBRule(BaseModelMixin):
 
     """
-    ELB上所有的domain，
-    每个domain会对应相应的rule，但是rule就不保存在mysql了，到时候再到ELB上面查吧
+    ELB上所有的domain，每个domain会对应相应的rule
     """
 
     __tablename__ = 'elb_rule'
@@ -43,105 +50,102 @@ class ELBRule(BaseModelMixin):
         db.UniqueConstraint('elbname', 'domain'),
     )
 
-    elbname = db.Column(db.String(64))
-    domain = db.Column(db.String(255))
+    elbname = db.Column(db.String(64), nullable=False)
+    domain = db.Column(db.String(128), nullable=False)
+    appname = db.Column(db.CHAR(64), nullable=False)
+    sha = db.Column(db.CHAR(64), nullable=True, default='')
+    rule = db.Column(JsonType, default={})
 
-    def __hash__(self):
-        return self.id
+    @staticmethod
+    def validate_rule(rule):
+        # TODO
+        pass
+
+    def get_lb_clients(self):
+        elb_instances = ELBInstance.get_by_name(self.elbname)
+        return [elb.lb_client for elb in elb_instances]
 
     @classmethod
-    def create(cls, elbname, domain):
+    def create(cls, elbname, domain, appname, rule=None, sha='', entrypoint=None, podname=None):
+        if not rule:
+            if not all([appname, entrypoint, podname]):
+                log.warn('cannot generate default rule, missing [appname, entrypoint, podname], got %s', [appname, entrypoint, podname])
+                return None
+            backend_name = ELB_BACKEND_NAME_DELIMITER.join([appname, entrypoint, podname])
+            rule = {
+                'default': 'rule0',
+                'rules_name': ['rule0'],
+                'init_rule': 'rule0',
+                'backends': [backend_name],
+                'rules': {
+                    'rule0': {'type': 'general', 'conditions': [{'backend': backend_name}]}
+                }
+            }
+
         try:
-            r = cls(elbname=elbname, domain=domain)
-            db.session.add(r)
-            db.session.commit()
-        except Exception:
-            db.rollback()
-            return
-        return r
-
-    @classmethod
-    def get_by_elb(cls, elbname):
-        return cls.query.filter_by(elbname=elbname).order_by(cls.id.desc()).all()
-
-    @classmethod
-    def delete(cls, elbname, domain):
-        cls.query.filter_by(elbname=elbname, domain=domain).delete()
-        db.session.commit()
-
-    def to_dict(self):
-        return {
-            'elbname': self.elbname,
-            'domain': self.domain,
-        }
-
-class Route(BaseModelMixin):
-    """
-    ELB的route. 把appname/entrypoint/podname对应的一组backend给路由到对应elbname的ELB上.
-    用名字来对应, 也就是说一组名字相同的ELB互为热备, 他们具有同样的路由.
-    """
-    __tablename__ = 'elb_route'
-    __table_args__ = (
-        db.UniqueConstraint('elbname', 'appname', 'entrypoint', 'podname', 'domain'),
-    )
-
-    elbname = db.Column(db.String(64))
-    appname = db.Column(db.String(64), index=True)
-    entrypoint = db.Column(db.String(50), index=True)
-    podname = db.Column(db.String(50))
-    domain = db.Column(db.String(128))
-
-    def __str__(self):
-        return '<ELB {r.elbname} route with backend {r.appname}-{r.entrypoint}-{r.podname}-{r.domain}>'.format(r=self)
-
-    @classmethod
-    def create(cls, podname, appname, entrypoint, domain, elbname):
-        domain = normalize_domain(domain)
-        try:
-            r = cls(appname=appname, entrypoint=entrypoint,
-                    domain=domain, elbname=elbname, podname=podname)
+            r = cls(elbname=elbname, domain=domain, appname=appname, rule=rule, sha=sha)
             db.session.add(r)
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
             return None
 
-        add_route(r)
+        if not r.write_rules():
+            log.warn('write rules to elb failed')
+            r.delete()
+            return None
+
         return r
 
+    def write_rules(self):
+        # now that rule was created in citadel, update all associating ELB
+        # clients, if any one fails, rollback in citadel
+        lb_clients = self.get_lb_clients()
+        for elb in lb_clients:
+            if not elb.update_rule(self.domain, self.rule):
+                return False
+
+        return True
+
+    def edit_rule(self, rule):
+        if not isinstance(rule, dict):
+            rule = json.loads(rule)
+
+        self.rule = rule
+        db.session.add(self)
+        db.session.commit()
+        return self.write_rules(rule)
+
     @classmethod
-    def get_by(cls, **kwargs):
-        return cls.query.filter_by(**kwargs).order_by(cls.id.desc()).all()
+    def get_by_app(cls, appname):
+        return cls.query.filter_by(appname=appname).order_by(cls.id.desc()).all()
 
     @classmethod
     def get_by_elb(cls, elbname):
         return cls.query.filter_by(elbname=elbname).order_by(cls.id.desc()).all()
 
     @classmethod
-    def get_by_backend(cls, appname, entrypoint, podname):
-        return cls.query.filter_by(appname=appname, entrypoint=entrypoint, podname=podname).order_by(cls.id.desc()).all()
-
-    @property
-    def backend_name(self):
-        return '%s_%s_%s' % (self.appname, self.podname, self.entrypoint)
-
-    def get_elb(self):
-        return ELBInstance.get_by_name(self.elbname)
-
-    def get_backends(self):
-        return get_app_backends(self.podname, self.appname, self.entrypoint)
+    def get_by(cls, **kwargs):
+        return cls.query.filter_by(**kwargs).order_by(cls.id.desc()).first()
 
     def delete(self):
-        delete_route(self)
-        super(Route, self).delete()
+        lb_clients = self.get_lb_clients()
+        domain = self.domain
+        for elb in lb_clients:
+            if not elb.delete_rule(domain):
+                return False
+
+        super(ELBRule, self).delete()
+        return True
+
+    @property
+    def backends(self):
+        return self.rule['backends']
 
     def to_dict(self):
         return {
-            'appname': self.appname,
-            'entrypoint': self.entrypoint,
-            'podname': self.podname,
-            'domain': self.domain,
             'elbname': self.elbname,
+            'domain': self.domain,
         }
 
 
@@ -149,15 +153,14 @@ class ELBInstance(BaseModelMixin):
     """name 相同的 ELBInstance 组成一个 ELB, ELB 是一个虚拟的概念"""
     __tablename__ = 'elb'
 
-    addr = db.Column(db.String(255), nullable=False)
-    user_id = db.Column(db.Integer, nullable=False, index=True)
+    addr = db.Column(db.String(128), nullable=False)
     container_id = db.Column(db.String(64), nullable=False, index=True)
     name = db.Column(db.String(64))
     comment = db.Column(db.Text)
 
     @classmethod
-    def create(cls, addr, user_id, container_id, name, comment=''):
-        b = cls(addr=addr, user_id=user_id, container_id=container_id, name=name, comment=comment)
+    def create(cls, addr, container_id, name, comment=''):
+        b = cls(addr=addr, container_id=container_id, name=name, comment=comment)
         db.session.add(b)
         db.session.commit()
         return b
@@ -165,10 +168,6 @@ class ELBInstance(BaseModelMixin):
     @classmethod
     def get_by_name(cls, name):
         return cls.query.filter_by(name=name).order_by(cls.id.desc()).all()
-
-    @classmethod
-    def get_by_user(cls, user_id):
-        return cls.query.filter_by(user_id=user_id).order_by(cls.id.desc()).all()
 
     @classmethod
     def get_by_container_id(cls, container_id):
@@ -193,12 +192,8 @@ class ELBInstance(BaseModelMixin):
     def is_alive(self):
         return self.container and self.container.status() == 'running'
 
-    def get_all_analysis(self):
-        return self.lb_client.get_analysis() or {}
-
     def to_dict(self):
         d = {}
-        d['user_id'] = self.user_id
         d['lb_client'] = self.lb_client.to_dict()
         d['name'] = self.name
         return d
@@ -215,17 +210,35 @@ class LBClient(Jsonized):
         self.analysis_addr = '%s/__erulb__/analysis' % addr
         self.rule_addr = '%s/__erulb__/rule' % addr
 
+    def __hash__(self):
+        return hash((self.__class__, self.addr))
+
     def _get(self, url):
         resp = requests.get(url)
-        return resp.status_code == 200 and resp.json() or None
+        if resp.status_code == 200:
+            return resp.json()
+        else:
+            log.warn('lb client GET %s, got %s: %s', url, resp.status_code, resp.text)
+
+        return None
 
     def _put(self, url, data):
         resp = requests.put(url, json=data)
-        return resp.status_code == 200
+        if resp.status_code == 200:
+            return True
+        else:
+            log.warn('lb client PUT %s with payload %s, got %s: %s', url, data, resp.status_code, resp.text)
+
+        return None
 
     def _delete(self, url, data):
         resp = requests.delete(url, json=data)
-        return resp.status_code == 200
+        if resp.status_code == 200:
+            return True
+        else:
+            log.warn('lb client DELETE %s with payload %s, got %s: %s', url, data, resp.status_code, resp.text)
+
+        return None
 
     def get_rule(self):
         return self._get(self.rule_addr)
@@ -236,7 +249,7 @@ class LBClient(Jsonized):
 
     def delete_rule(self, domain):
         data = {'domain': domain}
-        return self._delete(self.rule_addr, domain)
+        return self._delete(self.rule_addr, data)
 
     def get_domain(self):
         return self._get(self.domain_addr)
@@ -252,80 +265,8 @@ class LBClient(Jsonized):
         data = {'backend': backend_name}
         return self._delete(self.upstream_addr, data)
 
-    def add_analysis(self, domain):
-        if not isinstance(domain, list):
-            domain = [domain]
-        data = {'hosts': domain}
-        return self._put(self.analysis_addr, data)
-
-    def delete_analysis(self, domain):
-        data = {'host': domain}
-        return self._delete(self.analysis_addr, data)
-
-    def get_analysis(self):
-        return self._get(self.analysis_addr)
-
     def to_dict(self):
         return {'domain_addr': self.domain_addr, 'upstream_addr': self.upstream_addr}
-
-
-def add_route(route):
-    """把一条路由添加到ELB内存里.
-    获取所有关联的ELB, 挨个添加记录."""
-    # 获取upstream servers
-    # 现在还没加 weight
-    # 但是如果没有后端就算了, 也不添加domain了
-    servers = ['server %s;' % b for b in route.get_backends()]
-    if not servers:
-        return
-
-    for elb in route.get_elb():
-        client = elb.lb_client
-        # 1. 添加upstream
-        client.update_upstream(route.backend_name, servers)
-        # 2. 添加domain
-        client.update_domain(route.backend_name, route.domain)
-
-
-def delete_route(route):
-    """把一条路由从ELB内存里删除.
-    要先看看对应的backend_name还有没有别人在用, 没有的话连upstream一起删除.
-    有的话只删除对应的域名, 也就是取消域名跟upstream的关联.
-    """
-    # 先检查(appname, entrypoint, podname)这个三元组还有没有别人在用
-    rs = Route.get_by_backend(route.appname, route.entrypoint, route.podname)
-    rs = [r for r in rs if r != route]
-
-    for elb in route.get_elb():
-        client = elb.lb_client
-        # 1. 删除domain
-        client.delete_domain(route.domain)
-
-        # 如果没有别人在用了
-        # 2. 删除upstream
-        if not rs:
-            client.delete_upstream(route.backend_name)
-
-
-def refresh_routes(name):
-    """刷新一下名为name的ELB的路由表.
-    把对应的路由记录取出来, 然后对所有关联上的ELB实例进行刷新.
-    记录已经存在也没有关系, ELB自己会忽略掉错误."""
-    routes = Route.get_by_elb(name)
-    for r in routes:
-        add_route(r)
-
-
-def add_route_analysis(route):
-    for elb in route.get_elb():
-        client = elb.lb_client
-        client.add_analysis(route.domain)
-
-
-def delete_route_analysis(route):
-    for elb in route.get_elb():
-        client = elb.lb_client
-        client.delete_analysis(route.domain)
 
 
 class UpdateELBAction(enum.Enum):
@@ -340,23 +281,24 @@ def update_elb_for_containers(containers, action=UpdateELBAction.ADD):
     if not isinstance(containers, Iterable):
         containers = [containers]
 
-    route_backends = set((c.appname, c.entrypoint, c.podname) for c in containers)
+    containers = [c for c in containers if c]
+    if not containers:
+        return
 
-    for appname, entrypoint, podname in route_backends:
-        # REMOVE的时候就剔除这些容器
-        exclude = containers if action == UpdateELBAction.REMOVE else []
-        backends = get_app_backends(podname, appname, entrypoint, exclude=exclude)
+    if action == UpdateELBAction.REMOVE:
+        exclude = set(containers)
+    else:
+        exclude = set()
 
-        # 理论上appname, entrypoint, podname决定的一组route应该只有elbname不同
-        # 如果会有其他的不同, 那就是数据不一致了.
-        for route in Route.get_by_backend(appname, entrypoint, podname):
-            # 每个elbname可能有多个ELB的实例
-            elbs = ELBInstance.get_by_name(route.elbname)
-            lb_clients = [elb.lb_client for elb in elbs]
+    elb_rules = ELBRule.get_by_app(containers[0].appname)
+    already_dealt_with = set()
+    for r in elb_rules:
+        associated_lb_clients = r.get_lb_clients()
+        for backend_name in r.rule['backends']:
+            if backend_name in already_dealt_with:
+                continue
+            backends = ['server {};'.format(b) for b in get_backends(backend_name, exclude_containers=exclude)]
+            for lb in associated_lb_clients:
+                lb.update_upstream(backend_name, backends)
 
-            servers = ['server %s;' % b for b in backends]
-            for lb_client in lb_clients:
-                if servers:
-                    lb_client.update_upstream(route.backend_name, servers)
-                else:
-                    lb_client.delete_upstream(route.backend_name)
+            already_dealt_with.add(backend_name)

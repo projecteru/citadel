@@ -7,7 +7,6 @@ from citadel.ext import db
 from citadel.libs.utils import log
 from citadel.models.base import BaseModelMixin
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
-from citadel.models.loadbalance import Route
 from citadel.models.specs import Specs
 from citadel.models.user import User
 
@@ -142,28 +141,29 @@ class Release(BaseModelMixin):
                 continue
             AppUserRelation.delete(appname, u.id)
 
-        # create ELB routes, if there's any
-        new_routes = set()
-        for combo in new_release.specs.combos.itervalues():
-            if not combo.elb:
-                continue
-            for elbname_and_url in combo.elb:
-                elb_name, url = elbname_and_url.split()
-                r = Route.create(combo.podname, appname, combo.entrypoint, url, elb_name)
-                log.debug('create elb record: %s', r)
-                new_routes.add(r)
-
-        old_routes = set(previous_release.get_associated_elb_records()) if previous_release else set()
-        obsolete_routes = old_routes - new_routes
-        for r in obsolete_routes:
-            if r:
-                log.warn('delete obsolete route %s', r)
-                r.delete()
+        # auto create elb is problematic, TODO
+        # # create ELB routes, if there's any
+        # new_routes = set()
+        # for combo in new_release.specs.combos.itervalues():
+        #     if not combo.elb:
+        #         continue
+        #     for elbname_and_url in combo.elb:
+        #         elb_name, url = elbname_and_url.split()
+        #         r = Route.create(combo.podname, appname, combo.entrypoint, url, elb_name)
+        #         log.debug('create elb record: %s', r)
+        #         new_routes.add(r)
+        #
+        # old_routes = set(previous_release.get_associated_elb_records()) if previous_release else set()
+        # obsolete_routes = old_routes - new_routes
+        # for r in obsolete_routes:
+        #     if r:
+        #         log.warn('delete obsolete route %s', r)
+        #         r.delete()
 
         return new_release
 
     def get_associated_elb_records(self):
-        """get elb routes from combo"""
+        """# TODO"""
         res = set()
         appname = self.name
         for combo in self.specs.combos.itervalues():
