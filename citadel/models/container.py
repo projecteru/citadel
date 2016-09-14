@@ -26,14 +26,13 @@ class Container(BaseModelMixin, PropsMixin):
     nodename = db.Column(db.String(50), nullable=False)
 
     removing = PropsItem('removing', default=0, type=int)
+    networks = PropsItem('networks', default=dict)
 
     def __repr__(self):
-        return '{c.__class__} object at {hex_id}, cid {c.short_id}'.format(
-            hex_id=hex(id(self)), c=self
-        )
+        return 'Container(container_id=%s)' % self.container_id
 
     def get_uuid(self):
-        return '/container/%s' % self.container_id
+        return 'citadel:container:%s' % self.container_id
 
     @classmethod
     def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, podname, nodename):
@@ -140,6 +139,11 @@ class Container(BaseModelMixin, PropsMixin):
 
         self.name = c.name
         self.info = json.loads(c.info)
+        # network settings 需要保存下来
+        # 防止 calico 挂了需要恢复的问题
+        networks = self.info.get('NetworkSettings', {}).get('Networks', {})
+        if networks and not self.networks:
+            self.networks = networks
         return self
 
     def status(self):

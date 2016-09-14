@@ -9,6 +9,9 @@ from citadel.ext import db, rds
 from citadel.libs.json import Jsonized
 
 
+_missing = object()
+
+
 class BaseModelMixin(db.Model, Jsonized):
 
     __abstract__ = True
@@ -61,7 +64,8 @@ class PropsMixin(object):
 
     @property
     def _property_key(self):
-        return self.get_uuid() + '/property'
+        """因为是redis还是改用redis风格的key吧"""
+        return self.get_uuid() + ':property'
 
     def get_props(self):
         props = rds.get(self._property_key) or '{}'
@@ -81,7 +85,12 @@ class PropsMixin(object):
         self.props = props
 
     def get_props_item(self, key, default=None):
-        return self.props.get(key, default)
+        r = self.props.get(key, _missing)
+        if r is not _missing:
+            return r
+        if callable(default):
+            return default()
+        return default
 
     def set_props_item(self, key, value):
         props = self.props

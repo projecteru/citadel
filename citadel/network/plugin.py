@@ -8,13 +8,8 @@ from citadel.libs.utils import handle_etcd_exception
 
 
 def get_ips_by_container(container):
-    if not hasattr(container, 'info'):
-        return []
-
-    networks = container.info.get('NetworkSettings', {}).get('Networks', {})
     ips = []
-
-    for name, network in networks.iteritems():
+    for name, network in container.networks.iteritems():
         # 如果是host模式要去取下node的IP
         if name == 'host':
             node = core.get_node(container.podname, container.nodename)
