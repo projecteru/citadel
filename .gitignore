@@ -6,3 +6,4 @@ local_config.*
 tests/__pycache__/*
 .ropeproject
 migrations
+*.json
