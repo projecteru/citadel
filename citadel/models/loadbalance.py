@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from citadel.config import ELB_BACKEND_NAME_DELIMITER
 from citadel.ext import db, rds
 from citadel.libs.json import Jsonized
-from citadel.libs.utils import log
+from citadel.libs.utils import log, make_unicode
 from citadel.models.base import BaseModelMixin, JsonType
 from citadel.models.container import Container
 
@@ -159,7 +159,8 @@ class ELBInstance(BaseModelMixin):
 
     @property
     def comment(self):
-        return rds.get('citadel:elb:{}:comment'.format(self.name))
+        comment = rds.get('citadel:elb:{}:comment'.format(self.name))
+        return make_unicode(comment)
 
     @comment.setter
     def comment(self, val):
