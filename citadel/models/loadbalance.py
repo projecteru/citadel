@@ -37,7 +37,8 @@ def get_backends(backend_name, exclude_containers=()):
                                               entrypoint=entrypoint,
                                               podname=podname,
                                               sha=short_sha)
-                  if c not in exclude_containers]
+                  if c not in exclude_containers and
+                  not c.removing]
     return [b for c in containers for b in c.get_backends()]
 
 
@@ -69,20 +70,9 @@ class ELBRule(BaseModelMixin):
 
     @classmethod
     def create(cls, elbname, domain, appname, rule=None, sha='', entrypoint=None, podname=None):
+        rule = rule or cls.generate_simple_rule(appname, entrypoint, podname)
         if not rule:
-            if not all([appname, entrypoint, podname]):
-                log.warn('cannot generate default rule, missing [appname, entrypoint, podname], got %s', [appname, entrypoint, podname])
-                return None
-            backend_name = ELB_BACKEND_NAME_DELIMITER.join([appname, entrypoint, podname])
-            rule = {
-                'default': 'rule0',
-                'rules_name': ['rule0'],
-                'init_rule': 'rule0',
-                'backends': [backend_name],
-                'rules': {
-                    'rule0': {'type': 'general', 'conditions': [{'backend': backend_name}]}
-                }
-            }
+            return None
 
         try:
             r = cls(elbname=elbname, domain=domain, appname=appname, rule=rule, sha=sha)
@@ -97,7 +87,32 @@ class ELBRule(BaseModelMixin):
             r.delete()
             return None
 
+        # now that the rule has been created, refresh the relevant
+        # backend_names in the associating ELB instances
+        backends = rule['backends']
+        lb_clients = r.get_lb_clients()
+        for backend_name in backends:
+            for elb in lb_clients:
+                elb.refresh_backend(backend_name)
+
         return r
+
+    @staticmethod
+    def generate_simple_rule(appname, entrypoint, podname):
+        if not all([appname, entrypoint, podname]):
+            log.warn('cannot generate default rule, missing [appname, entrypoint, podname], got %s', [appname, entrypoint, podname])
+            return None
+        backend_name = ELB_BACKEND_NAME_DELIMITER.join([appname, entrypoint, podname])
+        rule = {
+            'default': 'rule0',
+            'rules_name': ['rule0'],
+            'init_rule': 'rule0',
+            'backends': [backend_name],
+            'rules': {
+                'rule0': {'type': 'general', 'conditions': [{'backend': backend_name}]}
+            }
+        }
+        return rule
 
     def write_rules(self):
         # now that rule was created in citadel, update all associating ELB
@@ -181,10 +196,17 @@ class ELBInstance(BaseModelMixin):
         elbname = self.name
         # if this is the last one, also remove all associating rules
         remaining_instances = [b for b in cls.get_by_name(elbname) if b.id != self.id]
+        addr = self.addr
         if not remaining_instances:
+            log.warn('Removing one last %s instance %s', elbname, addr)
             rules = ELBRule.query.filter_by(elbname=elbname)
             domains = [r.domain for r in rules]
-            self.lb_client.delete_rule(domains)
+            # if rules were removed from elb instances, we can safely
+            # remove them from citadel as well
+            if self.lb_client.delete_rule(domains):
+                rules.delete()
+            else:
+                log.warn('Remove rule %s from ELB instance %s failed', domains, addr)
 
         return super(ELBInstance, self).delete()
 
@@ -287,6 +309,10 @@ class LBClient(Jsonized):
 
     def to_dict(self):
         return {'domain_addr': self.domain_addr, 'upstream_addr': self.upstream_addr}
+
+    def refresh_backend(self, backend_name):
+        backends = ['server {};'.format(b) for b in get_backends(backend_name)]
+        return self.update_upstream(backend_name, backends)
 
 
 class UpdateELBAction(enum.Enum):
