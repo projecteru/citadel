@@ -33,6 +33,9 @@ def elb(name):
     rules = ELBRule.get_by_elb(name)
     all_apps = [a for a in App.get_all(limit=100) if a and a.name != ELB_APP_NAME]
     elbs = ELBInstance.get_by_name(name)
+    if not elbs and not rules:
+        abort(404)
+
     return render_template('/loadbalance/balancer.mako',
                            name=name,
                            rules=rules,
