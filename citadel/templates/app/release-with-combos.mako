@@ -93,9 +93,9 @@
       <% active_ = {'active': 'active'} %>
       % for mode, combo in combos.items():
         % if combo.allow(g.user.name) or g.user.privilege:
-          <li class="${ active_.pop('active', '') }"><a data-target="#${ mode }" data-toggle="tab">${ mode }</a></li>
+          <li class="${ active_.pop('active', '') }"><a class="btn" data-target="#${ mode }" data-toggle="tab">${ mode }</a></li>
         % else:
-          <li class="${ active_.pop('active', '') } disabled"><a data-target="#${ mode }">${ mode }</a></li>
+          <li class="${ active_.pop('active', '') } disabled"><a class="btn" data-target="#${ mode }">${ mode }</a></li>
         % endif
       % endfor
 

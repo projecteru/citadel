@@ -65,8 +65,8 @@
   </%call>
 
   <ul class="nav nav-tabs" id="add-rule-form">
-    <li role="presentation" class="active"><a data-target="#add-general-rule" data-toggle="tab"> Simple </a></li>
-    <li role="presentation"><a data-target="#add-rule" data-toggle="tab"> Advanced </a></li>
+    <li role="presentation" class="active"><a class="btn" data-target="#add-general-rule" data-toggle="tab"> Simple </a></li>
+    <li role="presentation"><a class="btn" data-target="#add-rule" data-toggle="tab"> Advanced </a></li>
   </ul>
 
   <div class="tab-content">
