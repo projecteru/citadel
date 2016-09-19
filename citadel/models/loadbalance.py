@@ -1,4 +1,6 @@
 # coding: utf-8
+from requests.exceptions import ReadTimeout, ConnectionError
+
 import json
 from collections import Iterable
 
@@ -133,7 +135,7 @@ class ELBRule(BaseModelMixin):
         domain = self.domain
         for elb in lb_clients:
             if not elb.delete_rule(domain):
-                return False
+                log.warn('delete rule from ELB instance %s failed', elb.addr)
 
         super(ELBRule, self).delete()
         return True
@@ -174,6 +176,18 @@ class ELBInstance(BaseModelMixin):
         b.comment = comment
         return b
 
+    def delete(self):
+        cls = self.__class__
+        elbname = self.name
+        # if this is the last one, also remove all associating rules
+        remaining_instances = [b for b in cls.get_by_name(elbname) if b.id != self.id]
+        if not remaining_instances:
+            rules = ELBRule.query.filter_by(elbname=elbname)
+            domains = [r.domain for r in rules]
+            self.lb_client.delete_rule(domains)
+
+        return super(ELBInstance, self).delete()
+
     @classmethod
     def get_by_name(cls, name):
         return cls.query.filter_by(name=name).order_by(cls.id.desc()).all()
@@ -210,6 +224,8 @@ class ELBInstance(BaseModelMixin):
 
 class LBClient(Jsonized):
 
+    success_codes = {200, 201}
+
     def __init__(self, addr):
         if not addr.startswith('http://'):
             addr = 'http://%s' % addr
@@ -222,57 +238,52 @@ class LBClient(Jsonized):
     def __hash__(self):
         return hash((self.__class__, self.addr))
 
-    def _get(self, url):
-        resp = requests.get(url)
-        if resp.status_code == 200:
-            return resp.json()
+    def request(self, method, url, **kwargs):
+        try:
+            res = requests.request(method, url, **kwargs)
+        except (ReadTimeout, ConnectionError):
+            log.critical('Connection problem with ELB instance %s', self.addr)
+            return None
+
+        code = res.status_code
+        if code not in self.success_codes:
+            log.warn('lb client %s %s, with payload %s, got %s: %s', method, url, kwargs, code, res.text)
         else:
-            log.warn('lb client GET %s, got %s: %s', url, resp.status_code, resp.text)
+            return res.json()
 
-        return None
+    def get(self, url, **kwargs):
+        return self.request('GET', url, **kwargs)
 
-    def _put(self, url, data):
-        resp = requests.put(url, json=data)
-        if resp.status_code == 200:
-            return True
-        else:
-            log.warn('lb client PUT %s with payload %s, got %s: %s', url, data, resp.status_code, resp.text)
+    def put(self, url, json):
+        return self.request('PUT', url, json=json)
 
-        return None
-
-    def _delete(self, url, data):
-        resp = requests.delete(url, json=data)
-        if resp.status_code == 200:
-            return True
-        else:
-            log.warn('lb client DELETE %s with payload %s, got %s: %s', url, data, resp.status_code, resp.text)
-
-        return None
+    def delete(self, url, json):
+        return self.request('DELETE', url, json=json)
 
     def get_rule(self):
-        return self._get(self.rule_addr)
+        return self.get(self.rule_addr)
 
     def update_rule(self, domain, rule):
         data = {'domain': domain, 'rule': rule}
-        return self._put(self.rule_addr, data)
+        return self.put(self.rule_addr, data)
 
-    def delete_rule(self, domain):
-        data = {'domain': domain}
-        return self._delete(self.rule_addr, data)
+    def delete_rule(self, domains):
+        data = {'domains': domains}
+        return self.delete(self.rule_addr, data)
 
     def get_domain(self):
-        return self._get(self.domain_addr)
+        return self.get(self.domain_addr)
 
     def get_upstream(self):
-        return self._get(self.upstream_addr)
+        return self.get(self.upstream_addr)
 
     def update_upstream(self, backend_name, servers):
         data = {'backend': backend_name, 'servers': servers}
-        return self._put(self.upstream_addr, data)
+        return self.put(self.upstream_addr, data)
 
     def delete_upstream(self, backend_name):
         data = {'backend': backend_name}
-        return self._delete(self.upstream_addr, data)
+        return self.delete(self.upstream_addr, data)
 
     def to_dict(self):
         return {'domain_addr': self.domain_addr, 'upstream_addr': self.upstream_addr}

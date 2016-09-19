@@ -7,7 +7,7 @@
 
   <%call expr="utils.panel()">
     <%def name="header()">
-      <h3 class="panel-title">"${ name }" Instances</h3>
+      <h3 class="panel-title">${ name }: Instances</h3>
     </%def>
 
     <table class="table">
@@ -33,7 +33,7 @@
 
   <%call expr="utils.panel()">
     <%def name="header()">
-      <h3 class="panel-title">${ name } : Domain And Rules</h3>
+      <h3 class="panel-title">${ name }: Domain And Rules</h3>
     </%def>
 
     <table class="table">

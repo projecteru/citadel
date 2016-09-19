@@ -13,7 +13,7 @@
 <%def name="more_body()">
   <%call expr="utils.modal('add-load-balance')">
     <%def name="header()">
-      <h3 class="modal-title">Add Load Balance</h3>
+      <h3 class="modal-title">Add ELB Instance</h3>
     </%def>
     <%def name="footer()">
       <button class="btn btn-warning" data-dismiss="modal"><span class="fui-cross"></span> Close</button>
@@ -91,7 +91,7 @@
 
   <%call expr="utils.modal('add-loadbalance-progress')">
     <%def name="header()">
-      <h3 class="modal-title">Adding Load Balance ...</h3>
+      <h3 class="modal-title">Adding ELB Instance...</h3>
     </%def>
     <%def name="footer()">
     </%def>
@@ -134,7 +134,7 @@
   </table>
 
   <div class="col-md-offset-8 col-md-4">
-    <button class="btn btn-info" id="add-modal"><span class="fui-plus"></span> Add Load Balance</button>
+    <button class="btn btn-info" id="add-modal"><span class="fui-plus"></span> Add ELB Instance</button>
   </div>
 </%block>
 
