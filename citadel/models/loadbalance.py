@@ -1,17 +1,17 @@
 # coding: utf-8
 import json
 from collections import Iterable
-from citadel.config import ELB_BACKEND_NAME_DELIMITER
 
 import enum
 import requests
 from sqlalchemy.exc import IntegrityError
 
-from citadel.ext import db
+from citadel.config import ELB_BACKEND_NAME_DELIMITER
+from citadel.ext import db, rds
 from citadel.libs.json import Jsonized
+from citadel.libs.utils import log
 from citadel.models.base import BaseModelMixin, JsonType
 from citadel.models.container import Container
-from citadel.libs.utils import log
 
 
 """
@@ -156,13 +156,21 @@ class ELBInstance(BaseModelMixin):
     addr = db.Column(db.String(128), nullable=False)
     container_id = db.Column(db.String(64), nullable=False, index=True)
     name = db.Column(db.String(64))
-    comment = db.Column(db.Text)
+
+    @property
+    def comment(self):
+        return rds.get('citadel:elb:{}:comment'.format(self.name))
+
+    @comment.setter
+    def comment(self, val):
+        rds.set('citadel:elb:{}:comment'.format(self.name), val)
 
     @classmethod
     def create(cls, addr, container_id, name, comment=''):
-        b = cls(addr=addr, container_id=container_id, name=name, comment=comment)
+        b = cls(addr=addr, container_id=container_id, name=name)
         db.session.add(b)
         db.session.commit()
+        b.comment = comment
         return b
 
     @classmethod
