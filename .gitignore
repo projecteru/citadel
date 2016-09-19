@@ -2,7 +2,7 @@
 .ipynb_checkpoints
 test.ipynb
 .env
-local_config.py
+local_config.*
 tests/__pycache__/*
 .ropeproject
 migrations

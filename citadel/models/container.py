@@ -55,6 +55,29 @@ class Container(BaseModelMixin, PropsMixin):
             return
         return c.inspect()
 
+    @property
+    def release(self):
+        from .app import Release
+        return Release.get_by_app_and_sha(self.appname, self.sha)
+
+    @classmethod
+    def get_by(cls, **kwargs):
+        sha = kwargs.pop('sha', None)
+        entrypoint = kwargs.pop('entrypoint', None)
+        if entrypoint == '_all':
+            # all means including all entrypoints
+            entrypoint = None
+
+        query_set = cls.query.filter_by(**kwargs)
+        if entrypoint:
+            query_set = query_set.filter(cls.entrypoint == entrypoint)
+
+        if sha:
+            query_set = query_set.filter(cls.sha.like('{}%'.format(sha)))
+
+        res = query_set.order_by(cls.id.desc())
+        return [c.inspect() for c in res]
+
     @classmethod
     def get_by_release(cls, appname, sha, start=0, limit=20):
         """get by release appname and release sha"""

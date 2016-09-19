@@ -83,6 +83,19 @@
 
     <div class="container bs-docs-container">
       <div class="row">
+        ## TODO support category
+        <%
+          messages = get_flashed_messages()
+        %>
+        % if messages:
+          <div class="form-group">
+            % for m in messages:
+              <label class="text-danger">
+                <span class="fui-cross-circle"></span> ${ m }
+              </label>
+            % endfor
+          </div>
+        % endif
         <%block name="main"></%block>
       </div>
     </div>

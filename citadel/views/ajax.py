@@ -1,23 +1,19 @@
 # coding: utf-8
-from citadel.libs.utils import to_number
-
 import json
 import logging
 
 from flask import g, request, abort
 
 from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
-from citadel.rpc import core
-from citadel.libs.utils import with_appcontext
+from citadel.config import ELB_APP_NAME
+from citadel.libs.utils import to_number, with_appcontext
 from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
-
 from citadel.models.app import AppUserRelation, Release, App
 from citadel.models.container import Container
 from citadel.models.env import Environment
-from citadel.models.loadbalance import (Route, ELBInstance, add_route_analysis,
-                                        delete_route_analysis, refresh_routes)
-from citadel.config import ELB_APP_NAME
+from citadel.models.loadbalance import ELBInstance
 from citadel.models.oplog import OPType, OPLog
+from citadel.rpc import core
 from citadel.views.helper import bp_get_app, bp_get_balancer
 
 
@@ -138,6 +134,7 @@ def remove_containers():
         m = json.loads(line)
         if not m['success']:
             log.error('error when deleting container: %s', m['message'])
+
     return DEFAULT_RETURN_VALUE
 
 
@@ -162,6 +159,7 @@ def upgrade_containers():
         m = json.loads(line)
         if not m['success']:
             log.error('error when upgrading container %s: %s', m['id'], m['error'])
+
     return DEFAULT_RETURN_VALUE
 
 
@@ -221,7 +219,7 @@ def create_loadbalance():
                 continue
 
             ips = container.get_ips()
-            elb = ELBInstance.create(ips[0], g.user.id, container.container_id, name, comment)
+            elb = ELBInstance.create(ips[0], container.container_id, name, comment)
 
             # 记录oplog
             op_content = {'elbname': name, 'container_id': container.container_id}
@@ -242,54 +240,19 @@ def remove_loadbalance(id):
     except ActionError as e:
         return {'error': e.message}
 
-    for line in action_stream(q):
-        m = json.loads(line)
-        if m['success'] and elb.container_id == m['id']:
-            log.info('ELB [%s] deleted', elb.name)
-            elb.delete()
-        else:
-            log.error('ELB [%s] delete error, container [%s]', elb.name, m['id'])
-    return DEFAULT_RETURN_VALUE
+    if q.empty():
+        # sometimes life is hard, container may already be deleted, but not in
+        # citadel, so the queue is empty
+        elb.delete()
+    else:
+        for line in action_stream(q):
+            m = json.loads(line)
+            if m['success'] and elb.container_id == m['id']:
+                log.info('ELB [%s] deleted', elb.name)
+                elb.delete()
+            else:
+                log.error('ELB [%s] delete error, container [%s]', elb.name, m['id'])
 
-
-@bp.route('/loadbalance/<name>/refresh', methods=['POST'])
-def refresh_loadbalance(name):
-    elbs = ELBInstance.get_by_name(name)
-    if not elbs:
-        abort(404, 'No ELB [%s] found' % name)
-
-    refresh_routes(name)
-    log.info('ELB [%s] refreshed', name)
-    return DEFAULT_RETURN_VALUE
-
-
-@bp.route('/loadbalance/route/<id>/remove', methods=['POST'])
-def delete_lbrecord(id):
-    route = Route.get(id)
-    if not route:
-        abort(404, 'Route %d not found' % id)
-
-    # 记录oplog
-    op_content = {'route_id': id}
-    op_content.update(route.to_dict())
-    OPLog.create(g.user.id, OPType.DELETE_ELB_ROUTE, content=op_content)
-
-    route.delete()
-
-    log.info('Route [%s] for ELB [%s] deleted', id, route.elbname)
-    return DEFAULT_RETURN_VALUE
-
-
-@bp.route('/loadbalance/record/<id>/analysis', methods=['PUT', 'DELETE'])
-def switch_lbrecord_analysis(id):
-    route = Route.get(id)
-    if not route:
-        abort(404, 'Route %d not found' % id)
-
-    if request.method == 'PUT':
-        add_route_analysis(route)
-    elif request.method == 'DELETE':
-        delete_route_analysis(route)
     return DEFAULT_RETURN_VALUE
 
 
