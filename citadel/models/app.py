@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from citadel.models.loadbalance import ELBRule
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
@@ -141,38 +142,19 @@ class Release(BaseModelMixin):
                 continue
             AppUserRelation.delete(appname, u.id)
 
-        # auto create elb is problematic, TODO
-        # # create ELB routes, if there's any
-        # new_routes = set()
-        # for combo in new_release.specs.combos.itervalues():
-        #     if not combo.elb:
-        #         continue
-        #     for elbname_and_url in combo.elb:
-        #         elb_name, url = elbname_and_url.split()
-        #         r = Route.create(combo.podname, appname, combo.entrypoint, url, elb_name)
-        #         log.debug('create elb record: %s', r)
-        #         new_routes.add(r)
-        #
-        # old_routes = set(previous_release.get_associated_elb_records()) if previous_release else set()
-        # obsolete_routes = old_routes - new_routes
-        # for r in obsolete_routes:
-        #     if r:
-        #         log.warn('delete obsolete route %s', r)
-        #         r.delete()
+        # create ELB routes, if there's any
+        for combo in new_release.specs.combos.itervalues():
+            if not combo.elb:
+                continue
+            for elbname_and_domain in combo.elb:
+                elbname, domain = elbname_and_domain.split()
+                r = ELBRule.create(elbname, domain, appname, entrypoint=combo.entrypoint, podname=combo.podname)
+                if r:
+                    log.info('Auto create ELBRule %s for app %s', r, appname)
+                else:
+                    log.error('Auto create ELBRule failed: app %s', appname)
 
         return new_release
-
-    def get_associated_elb_records(self):
-        """# TODO"""
-        res = set()
-        appname = self.name
-        for combo in self.specs.combos.itervalues():
-            for r in combo.elb:
-                elbname, url = r.split()
-                routes = Route.get_by_backend(podname=combo.podname, appname=appname, entrypoint=combo.entrypoint, domain=url, elbname=elbname)
-                res.update(routes)
-
-        return res
 
     def get_permitted_users(self):
         combos = self.specs.combos.itervalues()
