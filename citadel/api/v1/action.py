@@ -48,7 +48,7 @@ def deploy():
     count = int(data['count'])
     networks = data.get('networks', {})
     envname = data.get('env', '')
-    extra_env = data.get('extra_env', []) 
+    extra_env = data.get('extra_env', [])
     nodename = data.get('nodename', '')
 
     q = create_container(repo, sha, podname, nodename, entrypoint, cpu, 0, count, networks, envname, extra_env)

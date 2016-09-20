@@ -1,15 +1,13 @@
 # coding: utf-8
-
 from flask import g, request, url_for, redirect, abort
 from flask_mako import render_template
 
-from citadel.rpc import core
 from citadel.libs.view import create_page_blueprint
-
 from citadel.models.app import AppUserRelation, App
-from citadel.models.oplog import OPLog
 from citadel.models.container import Container
+from citadel.models.oplog import OPLog
 from citadel.models.user import get_users, get_user
+from citadel.rpc import core
 
 
 bp = create_page_blueprint('admin', __name__, url_prefix='/admin')
@@ -46,7 +44,9 @@ def get_node_containers(podname, nodename):
 
     containers = Container.get_by_node(nodename, g.start, g.limit)
     return render_template('/admin/node_containers.mako',
-            pod=pod, node=node, containers=containers)
+                           pod=pod,
+                           node=node,
+                           containers=containers)
 
 
 @bp.route('/user')
@@ -68,7 +68,10 @@ def user_info(identifier):
     apps = App.get_by_user(user.id, limit=100)
     all_apps = App.get_all(limit=100)
     all_apps = [app for app in all_apps if app not in apps]
-    return render_template('/admin/user_info.mako', user=user, apps=apps, all_apps=all_apps)
+    return render_template('/admin/user_info.mako',
+                           user=user,
+                           apps=apps,
+                           all_apps=all_apps)
 
 
 @bp.route('/oplog')

@@ -1,13 +1,12 @@
 # coding: utf-8
-
-from redis import Redis
-from etcd import Client
-from flask_sqlalchemy import SQLAlchemy
-from flask_oauthlib.client import OAuth
-from flask_mako import MakoTemplates
-from gitlab import Gitlab
-
 from urlparse import urlparse
+
+from etcd import Client
+from flask_mako import MakoTemplates
+from flask_oauthlib.client import OAuth
+from flask_sqlalchemy import SQLAlchemy
+from gitlab import Gitlab
+from redis import Redis
 
 from citadel.config import (
     REDIS_URL,

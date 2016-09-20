@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from citadel.models.loadbalance import ELBRule
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
@@ -8,18 +7,9 @@ from citadel.ext import db
 from citadel.libs.utils import log
 from citadel.models.base import BaseModelMixin
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
+from citadel.models.loadbalance import ELBRule
 from citadel.models.specs import Specs
 from citadel.models.user import User
-
-
-COMBO_MUST_HAVE_FIELD = ('podname', 'entrypoint')
-DEFAULT_COMBO = {
-    'cpu': 0,
-    'memory': 0,
-    'count': 1,
-    'envs': '',
-    'raw': False,
-}
 
 
 class App(BaseModelMixin):
