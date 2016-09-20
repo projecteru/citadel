@@ -47,7 +47,8 @@ class Bind(object):
 class Entrypoint(object):
 
     def __init__(self, command, ports, exposes, network_mode, mem_limit,
-            restart, health_check, hosts, permdir, privileged, log_config, working_dir):
+                 restart, health_check, hosts, permdir, privileged, log_config,
+                 working_dir):
         self.command = command
         self.ports = ports
         self.exposes = exposes
@@ -76,13 +77,15 @@ class Entrypoint(object):
         log_config = data.get('log_config', 'json-file')
         working_dir = data.get('working_dir', '')
         return cls(command, ports, exposes, network_mode, mem_limit, restart,
-                health_check, hosts, permdir, privileged, log_config, working_dir)
+                   health_check, hosts, permdir, privileged, log_config,
+                   working_dir)
 
 
 class Combo(object):
 
     def __init__(self, podname, entrypoint, envname='', cpu=0, memory='0',
-            count=1, envs={}, raw=False, networks=(), permitted_users=(), elb=()):
+                 count=1, envs={}, raw=False, networks=(), permitted_users=(),
+                 elb=()):
         self.podname = podname
         self.entrypoint = entrypoint
         self.envname = envname
@@ -119,8 +122,8 @@ class Combo(object):
                 k, v = p.split('=', 1)
                 envs[k] = v
 
-        return cls(podname, entrypoint, envname, cpu, memory,
-                count, envs, raw, networks, permitted_users, elb)
+        return cls(podname, entrypoint, envname, cpu, memory, count, envs, raw,
+                   networks, permitted_users, elb)
 
     def allow(self, user):
         if not self.permitted_users:
@@ -133,7 +136,8 @@ class Combo(object):
 
 class Specs(Jsonized):
 
-    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, raw):
+    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base,
+                 mount_paths, combos, permitted_users, raw):
         # raw to jsonize
         self.appname = appname
         self.entrypoints = entrypoints
@@ -144,6 +148,7 @@ class Specs(Jsonized):
         self.base = base
         self.mount_paths = mount_paths
         self.combos = combos
+        self.permitted_users = permitted_users
         self._raw = raw
 
     @classmethod
@@ -157,7 +162,15 @@ class Specs(Jsonized):
         base = data.get('base')
         mount_paths = data.get('mount_paths', ())
         combos = {key: Combo.from_dict(value) for key, value in data.get('combos', {}).iteritems()}
-        return cls(appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, data)
+
+        # permitted_users could be defined in both combos and specs
+        permitted_user_list = [combo.permitted_users for combo in combos.values()]
+        combos_permitted_users = tuple(u for g in permitted_user_list for u in g)
+        app_permitted_users = tuple(data.get('permitted_users', ()))
+        all_permitted_users = frozenset(combos_permitted_users + app_permitted_users)
+
+        return cls(appname, entrypoints, build, volumes, binds, meta, base,
+                   mount_paths, combos, all_permitted_users, data)
 
     @classmethod
     def from_string(cls, string):

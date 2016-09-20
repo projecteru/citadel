@@ -96,7 +96,7 @@ class Release(BaseModelMixin):
             return None
 
         specs_text = get_file_content(app.project_name, 'app.yaml', sha)
-        log.debug('got specs:\n%s', specs_text)
+        log.debug('got specs_text:\n%s', specs_text)
         if not specs_text:
             log.warn('empty specs %s %s', appname, sha)
             return None
@@ -110,6 +110,9 @@ class Release(BaseModelMixin):
             db.session.rollback()
             return None
 
+        # if no combo is provided, don't do anything more
+        if not new_release.get_combos():
+            return
         # after the instance is created, manage app permission through combo
         # permitted_users
         all_permitted_users = set(new_release.get_permitted_users())
@@ -121,7 +124,7 @@ class Release(BaseModelMixin):
 
         come = all_permitted_users - old_folks
         gone = old_folks - all_permitted_users
-        log.debug('release %s change permission: %s come, %s go', sha, come, gone)
+        log.info('Release %s change permission: ADD %s, REMOVE %s', sha, come, gone)
         for u in come:
             if not u:
                 continue
@@ -147,10 +150,9 @@ class Release(BaseModelMixin):
         return new_release
 
     def get_permitted_users(self):
-        combos = self.specs.combos.itervalues()
-        permitted_users = [combo.permitted_users for combo in combos]
-        all_permitted_users = [User.get(u) for g in permitted_users for u in g]
-        return all_permitted_users
+        usernames = self.specs.permitted_users
+        permitted_users = [User.get(u) for u in usernames]
+        return permitted_users
 
     @classmethod
     def get(cls, id):
