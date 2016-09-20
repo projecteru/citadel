@@ -300,6 +300,9 @@ class LBClient(Jsonized):
         return self.get(self.upstream_addr)
 
     def update_upstream(self, backend_name, servers):
+        if not servers:
+            # if servers is empty, remove the backend instead
+            return self.delete_upstream(backend_name)
         data = {'backend': backend_name, 'servers': servers}
         return self.put(self.upstream_addr, data)
 
