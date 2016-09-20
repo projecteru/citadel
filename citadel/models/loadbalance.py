@@ -1,11 +1,10 @@
 # coding: utf-8
-from requests.exceptions import ReadTimeout, ConnectionError
-
 import json
 from collections import Iterable
 
 import enum
 import requests
+from requests.exceptions import ReadTimeout, ConnectionError
 from sqlalchemy.exc import IntegrityError
 
 from citadel.config import ELB_BACKEND_NAME_DELIMITER
@@ -191,24 +190,26 @@ class ELBInstance(BaseModelMixin):
         b.comment = comment
         return b
 
-    def delete(self):
+    def is_only_instance(self):
         cls = self.__class__
         elbname = self.name
-        # if this is the last one, also remove all associating rules
         remaining_instances = [b for b in cls.get_by_name(elbname) if b.id != self.id]
-        addr = self.addr
-        if not remaining_instances:
-            log.warn('Removing one last %s instance %s', elbname, addr)
-            rules = ELBRule.query.filter_by(elbname=elbname)
-            domains = [r.domain for r in rules]
-            # if rules were removed from elb instances, we can safely
-            # remove them from citadel as well
-            if self.lb_client.delete_rule(domains):
-                rules.delete()
-            else:
-                log.warn('Remove rule %s from ELB instance %s failed', domains, addr)
+        return not remaining_instances
 
-        return super(ELBInstance, self).delete()
+    def clear_rules(self):
+        """clear rules in the whole ELB"""
+        elbname = self.name
+        addr = self.addr
+        rules = ELBRule.query.filter_by(elbname=elbname)
+        domains = [r.domain for r in rules]
+        # if rules were removed from elb instances, we can safely
+        # remove them from citadel as well
+        if self.lb_client.delete_rule(domains):
+            rules.delete()
+            return True
+        else:
+            log.warn('Remove rule %s from ELB instance %s failed', domains, addr)
+            return False
 
     @classmethod
     def get_by_name(cls, name):

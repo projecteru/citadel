@@ -235,6 +235,9 @@ def create_loadbalance():
 @bp.route('/loadbalance/<id>/remove', methods=['POST'])
 def remove_loadbalance(id):
     elb = bp_get_balancer(id)
+    if elb.is_only_instance():
+        elb.clear_rules()
+
     try:
         q = remove_container([elb.container_id])
     except ActionError as e:
