@@ -82,7 +82,7 @@ class ELBRule(BaseModelMixin):
             return None
 
         if not r.write_rules():
-            log.warn('write rules to elb failed')
+            log.error('Urite rules to elb failed, no ELB or dead ELB')
             r.delete()
             return None
 

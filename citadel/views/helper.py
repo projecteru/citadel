@@ -13,9 +13,9 @@ def bp_get_app(appname):
     if not app:
         abort(404, 'App %s not found' % appname)
 
-    appnames = AppUserRelation.get_appname_by_user_id(g.user.id, limit=200)
-    if appname not in appnames and not g.user.privilege:
-        abort(403, 'Not permitted')
+    if not AppUserRelation.user_permitted_to_app(g.user.id, appname) and not g.user.privilege:
+        abort(403, 'You are not permitted to view this app, declare permitted_users in app.yaml')
+
     return app
 
 
@@ -24,9 +24,9 @@ def bp_get_release(appname, sha):
     if not release:
         abort(404, 'Release %s, %s not found' % (appname, sha))
 
-    appnames = AppUserRelation.get_appname_by_user_id(g.user.id, limit=200)
-    if appname not in appnames and not g.user.privilege:
-        abort(403, 'Not permitted')
+    if not AppUserRelation.user_permitted_to_app(g.user.id, appname) and not g.user.privilege:
+        abort(403, 'You are not permitted to view this app, declare permitted_users in app.yaml')
+
     return release
 
 
@@ -60,6 +60,6 @@ def need_admin(f):
         if not g.user:
             abort(401)
         if not g.user.privilege:
-            abort(403)
+            abort(403, 'Only for admin')
         return f(*args, **kwargs)
     return _

@@ -29,6 +29,7 @@ def get_pod_nodes(name):
     pod = core.get_pod(name)
     if not pod:
         abort(404)
+
     nodes = core.get_pod_nodes(name)
     return render_template('/admin/pod_nodes.mako', pod=pod, nodes=nodes)
 
@@ -83,4 +84,4 @@ def oplog():
 @bp.before_request
 def access_control():
     if not g.user.privilege:
-        abort(403, 'Current user not privileged')
+        abort(403, 'Only for admin')

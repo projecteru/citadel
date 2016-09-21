@@ -271,4 +271,4 @@ def revoke_app():
 def access_control():
     # loadbalance和admin的不是admin就不要乱搞了
     if not g.user.privilege and (request.path.startswith('/ajax/admin') or request.path.startswith('/ajax/loadbalance')):
-        abort(403, 'Must be admin')
+        abort(403, 'Only for admin')

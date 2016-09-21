@@ -40,7 +40,7 @@ def create_page_blueprint(name, import_name, url_prefix=None):
     bp = Blueprint(name, import_name, url_prefix=url_prefix)
 
     def _error_hanlder(error):
-        return render_template('/error/%s.mako' % error.code)
+        return render_template('/error/%s.mako' % error.code, err=error)
 
     for code in ERROR_CODES:
         bp.errorhandler(code)(_error_hanlder)

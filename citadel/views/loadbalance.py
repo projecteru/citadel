@@ -21,7 +21,7 @@ def index():
     pods = core.list_pods()
     app = App.get_by_name(ELB_APP_NAME)
     if not app:
-        abort(400, 'Bad ELB_APP_NAME: %s', ELB_APP_NAME)
+        abort(404, 'ELB app not found: {}'.format(ELB_APP_NAME))
 
     nodes = get_nodes_for_first_pod(pods)
     releases = Release.get_by_app(app.name, limit=20)
@@ -34,7 +34,7 @@ def elb(name):
     all_apps = [a for a in App.get_all(limit=100) if a and a.name != ELB_APP_NAME]
     elbs = ELBInstance.get_by_name(name)
     if not elbs and not rules:
-        abort(404)
+        abort(404, 'No instance found for ELB: {}'.format(name))
 
     return render_template('/loadbalance/balancer.mako',
                            name=name,
