@@ -257,6 +257,10 @@ class AppUserRelation(BaseModelMixin):
 
         return [r.appname for r in res if r]
 
+    @classmethod
+    def user_permitted_to_app(cls, user_id, appname):
+        return bool(cls.query.filter_by(user_id=user_id, appname=appname).first())
+
 
 event.listen(
     App.__table__,

@@ -1,5 +1,4 @@
 # coding: utf-8
-
 from flask import abort, g, request
 
 from citadel.libs.datastructure import AbortDict
@@ -15,7 +14,7 @@ bp = create_api_blueprint('app', __name__, 'app')
 def _get_app(name):
     app = App.get_by_name(name)
     if not app:
-        abort(404, 'app `%s` not found' % name)
+        abort(404, 'App not found: {}'.format(name))
     return app
 
 

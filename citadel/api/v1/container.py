@@ -1,5 +1,4 @@
 # coding: utf-8
-
 from flask import abort
 
 from citadel.libs.view import create_api_blueprint
@@ -13,5 +12,5 @@ bp = create_api_blueprint('container', __name__, 'container')
 def get_container(container_id):
     c = Container.get_by_container_id(container_id)
     if not c:
-        abort(404, 'container `%s` not found' % container_id)
+        abort(404, 'Container not found: {}'.format(container_id))
     return c
