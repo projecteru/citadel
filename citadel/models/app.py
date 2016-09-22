@@ -110,9 +110,6 @@ class Release(BaseModelMixin):
             db.session.rollback()
             return None
 
-        # if no combo is provided, don't do anything more
-        if not new_release.get_combos():
-            return
         # after the instance is created, manage app permission through combo
         # permitted_users
         all_permitted_users = set(new_release.get_permitted_users())
@@ -148,6 +145,11 @@ class Release(BaseModelMixin):
                     log.error('Auto create ELBRule failed: app %s', appname)
 
         return new_release
+
+    def get_previous(self):
+        cls = self.__class__
+        res = cls.query.filter(cls.id < self.id, cls.app_id == self.app_id)
+        return res.first()
 
     def get_permitted_users(self):
         usernames = self.specs.permitted_users

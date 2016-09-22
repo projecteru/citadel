@@ -33,14 +33,6 @@ class BaseModelMixin(db.Model, Jsonized):
         q = cls.query.order_by(cls.id.desc())
         return q[start:start + limit]
 
-    def get_previous(self):
-        cls = self.__class__
-        res = self.query.filter(cls.id<self.id).order_by(cls.id.desc()).all()
-        if res:
-            return res[0]
-        else:
-            return None
-
     def delete(self):
         db.session.delete(self)
         db.session.commit()
