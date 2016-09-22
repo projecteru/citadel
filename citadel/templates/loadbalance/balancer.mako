@@ -15,14 +15,16 @@
         <tr>
           <th>IP</th>
           <th>ContainerID</th>
+          <th>Version</th>
           <th>Operation</th>
         </tr>
       </thead>
       <tbody>
         % for elb in elbs:
           <tr>
-            <td><a href="http://${elb.ip}/__erulb__/upstream" target="_blank">${elb.ip}</a></td>
-            <td><span class="label label-${'success' if elb.is_alive() else 'danger'}">${elb.container_id}</span></td>
+            <td><a href="http://${elb.ip}/__erulb__/upstream" target="_blank">${ elb.ip }</a></td>
+            <td><span class="label label-${'success' if elb.is_alive() else 'danger'}">${ elb.container.short_id }</span></td>
+            <td>${ elb.container.short_sha }</td>
             <td><a class="btn btn-xs btn-warning" href="#" data-id="${elb.id}" name="delete-balancer"><span class="fui-trash"></span> Remove</a></td>
           </tr>
         % endfor

@@ -140,6 +140,10 @@ class Container(BaseModelMixin, PropsMixin):
     def short_id(self):
         return self.container_id[:7]
 
+    @property
+    def short_sha(self):
+        return self.sha[:7]
+
     def mark_removing(self):
         self.removing = 1
 
