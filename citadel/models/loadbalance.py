@@ -48,7 +48,7 @@ class ELBRule(BaseModelMixin):
     """
 
     __tablename__ = 'elb_rule'
-    __tablen_args__ = (
+    __table_args__ = (
         db.UniqueConstraint('elbname', 'domain'),
     )
 
