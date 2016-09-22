@@ -31,6 +31,22 @@ class Pod(_CoreRPC):
     fields = ['name', 'desc']
 
 
+class Network(_CoreRPC):
+
+    fields = ['name', 'subnets']
+
+    def __init__(self, network):
+        super(Network, self).__init__(network)
+        self.subnets = list(network.subnets)
+
+    @property
+    def subnets_string(self):
+        return ','.join(self.subnets)
+
+    def __repr__(self):
+        return 'Network<name: %s, subnets: %s>' % (self.name, self.subnets_string)
+
+
 class Node(_CoreRPC):
 
     fields = ['name', 'endpoint', 'podname', 'public', 'cpu', 'info']

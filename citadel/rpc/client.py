@@ -12,7 +12,7 @@ from citadel.libs.utils import handle_exception
 from citadel.libs.cache import cache, clean_cache, ONE_DAY
 
 from citadel.rpc.exceptions import NoStubError
-from citadel.rpc.core import (Pod, Node, BuildImageMessage,
+from citadel.rpc.core import (Pod, Node, Network, BuildImageMessage,
         CreateContainerMessage, UpgradeContainerMessage, RemoveContainerMessage)
 
 
@@ -23,6 +23,7 @@ _UNARY_TIMEOUT = 5
 _LIST_PODS_KEY = 'citadel:listpods'
 _GET_POD = 'citadel:getpod:{name}'
 _GET_POD_NODES = 'citadel:getpodnodes:{name}'
+_GET_POD_NETWORKS = 'citadel:getpodnetworks:{name}'
 _GET_NODE = 'citadel:getnode:{podname}:{nodename}'
 
 
@@ -71,6 +72,14 @@ class CoreRPC(object):
         opts = ListNodesOptions(podname=name)
         r = stub.ListPodNodes(opts, _UNARY_TIMEOUT)
         return [Node(n) for n in r.nodes]
+
+    @handle_rpc_exception(default=list)
+    @cache(_GET_POD_NETWORKS, ttl=ONE_DAY)
+    def get_pod_networks(self, name):
+        stub = self._get_stub()
+        opts = GetPodOptions(name=name)
+        r = stub.ListNetworks(opts, _UNARY_TIMEOUT)
+        return [Network(n) for n in r.networks]
 
     @handle_rpc_exception(default=None)
     @cache(_GET_NODE, ttl=ONE_DAY)

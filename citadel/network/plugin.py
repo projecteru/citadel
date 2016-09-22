@@ -41,3 +41,7 @@ def get_all_pools():
 
     r = etcd.get('/docker/network/v1.0/network')
     return [_parse_docker_network(n.value) for n in r.children]
+
+
+def get_all_networks(podname):
+    return core.get_pod_networks(podname)

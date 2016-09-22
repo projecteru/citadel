@@ -6,6 +6,7 @@ from citadel.rpc import core
 from citadel.libs.view import create_api_blueprint
 from citadel.libs.datastructure import AbortDict
 from citadel.models.container import Container
+from citadel.network.plugin import get_all_networks
 
 
 bp = create_api_blueprint('pod', __name__, 'pod')
@@ -38,6 +39,12 @@ def get_pod_nodes(name):
 def get_pod_containers(name):
     pod = _get_pod(name)
     return Container.get_by_pod(pod.name, g.start, g.limit)
+
+
+@bp.route('/<name>/networks', methods=['GET'])
+def get_pod_networks(name):
+    pod = _get_pod(name)
+    return get_all_networks(pod.name)
 
 
 @bp.route('/<name>/addnode', methods=['PUT', 'POST'])
