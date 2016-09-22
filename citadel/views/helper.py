@@ -1,4 +1,5 @@
 # coding: utf-8
+from citadel.network.plugin import get_all_networks
 from functools import wraps
 
 from flask import abort, g
@@ -52,6 +53,12 @@ def get_nodes_for_first_pod(pods):
     if not pods:
         return []
     return core.get_pod_nodes(pods[0].name)
+
+
+def get_networks_for_first_pod(pods):
+    if not pods:
+        return []
+    return get_all_networks(pods[0].name)
 
 
 def need_admin(f):

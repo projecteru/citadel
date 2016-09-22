@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 
-from flask import g, request, url_for, redirect
+from flask import abort, g, request, url_for, redirect
 from flask_mako import render_template
 
 from citadel.config import GITLAB_URL
@@ -12,9 +12,8 @@ from citadel.models.env import Environment
 from citadel.models.gitlab import get_file_content
 from citadel.models.oplog import OPLog, OPType
 from citadel.models.user import User
-from citadel.network.plugin import get_all_pools
 from citadel.rpc import core
-from citadel.views.helper import bp_get_app, bp_get_release, get_nodes_for_first_pod
+from citadel.views.helper import bp_get_app, bp_get_release, get_nodes_for_first_pod, get_networks_for_first_pod
 
 
 bp = create_page_blueprint('app', __name__, url_prefix='/app')
@@ -38,15 +37,15 @@ def get_app(name):
 def get_release(name, sha):
     app = bp_get_app(name)
     release = Release.get_by_app_and_sha(app.name, sha)
+    if not all([app, release]):
+        abort(404, 'App or release not found')
+
     containers = Container.get_by_release(app.name, sha, limit=None)
-
     appspecs = get_file_content(app.project_name, 'app.yaml', release.sha)
-
     envs = Environment.get_by_app(app.name)
-    networks = {n['name']: n['ipamV4Config'][0]['PreferredPool'] for n in get_all_pools()}
-
     pods = core.list_pods()
     nodes = get_nodes_for_first_pod(pods)
+    networks = get_networks_for_first_pod(pods)
     combos = release.get_combos()
     template_name = '/app/release-with-combos.mako' if combos else '/app/release.mako'
     return render_template(template_name, app=app, release=release,

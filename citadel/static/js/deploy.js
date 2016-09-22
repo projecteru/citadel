@@ -2,33 +2,29 @@
 
 $(document).ready(function(){
   var anchor = window.location.hash;
-  if (anchor === '#build') {
-    $('#build-image-modal').modal('show');
-  } else if (anchor === '#add') {
+  if (anchor === '#add') {
     $('#add-container-modal').modal('show');
   }
 });
 
 $('#add-container-form select[name=pod]').change(function(){
   var pod = $(this).val();
-  var hosts = $('select[name=node]');
-  var url = '/ajax/pod/' + pod + '/nodes';
-  $.get(url, {}, function(r){
-    hosts.html('').append($('<option>').val('_random').text('Let Eru choose for me'));
+  var node_selection = $('select[name=node]');
+  var get_nodes_url = '/ajax/pod/' + pod + '/nodes';
+  $.get(get_nodes_url, {}, function(r){
+    node_selection.html('').append($('<option>').val('_random').text('Let Eru choose for me'));
     for (var i=0; i<r.length; i++) {
-      hosts.append($('<option>').val(r[i].name).text(r[i].name + ' - ' + r[i].ip));
+      node_selection.append($('<option>').val(r[i].name).text(r[i].name + ' - ' + r[i].ip));
     }
   });
-});
-
-$(document).ajaxStart(function(){
-  var progressBar = $('div.progress-bar');
-
-  $('#add-container-modal').modal('hide');
-  $('#container-progress').modal('show');
-  progressBar.width('0').animate({width: '100%'}, 10000);
-}).ajaxStop(function(){
-  $('#container-progress').modal('hide');
+  var network_checkboxes = $('#network-checkbox');
+  var get_networks_url = '/api/v1/pod/' + pod + '/networks';
+  $.get(get_networks_url, {}, function(r){
+    network_checkboxes.html("")
+    for (var i=0; i<r.length; i++) {
+      network_checkboxes.append('<label class="checkbox"><input type="checkbox" name="network" value="' + r[i].name + '">' + r[i].name + ' - ' + r[i].subnets + '</label>');
+    }
+  });
 });
 
 $('#add-container-button').click(function(e){
@@ -66,40 +62,18 @@ $('#add-container-button').click(function(e){
   }
 
   console.log(data);
+  var progressBar = $('div.progress-bar');
+
+  $('#add-container-modal').modal('hide');
+  $('#container-progress').modal('show');
+  progressBar.width('0').animate({width: '100%'}, 10000);
   $.post(url, data, function(r){
     if (r.error !== null) {
       alert(r.error);
       return;
     }
+    $('#container-progress').modal('hide');
     window.location.href = window.location.href.replace(/#\w+/g, '');
-  });
-});
-
-$('#build-image-button').click(function(e){
-  e.preventDefault();
-  var url = '/ajax/app/{name}/version/{sha}/build';
-  var data = {};
-
-  url = url.replace('{name}', $('input[name=name]').val()).replace('{sha}', $('input[name=version]').val());
-
-  data.podname = $('#build-image-form select[name=pod]').val();
-  data.base = $('#build-image-form select[name=base]').val();
-
-  console.log(data);
-  $.post(url, data, function(r){
-    console.log(r);
-
-    $('#build-image-modal').modal('hide');
-    $('#build-image-progress').modal('show');
-
-    var wsUrl = 'ws://' + location.host + '/websocket/check-build-image?task=' + r.task;
-    waitForWebsocket(wsUrl, function(e) {
-      if (e.data === 'done') {
-        location.reload();
-      }
-      $('#build-image-pre').append('\n' + e.data);
-      $(window).scrollTop($(document).height() - $(window).height());
-    });
   });
 });
 

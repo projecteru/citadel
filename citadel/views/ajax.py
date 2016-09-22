@@ -2,7 +2,7 @@
 import json
 import logging
 
-from flask import g, request, abort
+from flask import g, request, abort, flash
 
 from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
 from citadel.config import ELB_APP_NAME
@@ -79,18 +79,16 @@ def deploy_release(release_id):
     if raw and not g.user.privilege:
         abort(400, 'Raw deploy only supported for admins')
 
-    # 比较诡异, jQuery传个list是这样的...
-    networks = request.form.getlist('networks[]')
-
     if nodename == '_random':
         nodename = ''
     extra_env = [env.strip() for env in envs.split(';')]
     extra_env = [env for env in extra_env if env]
 
     # 这里来的就都走自动分配吧
-    networks = {key: '' for key in networks}
+    networks = {key: '' for key in request.form.getlist('networks[]')}
 
     try:
+        print('========networks', networks)
         q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env, bool(raw))
     except ActionError as e:
         log.error('error when creating container: %s', e.message)
@@ -100,6 +98,7 @@ def deploy_release(release_id):
         m = json.loads(line)
         if not m['success']:
             log.error('error when creating container: %s', m['error'])
+            flash('error when creating container: {}'.format(m['error']))
             continue
 
     return DEFAULT_RETURN_VALUE

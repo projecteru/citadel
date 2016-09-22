@@ -54,34 +54,6 @@
 
 <%def name="more_body()">
 
-  <%call expr="utils.modal('build-image-modal')">
-
-    <%def name="header()">
-      <h3 class="modal-title">Build Image</h3>
-    </%def>
-
-    <form id="build-image-form" class="form-horizontal" action="">
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">App</label>
-        <div class="col-sm-10">
-          <input class="form-control" type="text" name="name" value="${ app.name }" disabled>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Version</label>
-        <div class="col-sm-10">
-          <input class="form-control" type="text" name="sha" value="${ release.sha }" disabled>
-        </div>
-      </div>
-    </form>
-
-    <%def name="footer()">
-      <button class="btn btn-warning" id="close-modal" data-dismiss="modal"><span class="fui-cross"></span>Close</button>
-      <button class="btn btn-info" id="build-image-button"><span class="fui-plus"></span>Go</button>
-    </%def>
-
-  </%call>
-
   <%call expr="utils.modal('add-container-modal')">
 
     <%def name="header()">
@@ -170,10 +142,13 @@
       </div>
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">Network</label>
-        <div class="col-sm-10">
-          % for name, cidr in networks.iteritems():
+        <div class="col-sm-10" id="network-checkbox">
+          % for network in networks:
             <label class="checkbox" for="">
-              <input type="checkbox" name="network" value="${ name }">${ name } - ${ cidr }
+              <input type="checkbox" name="network" value="${ network.name }">${ network.name } -
+              % for cidr in network.subnets:
+                <span class="label label-info">${ cidr }</span>
+              % endfor
             </label>
           % endfor
         </div>
@@ -208,16 +183,6 @@
         <span class="sr-only">Waiting ...</span>
       </div>
     </div>
-  </%call>
-
-  <%call expr="utils.modal('build-image-progress')">
-    <%def name="header()">
-      <h3 class="modal-title">Building Image ...</h3>
-    </%def>
-    <%def name="footer()">
-    </%def>
-
-    <pre id="build-image-pre"></pre>
   </%call>
 
 </%def>
