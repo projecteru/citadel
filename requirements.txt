@@ -19,3 +19,4 @@ webargs
 more_itertools
 tailer
 gunicorn
+blinker
