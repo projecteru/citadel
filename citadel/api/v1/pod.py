@@ -50,15 +50,26 @@ def get_pod_networks(name):
 @bp.route('/<name>/addnode', methods=['PUT', 'POST'])
 def add_node(name):
     pod = _get_pod(name)
-    data = AbortDict(request.get_json())
+
+    json_data = request.get_json()
+    data = json_data and AbortDict(json_data) or request.form
+
+    cafile, certfile, keyfile = '', '', ''
+    if json_data:
+        cafile = data.get('cafile', '')
+        certfile = data.get('certfile', '')
+        keyfile = data.get('keyfile', '')
+    else:
+        try:
+            cafile = request.files['cafile'].read()
+            certfile = request.files['certfile'].read()
+            keyfile = request.files['keyfile'].read()
+        except KeyError:
+            pass
 
     nodename = data['nodename']
     endpoint = data['endpoint']
     public = bool(data.get('public', ''))
-
-    cafile = data.get('cafile', '')
-    certfile = data.get('certfile', '')
-    keyfile = data.get('keyfile', '')
 
     bundle = (cafile, certfile, keyfile)
 
