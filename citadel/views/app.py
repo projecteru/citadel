@@ -45,8 +45,8 @@ def get_release(name, sha):
     envs = Environment.get_by_app(app.name)
     pods = core.list_pods()
     nodes = get_nodes_for_first_pod(pods)
-    networks = get_networks_for_first_pod(pods)
     combos = release.get_combos()
+    networks = get_networks_for_first_pod(pods)
     template_name = '/app/release-with-combos.mako' if combos else '/app/release.mako'
     return render_template(template_name, app=app, release=release,
                            envs=envs, appspecs=appspecs, containers=containers,

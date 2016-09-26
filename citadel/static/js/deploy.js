@@ -36,7 +36,7 @@ $('#add-container-button').click(function(e){
 
   url = url.replace('{releaseId}', releaseId);
 
-  var ns = $('#add-container-form input[name=network]:checked');
+  var ns = $('div.active #add-container-form input[name=network]:checked');
   for (var i=0; i<ns.length; i++) {
     networks.push($(ns[i]).val());
   }
