@@ -9,6 +9,11 @@
   .block-span { display: block; }
 </%def>
 
+<%!
+  from datetime import datetime
+  now = datetime.now()
+%>
+
 <%block name="main">
 
   <%utils:panel>
@@ -23,6 +28,13 @@
       </h3>
     </%def>
     <h4>${ app.name }</h4>
+    <br>
+    <h5>这里看log</h5>
+    <ul class="list-group">
+      % for entry in releases[0].entrypoints.keys():
+	<li class="list-group-item"><a target="_blank" href="${ url_for('app.get_app_log', name=app.name, entrypoint=entry, dt=now) }?limit=500">${ entry }</a></li>
+      % endfor
+    </ul>
   </%utils:panel>
 
   <%utils:panel>

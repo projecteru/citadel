@@ -199,8 +199,13 @@ class Release(BaseModelMixin):
         specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
         return specs_text and Specs.from_string(specs_text) or None
 
-    def get_combos(self):
+    @property
+    def combos(self):
         return self.specs.combos
+
+    @property
+    def entrypoints(self):
+        return self.specs.entrypoints
 
     def update_image(self, image):
         self.image = image

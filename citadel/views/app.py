@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 
+import tailer
 from flask import abort, g, request, url_for, redirect
 from flask_mako import render_template
 
-from citadel.config import GITLAB_URL
+from citadel.config import MFS_LOG_FILE_PATH, GITLAB_URL
+from citadel.libs.utils import make_unicode
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release, AppUserRelation
 from citadel.models.container import Container
@@ -45,7 +47,7 @@ def get_release(name, sha):
     envs = Environment.get_by_app(app.name)
     pods = core.list_pods()
     nodes = get_nodes_for_first_pod(pods)
-    combos = release.get_combos()
+    combos = release.combos
     networks = get_networks_for_first_pod(pods)
     template_name = '/app/release-with-combos.mako' if combos else '/app/release.mako'
     return render_template(template_name, app=app, release=release,
@@ -92,3 +94,16 @@ def gitlab_url(name, sha):
     release = bp_get_release(name, sha)
     url = os.path.join(GITLAB_URL, app.project_name, 'commit', release.sha)
     return redirect(url)
+
+
+@bp.route('/<name>/<entrypoint>/log/<date:dt>')
+def get_app_log(name, entrypoint, dt):
+    bp_get_app(name)
+    log_file_path = MFS_LOG_FILE_PATH.format(app_name=name, entrypoint=entrypoint, dt=dt)
+    if not os.path.isfile(log_file_path):
+        abort(404, 'app not found')
+
+    file_length = min([g.limit, 10000])
+    log_content = tailer.tail(open(log_file_path), file_length)
+    decoded = [make_unicode(l) for l in log_content]
+    return render_template('/app/applog.mako', log_content=decoded)
