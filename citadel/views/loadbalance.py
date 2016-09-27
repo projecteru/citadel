@@ -2,12 +2,12 @@
 from flask import g, request, abort, redirect, url_for, jsonify, flash
 from flask_mako import render_template
 
-from citadel.config import ELB_APP_NAME
+from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
 from citadel.models.loadbalance import ELBInstance, ELBRule
 from citadel.rpc import core
-from citadel.views.helper import get_nodes_for_first_pod, bp_get_balancer_by_name, need_admin
+from citadel.views.helper import bp_get_balancer_by_name, need_admin
 
 
 bp = create_page_blueprint('loadbalance', __name__, url_prefix='/loadbalance')
@@ -18,14 +18,13 @@ def index():
     elb_dict = {}
     for elb in ELBInstance.get_all(g.start, g.limit):
         elb_dict.setdefault(elb.name, []).append(elb)
-    pods = core.list_pods()
     app = App.get_by_name(ELB_APP_NAME)
     if not app:
         abort(404, 'ELB app not found: {}'.format(ELB_APP_NAME))
 
-    nodes = get_nodes_for_first_pod(pods)
+    nodes = core.get_pod_nodes(ELB_POD_NAME)
     releases = Release.get_by_app(app.name, limit=20)
-    return render_template('/loadbalance/list.mako', elb_dict=elb_dict, pods=pods, releases=releases, nodes=nodes)
+    return render_template('/loadbalance/list.mako', elb_dict=elb_dict, podname=ELB_POD_NAME, releases=releases, nodes=nodes)
 
 
 @bp.route('/<name>', methods=['GET'])
