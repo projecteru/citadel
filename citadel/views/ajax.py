@@ -5,7 +5,7 @@ import logging
 from flask import g, request, abort, flash
 
 from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
-from citadel.config import ELB_APP_NAME
+from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.utils import to_number, with_appcontext
 from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import AppUserRelation, Release, App
@@ -179,7 +179,6 @@ def create_loadbalance():
     if not release:
         abort(404, 'Release %s not found' % release_id)
 
-    podname = request.form['podname']
     entrypoint = request.form['entrypoint']
     name = request.form['name']
     cpu = request.form.get('cpu', type=float, default=1)
@@ -198,7 +197,7 @@ def create_loadbalance():
         extra_env.append(env)
 
     try:
-        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, 0, 1, {}, 'prod', extra_env)
+        q = create_container(release.app.git, release.sha, ELB_POD_NAME, nodename, entrypoint, cpu, 0, 1, {}, 'prod', extra_env)
     except ActionError as e:
         log.error('error when creating ELB: %s', e.message)
         return {'error': e.message}
