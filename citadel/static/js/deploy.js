@@ -36,11 +36,6 @@ $('#add-container-button').click(function(e){
 
   url = url.replace('{releaseId}', releaseId);
 
-  var ns = $('div.active #add-container-form input[name=network]:checked');
-  for (var i=0; i<ns.length; i++) {
-    networks.push($(ns[i]).val());
-  }
-
   if ($('div.active #add-container-form').length) {
     data.envname = $('div.active #add-container-form select[name=envname]').val() || '';
     data.podname = $('div.active #add-container-form select[name=pod]').val();
@@ -48,6 +43,10 @@ $('#add-container-button').click(function(e){
     data.entrypoint = $('div.active #add-container-form select[name=entrypoint]').val();
     data.count = $('div.active #add-container-form input[name=count]').val() || '1';
     data.envs = $('div.active #add-container-form input[name=envs]').val();
+    var ns = $('div.active #add-container-form input[name=network]:checked');
+    for (var i=0; i<ns.length; i++) {
+      networks.push($(ns[i]).val());
+    }
     data.networks = networks;
     data.raw = $('div.active #add-container-form input[name=raw]:checked').length;
   } else {
@@ -57,6 +56,10 @@ $('#add-container-button').click(function(e){
     data.entrypoint = $('#add-container-form select[name=entrypoint]').val();
     data.count = $('#add-container-form input[name=count]').val() || '1';
     data.envs = $('#add-container-form input[name=envs]').val();
+    var ns = $('#add-container-form input[name=network]:checked');
+    for (var i=0; i<ns.length; i++) {
+      networks.push($(ns[i]).val());
+    }
     data.networks = networks;
     data.raw = $('#add-container-form input[name=raw]:checked').length;
   }
