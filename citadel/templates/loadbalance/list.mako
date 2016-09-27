@@ -32,6 +32,16 @@
         </div>
       </div>
       <div class="form-group">
+        <label class="col-sm-2 control-label" for="">Pod</label>
+        <div class="col-sm-10">
+          <select name="pod" class="form-control">
+            % for p in pods:
+              <option value="${ p.name }">${ p.name }</option>
+            % endfor
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
         <label class="col-sm-2 control-label" for="">Node</label>
         <div class="col-sm-10">
           <select class="form-control" name="node">
