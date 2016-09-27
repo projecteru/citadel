@@ -30,7 +30,6 @@
         % endfor
       </tbody>
     </table>
-    <button class="btn btn-info btn-xs" id="refresh-btn" data-name="${name}"><span class="fui-info-circle"></span> Refresh Routes</button>
   </%call>
 
   <%call expr="utils.panel()">
@@ -50,7 +49,7 @@
         % for rule in rules:
           <tr>
             <td>${ rule.domain }</td>
-            <td>${ rule.appname }</td>
+            <td><a target="_blank" href="${ url_for('app.get_app', name=rule.appname) }">${ rule.appname }</a></td>
             <td>
               <a class="btn btn-xs btn-info" href="${ url_for('loadbalance.rule', name=name, domain=rule.domain) }" name="get-rule">View</a>
               <form style=" display:inline!important;" action="${ url_for('loadbalance.delete_rule', name=name) }" method="POST">
