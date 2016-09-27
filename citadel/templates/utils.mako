@@ -14,7 +14,7 @@
         <th>ID</th>
         <th>Name</th>
         <th>Version</th>
-        <th>Node</th>
+        <th>Location</th>
         <th>Network</th>
         <th>CPU</th>
         <th>Entrypoint</th>
@@ -27,14 +27,23 @@
       % for c in containers:
         <tr>
           <td><input name="container-id" type="checkbox" value="${ c.container_id }"></td>
-          <td>${ c.short_id }</td>
+          <td>
+            <a href='javascript://'
+              data-placement='right'
+              rel='popover'
+              data-html='true'
+              ## data-trigger='focus'
+              auto-focuse='on'
+              data-original-title='钻进去看看'
+              data-content="<pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }@${ c.nodename } -t 'sudo docker-enter ${ c.short_id }'</code></pre>">${ c.short_id }</a>
+          </td>
           <td>
             <span data-toggle="tooltip" data-placement="top" title="创建于 ${ c.created }">
               ${ c.appname } / ${ c.ident }
             </span>
           </td>
           <td>${ c.sha[:7] }</td>
-          <td>${ c.nodename }</td>
+          <td>${ c.podname }: ${ c.nodename }</td>
           <td>
             % if c.get_ips():
               % for n in c.get_ips():
@@ -69,6 +78,9 @@
   ${caller.body()}
 
   <script>
+
+    $('[rel=popover]').popover();
+
     $('#check-all').change(function(){
       var checked = this.checked;
       $.each($('input[name=container-id]'), function(){
