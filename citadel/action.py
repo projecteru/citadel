@@ -72,10 +72,10 @@ def build_image(repo, sha, uid='', artifact=''):
 
     specs = yaml.load(specs_text)
     appname = specs.get('appname', '')
-    app = App.get_by_name(appname)
-    if not app:
+    if not appname:
         raise ActionError(400, 'repo %s does not have the right appname in app.yaml' % repo)
 
+    app = App.get_by_name(appname)
     uid = uid or app.id
     ms = _peek_grpc(core.build_image(repo, sha, str(uid), artifact))
     q = Queue()

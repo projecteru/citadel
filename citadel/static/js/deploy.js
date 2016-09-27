@@ -70,6 +70,7 @@ $('#add-container-button').click(function(e){
   $.post(url, data, function(r){
     if (r.error !== null) {
       alert(r.error);
+      $('#container-progress').modal('hide');
       return;
     }
     $('#container-progress').modal('hide');
