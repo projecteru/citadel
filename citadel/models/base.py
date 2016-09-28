@@ -2,11 +2,13 @@
 import json
 from datetime import datetime
 
+import sqlalchemy.orm.exc
 import sqlalchemy.types as types
 from flask_sqlalchemy import sqlalchemy as sa
 
 from citadel.ext import db, rds
 from citadel.libs.json import Jsonized
+from citadel.libs.utils import log
 
 
 _missing = object()
@@ -34,8 +36,11 @@ class BaseModelMixin(db.Model, Jsonized):
         return q[start:start + limit]
 
     def delete(self):
-        db.session.delete(self)
-        db.session.commit()
+        try:
+            db.session.delete(self)
+            db.session.commit()
+        except sqlalchemy.orm.exc.ObjectDeletedError:
+            log.warn('Error during deleting: Object %s already deleted', self)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.id == other.id

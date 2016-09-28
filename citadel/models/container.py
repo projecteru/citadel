@@ -200,7 +200,11 @@ class Container(BaseModelMixin, PropsMixin):
         return ['%s:%s' % (ip, port) for ip, port in itertools.product(ips, ports)]
 
     def delete(self):
-        self.destroy_props()
+        try:
+            self.destroy_props()
+        except sqlalchemy.orm.exc.ObjectDeletedError:
+            log.warn('Error during deleting: Object %s already deleted', self)
+            return None
         super(Container, self).delete()
 
     def to_dict(self):
