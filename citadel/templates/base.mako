@@ -108,6 +108,18 @@
 
     ${ self.bottom_script() }
   </body>
+
+  <script>
+    // enable popover
+    $('[rel=popover]').popover();
+    // close popover when click outside the popover
+    $('body').on('click', function (e) {
+    if ($(e.target).data('toggle') !== 'popover' && $(e.target).parents('.popover.in').length === 0) {
+      $('[data-toggle="popover"]').popover('hide');
+    }
+    });
+  </script>
+
 </html>
 
 <%def name="more_css()"></%def>

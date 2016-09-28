@@ -34,7 +34,10 @@
               rel='popover'
               data-html='true'
               data-original-title='钻进去看看'
-              data-content="<pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }@${ c.nodename } -t 'sudo docker-enter ${ c.short_id }'</code></pre>">${ c.short_id }</a>
+              data-content="
+              <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }@${ c.nodename } -t 'sudo docker-enter ${ c.short_id }'</code></pre>">
+              ${ c.short_id }
+            </a>
           </td>
           <td>
             <span data-toggle="tooltip" data-placement="top" title="创建于 ${ c.created }">
@@ -77,15 +80,6 @@
   ${caller.body()}
 
   <script>
-
-    // enable popover
-    $('[rel=popover]').popover();
-    // close popover when click outside the popover
-    $('body').on('click', function (e) {
-    if ($(e.target).data('toggle') !== 'popover' && $(e.target).parents('.popover.in').length === 0) {
-      $('[data-toggle="popover"]').popover('hide');
-    }
-    });
 
     $('#check-all').change(function(){
       var checked = this.checked;

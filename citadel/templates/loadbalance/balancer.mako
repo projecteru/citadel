@@ -22,7 +22,20 @@
       <tbody>
         % for elb in elbs:
           <tr>
-            <td><a href="http://${elb.ip}/__erulb__/upstream" target="_blank">${ elb.ip }</a></td>
+            <td>
+              <a href="javascript://"
+                data-placement='right'
+                data-toggle="popover"
+                rel='popover'
+                data-html='true'
+                data-original-title='钻进去看看'
+                data-content="
+                <a href='http://${elb.ip}/__erulb__/upstream'>upstream</a>
+                <br>
+                <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }@${ elb.container.nodename } -t 'sudo docker-enter ${ elb.container.short_id }'</code></pre>">
+                ${ elb.ip }
+              </a>
+            </td>
             <td><span class="label label-${'success' if elb.is_alive() else 'danger'}">${ elb.container.short_id }</span></td>
             <td>${ elb.container.short_sha }</td>
             <td><a class="btn btn-xs btn-warning" href="#" data-id="${elb.id}" name="delete-balancer"><span class="fui-trash"></span> Remove</a></td>
