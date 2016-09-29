@@ -135,6 +135,7 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, coun
         log.error('repo %s, %s has no image, may not been built yet', repo, sha)
         raise ActionError(400, 'repo %s, %s has no image, may not been built yet' % (repo, sha))
 
+    log.debug('Creating %s:%s container using env %s on pod %s:%s with network %s, cpu %s, memory %s', appname, entrypoint, env, podname, nodename, networks, cpu, memory)
     ms = _peek_grpc(core.create_container(specs_text, appname, image, podname, nodename, entrypoint, cpu, memory, count, networks, env, raw))
     q = Queue()
 
