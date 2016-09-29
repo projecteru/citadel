@@ -35,7 +35,7 @@
               data-html='true'
               data-original-title='钻进去看看'
               data-content="
-              <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }@${ c.nodename } -t 'sudo docker-enter ${ c.short_id }'</code></pre>">
+              <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }@${ c.nodename }.ricebook.link -t 'sudo docker-enter ${ c.short_id }'</code></pre>">
               ${ c.short_id }
             </a>
           </td>
