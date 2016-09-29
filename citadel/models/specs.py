@@ -41,7 +41,7 @@ class Bind(object):
 
     @classmethod
     def from_dict(cls, data):
-        return cls(data['bind'], data['ro'])
+        return cls(data['bind'], data.get('ro', True))
 
 
 class Entrypoint(object):
