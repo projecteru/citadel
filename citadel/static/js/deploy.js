@@ -37,32 +37,24 @@ $('#add-container-button').click(function(e){
   url = url.replace('{releaseId}', releaseId);
 
   if ($('div.active #add-container-form').length) {
-    data.envname = $('div.active #add-container-form select[name=envname]').val() || '';
-    data.podname = $('div.active #add-container-form select[name=pod]').val();
-    data.nodename = $('div.active #add-container-form select[name=node]').val();
-    data.entrypoint = $('div.active #add-container-form select[name=entrypoint]').val();
-    data.count = $('div.active #add-container-form input[name=count]').val() || '1';
-    data.envs = $('div.active #add-container-form input[name=envs]').val();
-    var ns = $('div.active #add-container-form input[name=network]:checked');
-    for (var i=0; i<ns.length; i++) {
-      networks.push($(ns[i]).val());
-    }
-    data.networks = networks;
-    data.raw = $('div.active #add-container-form input[name=raw]:checked').length;
+    var form = $('div.active #add-container-form');
   } else {
-    data.envname = $('#add-container-form select[name=envname]').val() || '';
-    data.podname = $('#add-container-form select[name=pod]').val();
-    data.nodename = $('#add-container-form select[name=node]').val();
-    data.entrypoint = $('#add-container-form select[name=entrypoint]').val();
-    data.count = $('#add-container-form input[name=count]').val() || '1';
-    data.envs = $('#add-container-form input[name=envs]').val();
-    var ns = $('#add-container-form input[name=network]:checked');
-    for (var i=0; i<ns.length; i++) {
-      networks.push($(ns[i]).val());
-    }
-    data.networks = networks;
-    data.raw = $('#add-container-form input[name=raw]:checked').length;
+    var form = $('#add-container-form');
   }
+  data.podname = form.find('select[name=pod]').val();
+  data.nodename = form.find('select[name=node]').val();
+  data.entrypoint = form.find('select[name=entrypoint]').val();
+  data.envname = form.find('select[name=envname]').val() || '';
+  data.count = form.find('input[name=count]').val() || '1';
+  data.cpu = form.find('select[name=cpu]').val() || '0.5';
+  data.memory = form.find('select[name=memory]').val() || '512MB';
+  data.envs = form.find('input[name=envs]').val();
+  var ns = form.find('input[name=network]:checked');
+  for (var i=0; i<ns.length; i++) {
+    networks.push($(ns[i]).val());
+  }
+  data.networks = networks;
+  data.raw = form.find('input[name=raw]:checked').length;
 
   console.log(data);
   var progressBar = $('div.progress-bar');
