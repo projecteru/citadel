@@ -100,7 +100,7 @@ def build_image(repo, sha, uid='', artifact=''):
     return q
 
 
-def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env, raw=False):
+def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False):
     pod = core.get_pod(podname)
     if not pod:
         raise ActionError(400, 'pod %s not exist' % podname)

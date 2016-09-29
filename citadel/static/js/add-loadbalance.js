@@ -33,16 +33,13 @@ $('#add-load-balance-button').click(function(e){
   var url = '/ajax/loadbalance';
   var data = {};
 
-  //url = url.replace('{name}', $('input[name=name]').val()).replace('{sha}', $('input[name=version]').val());
-
   data.releaseid = $('select[name=releaseid]').val();
   data.podname = $('select[name=pod]').val();
   data.nodename = $('select[name=node]').val();
   data.entrypoint = $('select[name=entrypoint]').val();
   data.cpu = $('input[name=cpu]').val() || '1';
   data.comment = $('input[name=comment]').val() || '';
-  data.name = $('input[name=name]').val() || '';
-  data.env = $('input[name=env]').val() || '';
+  data.envname = $('select[name=envname]').val() || '';
 
   console.log(data);
   $.post(url, data, function(r){

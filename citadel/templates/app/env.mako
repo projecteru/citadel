@@ -115,6 +115,7 @@ from operator import itemgetter
   </textarea>
 
   <script>
+
     var env_tmpl = $('#env-line').val();
     var form_tmpl = $('#env-form').val();
 
@@ -134,11 +135,10 @@ from operator import itemgetter
     });
 
     $(document).on('keyup', 'input.key', function(){
-      var value = $(this).val();
+      var value = $(this).val().toUpperCase();
+      $(this).val(value);
       $(this).attr('name', 'key_' + value);
-    }).on('keyup', 'input.value', function(){
-      var key = $(this).parent().parent().find('input.key').val()
-      $(this).attr('name', 'value_' + key);
+      $(this).closest('.form-group').find('input.value').attr('name', 'value_' + value);
     });
 
     $(document).on('click', 'a[name=add-row]', function(e){

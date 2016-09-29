@@ -179,24 +179,18 @@ def create_loadbalance():
         abort(404, 'Release %s not found' % release_id)
 
     entrypoint = request.form['entrypoint']
-    name = request.form['name']
     cpu = request.form.get('cpu', type=float, default=1)
     nodename = request.form.get('nodename', '')
     comment = request.form.get('comment', '')
-    envs = request.form.get('env', '')
+    envname = request.form['envname']
+    env = Environment.get_by_app_and_env(ELB_APP_NAME, envname)
+    name = env.get('ELBNAME', 'unnamed')
 
     if nodename == '_random':
         nodename = None
 
-    extra_env = ['ELBNAME=%s' % name]
-    for env in envs.split(';'):
-        env = env.strip()
-        if not env:
-            continue
-        extra_env.append(env)
-
     try:
-        q = create_container(release.app.git, release.sha, ELB_POD_NAME, nodename, entrypoint, cpu, 0, 1, {}, 'prod', extra_env)
+        q = create_container(release.app.git, release.sha, ELB_POD_NAME, nodename, entrypoint, cpu, 0, 1, {}, envname)
     except ActionError as e:
         msg = 'error when creating ELB: %s', e.message
         log.error(msg)
