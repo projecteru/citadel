@@ -59,16 +59,15 @@
         </div>
       </div>
       <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Environment</label>
-        <div class="col-sm-10">
-          <input class="form-control" type="text" name="env" value="" placeholder="例如a=1;b=2;">
-        </div>
-      </div>
-      <div class="form-group">
         <label class="col-sm-2 control-label" for="">Name</label>
-        <div class="col-sm-10">
-          <input class="form-control" type="text" name="name" value="unnamed">
+        <div class="col-sm-8">
+          <select class="form-control" name="envname">
+            % for env in envs:
+              <option value="${ env.envname }">${ env.envname }</option>
+            % endfor
+          </select>
         </div>
+        <a class="col-sm-1" href="${ url_for('app.app_env', name=appname) }" class="btn-xs" target="_blank"><span class="label label-info">添加预设</span></a>
       </div>
       <div class="form-group">
         <label class="col-sm-2 control-label" for="">Comment</label>

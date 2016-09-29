@@ -5,6 +5,7 @@ from flask_mako import render_template
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
+from citadel.models.env import Environment
 from citadel.models.loadbalance import ELBInstance, ELBRule
 from citadel.rpc import core
 from citadel.views.helper import bp_get_balancer_by_name, need_admin
@@ -23,8 +24,15 @@ def index():
         abort(404, 'ELB app not found: {}'.format(ELB_APP_NAME))
 
     nodes = core.get_pod_nodes(ELB_POD_NAME)
+    envs = Environment.get_by_app(ELB_APP_NAME)
     releases = Release.get_by_app(app.name, limit=20)
-    return render_template('/loadbalance/list.mako', elb_dict=elb_dict, podname=ELB_POD_NAME, releases=releases, nodes=nodes)
+    return render_template('/loadbalance/list.mako',
+                           elb_dict=elb_dict,
+                           podname=ELB_POD_NAME,
+                           appname=ELB_APP_NAME,
+                           releases=releases,
+                           nodes=nodes,
+                           envs=envs)
 
 
 @bp.route('/<name>', methods=['GET'])

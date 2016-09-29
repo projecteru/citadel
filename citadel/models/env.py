@@ -9,10 +9,16 @@ _KEY = 'core-api:app:%s:env'
 
 class Environment(dict):
 
+    """存的时候key一律转成大写，读的时候key不区分大小写"""
+
     def __init__(self, appname, envname, **kwargs):
-        dict.__init__(self, kwargs)
+        validated_kwargs = self.validate(kwargs)
+        super(Environment, self).__init__(validated_kwargs)
         self.appname = appname
         self.envname = envname
+
+    def __getitem__(self, key):
+        return super(Environment, self).__getitem__(key.upper())
 
     @classmethod
     def create(cls, appname, envname, **kwargs):
@@ -37,6 +43,15 @@ class Environment(dict):
 
     def delete(self):
         rds.hdel(_KEY % self.appname, self.envname)
+
+    @staticmethod
+    def validate(dic):
+        """convert all keys to upper and stuff"""
+        new_dic = {}
+        for k, v in dic.iteritems():
+            new_dic[k.upper()] = v
+
+        return new_dic
 
     def to_env_vars(self):
         """外部调用需要的['A=1', 'B=var=1']这种格式"""
