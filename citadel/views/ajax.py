@@ -88,7 +88,6 @@ def deploy_release(release_id):
     networks = {key: '' for key in request.form.getlist('networks[]')}
 
     try:
-        print('========networks', networks)
         q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env, bool(raw))
     except ActionError as e:
         log.error('error when creating container: %s', e.message)
