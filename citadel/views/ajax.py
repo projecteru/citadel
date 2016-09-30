@@ -186,9 +186,6 @@ def create_loadbalance():
     env = Environment.get_by_app_and_env(ELB_APP_NAME, envname)
     name = env.get('ELBNAME', 'unnamed')
 
-    if nodename == '_random':
-        nodename = None
-
     try:
         q = create_container(release.app.git, release.sha, ELB_POD_NAME, nodename, entrypoint, cpu, 0, 1, {}, envname)
     except ActionError as e:

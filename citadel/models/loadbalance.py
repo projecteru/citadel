@@ -180,7 +180,8 @@ class ELBInstance(BaseModelMixin):
 
     @comment.setter
     def comment(self, val):
-        rds.set('citadel:elb:{}:comment'.format(self.name), val)
+        if val:
+            rds.set('citadel:elb:{}:comment'.format(self.name), val)
 
     @classmethod
     def create(cls, addr, container_id, name, comment=''):
