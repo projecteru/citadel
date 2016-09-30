@@ -97,7 +97,7 @@
             <div class="form-group collapse advance-form-group">
               <label class="col-sm-2 control-label" for="">Node</label>
               <div class="col-sm-10">
-                <select class="form-control" name="node" disabled>
+                <select class="form-control" name="node" disabled hidden>
                   <option value="_random">Let Eru choose for me</option>
                 </select>
               </div>

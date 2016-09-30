@@ -1,5 +1,5 @@
 # coding: utf-8
-from flask import g, request, abort, redirect, url_for, jsonify, flash
+from flask import request, abort, redirect, url_for, jsonify, flash
 from flask_mako import render_template
 
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME
@@ -17,13 +17,19 @@ bp = create_page_blueprint('loadbalance', __name__, url_prefix='/loadbalance')
 @bp.route('/')
 def index():
     elb_dict = {}
-    for elb in ELBInstance.get_all(g.start, g.limit):
+    current_instances = ELBInstance.get_all()
+    occupied_pods = set()
+    for elb in current_instances:
+        occupied_pods.add(elb.container.nodename)
         elb_dict.setdefault(elb.name, []).append(elb)
+
     app = App.get_by_name(ELB_APP_NAME)
     if not app:
         abort(404, 'ELB app not found: {}'.format(ELB_APP_NAME))
 
-    nodes = core.get_pod_nodes(ELB_POD_NAME)
+    # elb container is deployed in host network mode, that means one elb
+    # instance per node
+    nodes = [n for n in core.get_pod_nodes(ELB_POD_NAME) if n.name not in occupied_pods]
     envs = Environment.get_by_app(ELB_APP_NAME)
     releases = Release.get_by_app(app.name, limit=20)
     return render_template('/loadbalance/list.mako',

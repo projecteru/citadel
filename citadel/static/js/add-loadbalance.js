@@ -4,18 +4,6 @@ $('#add-modal').click(function(){
   $('#add-load-balance').modal('toggle');
 });
 
-$('select[name=pod]').change(function(){
-  var pod = $(this).val();
-  var hosts = $('select[name=host]');
-  var url = '/ajax/pod/' + pod + '/nodes';
-  $.get(url, {}, function(r){
-    hosts.html('').append($('<option>').val('_random').text('Let Eru choose for me'));
-    $.each(r, function(index, data){
-      hosts.append($('<option>').val(data.name).text(data.name + ' - ' + data.ip));
-    });
-  });
-});
-
 $('select[name=releaseid]').change(function(){
   var releaseId = $(this).val();
   var ep = $('select[name=entrypoint]');

@@ -5,7 +5,7 @@ import tailer
 from flask import abort, g, request, url_for, redirect
 from flask_mako import render_template
 
-from citadel.config import MFS_LOG_FILE_PATH, GITLAB_URL
+from citadel.config import IGNORE_PODS, MFS_LOG_FILE_PATH, GITLAB_URL
 from citadel.libs.utils import make_unicode
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release, AppUserRelation
@@ -45,7 +45,8 @@ def get_release(name, sha):
     containers = Container.get_by_release(app.name, sha, limit=None)
     appspecs = get_file_content(app.project_name, 'app.yaml', release.sha)
     envs = Environment.get_by_app(app.name)
-    pods = core.list_pods()
+    # we won't be using pod redis and elb here
+    pods = [p for p in core.list_pods() if p.name not in IGNORE_PODS]
     nodes = get_nodes_for_first_pod(pods)
     combos = release.combos
     networks = get_networks_for_first_pod(pods)

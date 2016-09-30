@@ -39,6 +39,10 @@ ELB_APP_NAME = getenv('ELB_APP_NAME', default='erulb')
 ELB_BACKEND_NAME_DELIMITER = getenv('ELB_BACKEND_NAME_DELIMITER', default='___')
 ELB_POD_NAME = getenv('ELB_POD_NAME', default='elb')
 
+REDIS_POD_NAME = getenv('REDIS_POD_NAME', default='redis')
+
+# redis pod is managed by cerberus, elb pod is managed by views.loadbalance
+IGNORE_PODS = {REDIS_POD_NAME, ELB_POD_NAME}
 
 try:
     from .local_config import *
