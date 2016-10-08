@@ -49,9 +49,10 @@ def deploy():
     networks = data.get('networks', {})
     envname = data.get('env', '')
     extra_env = data.get('extra_env', [])
+    extra_args = data.get('extra_args', '')
     nodename = data.get('nodename', '')
 
-    q = create_container(repo, sha, podname, nodename, entrypoint, cpu, 0, count, networks, envname, extra_env)
+    q = create_container(repo, sha, podname, nodename, entrypoint, cpu, 0, count, networks, envname, extra_env, extra_args=extra_args)
     return Response(action_stream(q), mimetype='application/json')
 
 

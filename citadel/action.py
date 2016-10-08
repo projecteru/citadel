@@ -100,7 +100,7 @@ def build_image(repo, sha, uid='', artifact=''):
     return q
 
 
-def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False):
+def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args=''):
     pod = core.get_pod(podname)
     if not pod:
         raise ActionError(400, 'pod %s not exist' % podname)
@@ -136,7 +136,7 @@ def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, coun
         raise ActionError(400, 'repo %s, %s has no image, may not been built yet' % (repo, sha))
 
     log.debug('Creating %s:%s container using env %s on pod %s:%s with network %s, cpu %s, memory %s', appname, entrypoint, env, podname, nodename, networks, cpu, memory)
-    ms = _peek_grpc(core.create_container(specs_text, appname, image, podname, nodename, entrypoint, cpu, memory, count, networks, env, raw))
+    ms = _peek_grpc(core.create_container(specs_text, appname, image, podname, nodename, entrypoint, cpu, memory, count, networks, env, raw, extra_args))
     q = Queue()
 
     user_id = _get_current_user_id()

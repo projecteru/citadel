@@ -93,12 +93,12 @@ class CoreRPC(object):
     def add_node(self, nodename, endpoint, podname, cafile, certfile, keyfile, public):
         stub = self._get_stub()
         opts = AddNodeOptions(nodename=nodename,
-                                 endpoint=endpoint,
-                                 podname=podname,
-                                 cafile=cafile,
-                                 certfile=certfile,
-                                 keyfile=keyfile,
-                                 public=public)
+                              endpoint=endpoint,
+                              podname=podname,
+                              cafile=cafile,
+                              certfile=certfile,
+                              keyfile=keyfile,
+                              public=public)
 
         n = stub.AddNode(opts, _UNARY_TIMEOUT)
 
@@ -116,21 +116,21 @@ class CoreRPC(object):
 
     @handle_rpc_exception(default=list)
     def create_container(self, specs, appname, image, podname, nodename, entrypoint,
-                         cpu_quota, memory, count, networks, env, raw):
+                         cpu_quota, memory, count, networks, env, raw, extra_args=''):
         stub = self._get_stub()
         opts = DeployOptions(specs=specs,
-                                appname=appname,
-                                image=image,
-                                podname=podname,
-                                nodename=nodename,
-                                entrypoint=entrypoint,
-                                extra_args='',
-                                cpu_quota=cpu_quota,
-                                count=count,
-                                memory=memory,
-                                networks=networks,
-                                env=env,
-                                raw=raw)
+                             appname=appname,
+                             image=image,
+                             podname=podname,
+                             nodename=nodename,
+                             entrypoint=entrypoint,
+                             extra_args=extra_args,
+                             cpu_quota=cpu_quota,
+                             count=count,
+                             memory=memory,
+                             networks=networks,
+                             env=env,
+                             raw=raw)
 
         for m in stub.CreateContainer(opts, _STREAM_TIMEOUT):
             yield CreateContainerMessage(m)
