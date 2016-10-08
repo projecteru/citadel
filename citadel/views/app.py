@@ -102,7 +102,8 @@ def get_app_log(name, entrypoint, dt):
     bp_get_app(name)
     log_file_path = MFS_LOG_FILE_PATH.format(app_name=name, entrypoint=entrypoint, dt=dt)
     if not os.path.isfile(log_file_path):
-        abort(404, 'app not found')
+        # TODO: redirect to latest log
+        abort(404, 'log not found')
 
     file_length = min([g.limit, 10000])
     log_content = tailer.tail(open(log_file_path), file_length)
