@@ -69,7 +69,7 @@ def deploy_release(release_id):
     podname = request.form['podname']
     entrypoint = request.form['entrypoint']
     count = request.form.get('count', type=int, default=1)
-    cpu = request.form.get('cpu', type=int, default=1)
+    cpu = request.form.get('cpu', type=float, default=1)
     memory = to_number(request.form.get('memory', default='512MB'))
     envname = request.form.get('envname', '')
     envs = request.form.get('envs', '')
