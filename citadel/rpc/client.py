@@ -124,6 +124,7 @@ class CoreRPC(object):
                                 podname=podname,
                                 nodename=nodename,
                                 entrypoint=entrypoint,
+                                extra_args='',
                                 cpu_quota=cpu_quota,
                                 count=count,
                                 memory=memory,
