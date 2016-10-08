@@ -108,7 +108,7 @@ class Release(BaseModelMixin):
         except IntegrityError:
             log.warn('fail to create Release %s %s, duplicate', appname, sha)
             db.session.rollback()
-            return None
+            return cls.get_by_app_and_sha(appname, sha)
 
         # after the instance is created, manage app permission through combo
         # permitted_users
