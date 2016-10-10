@@ -3,10 +3,12 @@
 from __future__ import absolute_import
 
 import re
+from operator import attrgetter
 from base64 import b64decode
 from urlparse import urlparse
 
 from citadel.ext import gitlab
+from citadel.config import GITLAB_API_URL
 from citadel.libs.utils import handle_gitlab_exception
 from citadel.libs.cache import cache, ONE_DAY
 
@@ -44,3 +46,40 @@ def get_commit(project_name, ref):
 @handle_gitlab_exception(default=None)
 def get_project(project_name):
     return gitlab.projects.get(project_name)
+
+
+@handle_gitlab_exception(default=list)
+def get_commit_builds(project_name):
+    p = gitlab.projects.get(project_name)
+    return p.builds.list(per_page=5)
+
+
+@handle_gitlab_exception(default=None)
+def get_project_build(project_name, build_id):
+    p = gitlab.projects.get(project_name)
+    return p.builds.get(build_id)
+
+
+def get_build_artifact(project_name, ref, build_id):
+    """
+    尝试通过build_id和ref去获取一次build的artifact.
+    这次build可能没有, 那么需要找到最近一次有artifact的build.
+    TODO: 现在这里是直接用的commit的build, 实际上不需要commit, 一次build可以拿到pipeline, 通过pipeline找artifact更靠谱.
+    """
+    if not build_id or not build_id.isdigit():
+        return ''
+
+    build_id = int(build_id)
+    project = get_project(project_name)
+    if not project:
+        return ''
+
+    commit = get_commit(project_name, ref)
+    if not commit:
+        return ''
+
+    build = next((b for b in sorted(commit.builds(per_page=5), key=attrgetter('id')) if getattr(b, 'artifacts_file', None) and b.id < build_id), None)
+    if not build:
+        return ''
+
+    return '%s/projects/%s/builds/%s/artifacts' % (GITLAB_API_URL, project.id, build.id)

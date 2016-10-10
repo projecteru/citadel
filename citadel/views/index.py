@@ -67,4 +67,3 @@ def hook():
     except ActionError as e:
         log.error('error when build image: %s', e.message)
     return 'ok'
-
