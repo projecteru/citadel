@@ -61,7 +61,7 @@
       </thead>
       <tbody>
         % for rule in rules:
-          <tr>
+          <tr id="${ rule.domain }">
             <td>${ rule.domain }</td>
             <td><a target="_blank" href="${ url_for('app.get_app', name=rule.appname) }">${ rule.appname }</a></td>
             <td>

@@ -63,6 +63,10 @@ class App(BaseModelMixin):
         containers = Container.get_by_app(self.name, limit=100)
         return list(set([c.podname for c in containers]))
 
+    def get_associated_elb_rules(self):
+        from citadel.models.loadbalance import ELBRule
+        return ELBRule.get_by_app(self.name)
+
     def to_dict(self):
         d = super(App, self).to_dict()
         d.update({

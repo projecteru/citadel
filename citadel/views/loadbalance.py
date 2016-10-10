@@ -14,6 +14,11 @@ from citadel.views.helper import bp_get_balancer_by_name, need_admin
 bp = create_page_blueprint('loadbalance', __name__, url_prefix='/loadbalance')
 
 
+def _cleanse_domain(url):
+    """remove scheme and trailing slash from url"""
+    return url.split('://')[-1].strip('/')
+
+
 @bp.route('/')
 def index():
     elb_dict = {}
@@ -85,7 +90,7 @@ def add_rule(name):
         return render_template('/loadbalance/add_rule.mako', name=name, all_apps=all_apps)
 
     appname = request.form['appname']
-    domain = request.form['domain']
+    domain = _cleanse_domain(request.form['domain'])
     rule_content = request.form['rule']
     rule = ELBRule.create(appname, name, domain, rule_content)
     if not rule:
@@ -101,7 +106,7 @@ def add_general_rule(name):
     entrypoint = request.form['entrypoint']
     podname = request.form['podname']
 
-    domain = request.form['domain']
+    domain = _cleanse_domain(request.form['domain'])
     if not domain:
         abort(400)
 

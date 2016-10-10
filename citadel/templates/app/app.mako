@@ -28,10 +28,16 @@
     </%def>
     <h4>${ app.name }</h4>
     <br>
-    <h5>这里看log</h5>
+    <h5>Log</h5>
     <ul class="list-group">
       % for entry in releases[0].entrypoints.keys():
         <li class="list-group-item"><a target="_blank" href="${ url_for('app.get_app_log', name=app.name, entrypoint=entry, dt=datetime.now()) }?limit=500">${ entry }</a></li>
+      % endfor
+    </ul>
+    <h5>域名</h5>
+    <ul class="list-group">
+      % for rule in app.get_associated_elb_rules():
+        <li class="list-group-item"><a target="_blank" href="${ url_for('loadbalance.elb', name=rule.elbname) }#${ rule.domain }">${ rule.domain }</a></li>
       % endfor
     </ul>
   </%utils:panel>
