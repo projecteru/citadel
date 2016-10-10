@@ -64,7 +64,13 @@
               <span class="label label-warning">删除中...</span>
             % else:
               <span class="label label-${ 'success' if status == 'running' else 'danger' }">
-                ${ u'运行' if status == 'running' else u'挂了' }
+                % if status == 'running':
+                  运行
+                % elif c.info['State']['OOMKilled']:
+                  OOM
+                % else:
+                  挂了
+                % endif
               </span>
             % endif
           </td>
