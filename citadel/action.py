@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import json
 from Queue import Queue, Empty
 from threading import Thread
@@ -13,7 +14,7 @@ from citadel.libs.utils import log, with_appcontext
 from citadel.models.app import App, Release
 from citadel.models.container import Container
 from citadel.models.env import Environment
-from citadel.models.gitlab import get_project_name, get_file_content
+from citadel.models.gitlab import get_project_name, get_file_content, get_build_artifact
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
 from citadel.publish import publisher
@@ -64,7 +65,7 @@ def _peek_grpc(call):
     return ms
 
 
-def build_image(repo, sha, uid='', artifact=''):
+def build_image(repo, sha, uid='', artifact='', gitlab_build_id=''):
     project_name = get_project_name(repo)
     specs_text = get_file_content(project_name, 'app.yaml', sha)
     if not specs_text:
@@ -74,6 +75,10 @@ def build_image(repo, sha, uid='', artifact=''):
     appname = specs.get('appname', '')
     if not appname:
         raise ActionError(400, 'repo %s does not have the right appname in app.yaml' % repo)
+
+    # 尝试通过gitlab_build_id去取最近成功的一次artifact
+    if not artifact:
+        artifact = get_build_artifact(project_name, sha, gitlab_build_id)
 
     app = App.get_by_name(appname)
     uid = uid or app.id

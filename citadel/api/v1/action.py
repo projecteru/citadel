@@ -30,8 +30,9 @@ def build():
     sha = data['sha']
     artifact = data.get('artifact', '')
     uid = data.get('uid', '')
+    gitlab_build_id = data.get('gitlab_build_id', '')
 
-    q = build_image(repo, sha, uid, artifact)
+    q = build_image(repo, sha, uid, artifact, gitlab_build_id)
     return Response(action_stream(q), mimetype='application/json')
 
 
