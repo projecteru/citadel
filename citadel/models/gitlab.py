@@ -48,18 +48,6 @@ def get_project(project_name):
     return gitlab.projects.get(project_name)
 
 
-@handle_gitlab_exception(default=list)
-def get_commit_builds(project_name):
-    p = gitlab.projects.get(project_name)
-    return p.builds.list(per_page=5)
-
-
-@handle_gitlab_exception(default=None)
-def get_project_build(project_name, build_id):
-    p = gitlab.projects.get(project_name)
-    return p.builds.get(build_id)
-
-
 def get_build_artifact(project_name, ref, build_id):
     """
     尝试通过build_id和ref去获取一次build的artifact.
