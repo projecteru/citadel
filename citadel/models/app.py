@@ -270,6 +270,9 @@ class AppUserRelation(BaseModelMixin):
 
     @classmethod
     def user_permitted_to_app(cls, user_id, appname):
+        user = User.get(user_id)
+        if user.privilege:
+            return True
         return bool(cls.query.filter_by(user_id=user_id, appname=appname).first())
 
 

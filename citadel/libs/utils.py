@@ -7,9 +7,10 @@ from functools import wraps, partial
 from etcd import EtcdException
 from flask import session
 from gitlab import GitlabError
+from citadel.config import LOGGER_NAME
 
 
-log = logging.getLogger('citadel')
+log = logging.getLogger(LOGGER_NAME)
 
 
 def with_appcontext(f):
