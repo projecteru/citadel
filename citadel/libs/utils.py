@@ -1,8 +1,10 @@
 # coding:utf-8
+
 import logging
 import re
 import types
 from functools import wraps, partial
+from threading import Thread
 
 from etcd import EtcdException
 from flask import session
@@ -21,6 +23,18 @@ def with_appcontext(f):
         with app.app_context():
             return f(*args, **kwargs)
     return _
+
+
+class ContextThread(Thread):
+    """
+    配置了app的thread, 可以直接执行需要appcontext的函数.
+    需要实现execute方法来执行.
+    """
+    def execute(self):
+        raise NotImplementedError('Need to implement execute method')
+
+    def run(self):
+        return with_appcontext(self.execute)()
 
 
 def handle_exception(exceptions, default=None):

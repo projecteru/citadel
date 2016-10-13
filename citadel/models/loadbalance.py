@@ -58,6 +58,9 @@ class ELBRule(BaseModelMixin):
     sha = db.Column(db.CHAR(64), nullable=True, default='')
     rule = db.Column(JsonType, default={})
 
+    def __str__(self):
+        return '<ELBRule: elbname: %s, domain: %s, appname: %s, sha: %s, rule: %s>' % (self.elbname, self.domain, self.appname, self.sha, self.rule)
+
     @staticmethod
     def validate_rule(rule):
         # TODO
