@@ -12,7 +12,7 @@ from gitlab import GitlabError
 from citadel.config import LOGGER_NAME
 
 
-log = logging.getLogger(LOGGER_NAME)
+logger = logging.getLogger(LOGGER_NAME)
 
 
 def with_appcontext(f):
@@ -44,7 +44,7 @@ def handle_exception(exceptions, default=None):
             try:
                 return f(*args, **kwargs)
             except exceptions as e:
-                log.error('Call %s error: %s', f.func_name, e)
+                logger.error('Call %s error: %s', f.func_name, e)
                 if callable(default):
                     return default()
                 return default

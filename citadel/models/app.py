@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
 
 from citadel.ext import db
-from citadel.libs.utils import log
+from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
 from citadel.models.loadbalance import ELBRule
@@ -96,13 +96,13 @@ class Release(BaseModelMixin):
         appname = app.name
         commit = get_commit(app.project_name, sha)
         if not commit:
-            log.warn('error getting commit %s %s', app, sha)
+            logger.warn('error getting commit %s %s', app, sha)
             return None
 
         specs_text = get_file_content(app.project_name, 'app.yaml', sha)
-        log.debug('got specs_text:\n%s', specs_text)
+        logger.debug('got specs_text:\n%s', specs_text)
         if not specs_text:
-            log.warn('empty specs %s %s', appname, sha)
+            logger.warn('empty specs %s %s', appname, sha)
             return None
 
         try:
@@ -110,7 +110,7 @@ class Release(BaseModelMixin):
             db.session.add(new_release)
             db.session.commit()
         except IntegrityError:
-            log.warn('fail to create Release %s %s, duplicate', appname, sha)
+            logger.warn('fail to create Release %s %s, duplicate', appname, sha)
             db.session.rollback()
             return cls.get_by_app_and_sha(appname, sha)
 
@@ -125,7 +125,7 @@ class Release(BaseModelMixin):
 
         come = all_permitted_users - old_folks
         gone = old_folks - all_permitted_users
-        log.info('Release %s change permission: ADD %s, REMOVE %s', sha, come, gone)
+        logger.info('Release %s change permission: ADD %s, REMOVE %s', sha, come, gone)
         for u in come:
             if not u:
                 continue
@@ -144,9 +144,9 @@ class Release(BaseModelMixin):
                 elbname, domain = elbname_and_domain.split()
                 r = ELBRule.create(elbname, domain, appname, entrypoint=combo.entrypoint, podname=combo.podname)
                 if r:
-                    log.info('Auto create ELBRule %s for app %s', r, appname)
+                    logger.info('Auto create ELBRule %s for app %s', r, appname)
                 else:
-                    log.error('Auto create ELBRule failed: app %s', appname)
+                    logger.error('Auto create ELBRule failed: app %s', appname)
 
         return new_release
 
@@ -213,7 +213,7 @@ class Release(BaseModelMixin):
 
     def update_image(self, image):
         self.image = image
-        log.debug('set image %s for release %s', image, self.sha)
+        logger.debug('set image %s for release %s', image, self.sha)
         db.session.add(self)
         db.session.commit()
 
