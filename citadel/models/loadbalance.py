@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from citadel.config import ELB_BACKEND_NAME_DELIMITER
 from citadel.ext import db, rds
 from citadel.libs.json import Jsonized
-from citadel.libs.utils import log, make_unicode
+from citadel.libs.utils import logger, make_unicode
 from citadel.models.base import BaseModelMixin, JsonType
 from citadel.models.container import Container
 
@@ -85,7 +85,7 @@ class ELBRule(BaseModelMixin):
             return None
 
         if not r.write_rules():
-            log.error('Urite rules to elb failed, no ELB or dead ELB')
+            logger.error('Urite rules to elb failed, no ELB or dead ELB')
             r.delete()
             return None
 
@@ -102,7 +102,7 @@ class ELBRule(BaseModelMixin):
     @staticmethod
     def generate_simple_rule(appname, entrypoint, podname):
         if not all([appname, entrypoint, podname]):
-            log.warn('cannot generate default rule, missing [appname, entrypoint, podname], got %s', [appname, entrypoint, podname])
+            logger.warn('cannot generate default rule, missing [appname, entrypoint, podname], got %s', [appname, entrypoint, podname])
             return None
         backend_name = ELB_BACKEND_NAME_DELIMITER.join([appname, entrypoint, podname])
         rule = {
@@ -152,7 +152,7 @@ class ELBRule(BaseModelMixin):
         domain = self.domain
         for elb in lb_clients:
             if not elb.delete_rule(domain):
-                log.warn('delete rule from ELB instance %s failed', elb.addr)
+                logger.warn('delete rule from ELB instance %s failed', elb.addr)
 
         super(ELBRule, self).delete()
         return True
@@ -212,7 +212,7 @@ class ELBInstance(BaseModelMixin):
             rules.delete()
             return True
         else:
-            log.warn('Remove rule %s from ELB instance %s failed', domains, addr)
+            logger.warn('Remove rule %s from ELB instance %s failed', domains, addr)
             return False
 
     @classmethod
@@ -262,6 +262,9 @@ class LBClient(Jsonized):
         self.analysis_addr = '%s/__erulb__/analysis' % addr
         self.rule_addr = '%s/__erulb__/rule' % addr
 
+    def __str__(self):
+        return '<ELB client: {}>'.format(self.addr)
+
     def __hash__(self):
         return hash((self.__class__, self.addr))
 
@@ -269,12 +272,12 @@ class LBClient(Jsonized):
         try:
             res = requests.request(method, url, **kwargs)
         except (ReadTimeout, ConnectionError):
-            log.critical('Connection problem with ELB instance %s', self.addr)
+            logger.critical('Connection problem with ELB instance %s', self.addr)
             return None
 
         code = res.status_code
         if code not in self.success_codes:
-            log.warn('lb client %s %s, with payload %s, got %s: %s', method, url, kwargs, code, res.text)
+            logger.warn('lb client %s %s, with payload %s, got %s: %s', method, url, kwargs, code, res.text)
         else:
             return res.json()
 
@@ -296,7 +299,9 @@ class LBClient(Jsonized):
 
     def delete_rule(self, domains):
         data = {'domains': domains}
-        return self.delete(self.rule_addr, data)
+        res = self.delete(self.rule_addr, data)
+        logger.debug('Delete rule on ELB %s with payload %s, got %s', self, data, res)
+        return res
 
     def get_domain(self):
         return self.get(self.domain_addr)
@@ -309,7 +314,9 @@ class LBClient(Jsonized):
             # if servers is empty, remove the backend instead
             return self.delete_upstream(backend_name)
         data = {'backend': backend_name, 'servers': servers}
-        return self.put(self.upstream_addr, data)
+        res = self.put(self.upstream_addr, data)
+        logger.debug('Update backend_name %s on ELB %s with payload %s, got %s', backend_name, self, data, res)
+        return res
 
     def delete_upstream(self, backend_name):
         data = {'backend': backend_name}

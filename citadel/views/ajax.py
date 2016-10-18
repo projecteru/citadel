@@ -1,12 +1,11 @@
 # coding: utf-8
 import json
-import logging
 
 from flask import g, request, abort, flash
 
 from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME
-from citadel.libs.utils import to_number, with_appcontext
+from citadel.libs.utils import logger, to_number, with_appcontext
 from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import AppUserRelation, Release, App
 from citadel.models.container import Container
@@ -18,7 +17,6 @@ from citadel.views.helper import bp_get_app, bp_get_balancer
 
 
 bp = create_ajax_blueprint('ajax', __name__, url_prefix='/ajax')
-log = logging.getLogger(__name__)
 
 
 @bp.route('/app/<name>/delete-env', methods=['POST'])
@@ -31,7 +29,7 @@ def delete_app_env(name):
 
     env = Environment.get_by_app_and_env(app.name, envname)
     if env:
-        log.info('Env [%s] for app [%s] deleted', envname, name)
+        logger.info('Env [%s] for app [%s] deleted', envname, name)
         env.delete()
     return DEFAULT_RETURN_VALUE
 
@@ -90,13 +88,13 @@ def deploy_release(release_id):
     try:
         q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env, bool(raw))
     except ActionError as e:
-        log.error('error when creating container: %s', e.message)
+        logger.error('error when creating container: %s', e.message)
         return {'error': e.message}
 
     for line in action_stream(q):
         m = json.loads(line)
         if not m['success']:
-            log.error('error when creating container: %s', m['error'])
+            logger.error('error when creating container: %s', m['error'])
             flash('error when creating container: {}'.format(m['error']))
             continue
 
@@ -125,13 +123,13 @@ def remove_containers():
     try:
         q = remove_container(container_ids)
     except ActionError as e:
-        log.error('error when removing containers: %s', e.message)
+        logger.error('error when removing containers: %s', e.message)
         return {'error': e.message}
 
     for line in action_stream(q):
         m = json.loads(line)
         if not m['success']:
-            log.error('error when deleting container: %s', m['message'])
+            logger.error('error when deleting container: %s', m['message'])
 
     return DEFAULT_RETURN_VALUE
 
@@ -156,7 +154,7 @@ def upgrade_containers():
     for line in action_stream(q):
         m = json.loads(line)
         if not m['success']:
-            log.error('error when upgrading container %s: %s', m['id'], m['error'])
+            logger.error('error when upgrading container %s: %s', m['id'], m['error'])
 
     return DEFAULT_RETURN_VALUE
 
@@ -190,7 +188,7 @@ def create_loadbalance():
         q = create_container(release.app.git, release.sha, ELB_POD_NAME, nodename, entrypoint, cpu, 0, 1, {}, envname)
     except ActionError as e:
         msg = 'error when creating ELB: %s', e.message
-        log.error(msg)
+        logger.error(msg)
         flash(msg)
         return {'error': e.message}
 
@@ -201,7 +199,7 @@ def create_loadbalance():
         for line in action_stream(q):
             m = json.loads(line)
             if not m['success']:
-                log.error('error when creating ELB: %s', m['error'])
+                logger.error('error when creating ELB: %s', m['error'])
                 continue
 
             container = Container.get_by_container_id(m['id'])
@@ -218,7 +216,7 @@ def create_loadbalance():
             yield elb
 
     for elb in _stream_consumer(q):
-        log.info('ELB [%s] created', elb.name)
+        logger.info('ELB [%s] created', elb.name)
     return DEFAULT_RETURN_VALUE
 
 
@@ -241,10 +239,10 @@ def remove_loadbalance(id):
         for line in action_stream(q):
             m = json.loads(line)
             if m['success'] and elb.container_id == m['id']:
-                log.info('ELB [%s] deleted', elb.name)
+                logger.info('ELB [%s] deleted', elb.name)
                 elb.delete()
             else:
-                log.error('ELB [%s] delete error, container [%s]', elb.name, m['id'])
+                logger.error('ELB [%s] delete error, container [%s]', elb.name, m['id'])
 
     return DEFAULT_RETURN_VALUE
 
