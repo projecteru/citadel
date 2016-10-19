@@ -67,6 +67,7 @@ def _peek_grpc(call):
 class BuildThread(ContextThread):
 
     def __init__(self, q, repo, sha, uid, artifact='', gitlab_build_id=''):
+        logger.debug('Initialize BuildThread for %s:%s, uid %s, artifact %s, gitlab_build_id %s', repo, sha, uid, artifact, gitlab_build_id)
         super(BuildThread, self).__init__()
         self.daemon = True
         self.q = q
@@ -95,6 +96,7 @@ class BuildThread(ContextThread):
         self.artifact = artifact
 
     def execute(self):
+        logger.debug('Building in thread, repo %s:%s, uid %s, artifact %s', self.repo, self.sha, self.uid, self.artifact)
         image = ''
         ms = _peek_grpc(core.build_image(self.repo, self.sha, self.uid, self.artifact))
         for m in ms:
