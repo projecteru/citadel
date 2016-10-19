@@ -66,7 +66,7 @@ def _peek_grpc(call):
 
 class BuildThread(ContextThread):
 
-    def __init__(self, q, repo, sha, uid, artifact='', gitlab_build_id=''):
+    def __init__(self, q, repo, sha, uid='', artifact='', gitlab_build_id=''):
         logger.debug('Initialize BuildThread for %s:%s, uid %s, artifact %s, gitlab_build_id %s', repo, sha, uid, artifact, gitlab_build_id)
         super(BuildThread, self).__init__()
         self.daemon = True
@@ -112,15 +112,14 @@ class BuildThread(ContextThread):
 
 def build_image(repo, sha, uid='', artifact='', gitlab_build_id=''):
     q = Queue()
-    t = BuildThread(q, repo, sha, uid, artifact)
+    t = BuildThread(q, repo, sha, uid=uid, artifact=artifact, gitlab_build_id=gitlab_build_id)
     t.start()
     return q
 
 
 class CreateContainerThread(ContextThread):
 
-    def __init__(self, q, repo, sha, podname, nodename, entrypoint, cpu,
-                 memory, count, networks, envname, extra_env=(), raw=False, extra_args=''):
+    def __init__(self, q, repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args=''):
         super(CreateContainerThread, self).__init__()
         self.daemon = True
 
@@ -223,9 +222,7 @@ class CreateContainerThread(ContextThread):
 
 def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args=''):
     q = Queue()
-    t = CreateContainerThread(q, repo, sha, podname, nodename, entrypoint,
-                              cpu, memory, count, networks, envname, extra_env,
-                              raw, extra_args)
+    t = CreateContainerThread(q, repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=raw, extra_args=extra_args)
     t.start()
     return q
 
