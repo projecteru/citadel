@@ -356,10 +356,11 @@ def update_elb_for_containers(containers, action=UpdateELBAction.ADD):
     for r in elb_rules:
         associated_lb_clients = r.get_lb_clients()
         for backend_name in r.rule['backends']:
-            if backend_name in already_dealt_with:
-                continue
             backends = ['server {};'.format(b) for b in get_backends(backend_name, exclude_containers=exclude)]
             for lb in associated_lb_clients:
+                if (backend_name, lb) in already_dealt_with:
+                    continue
                 lb.update_upstream(backend_name, backends)
+                already_dealt_with.add((backend_name, lb))
 
             already_dealt_with.add(backend_name)
