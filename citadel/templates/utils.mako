@@ -16,7 +16,6 @@
         <th>Version</th>
         <th>Location</th>
         <th>Network</th>
-        <th>CPU</th>
         <th>Entrypoint</th>
         <th>Env</th>
         <th>Status</th>
@@ -40,7 +39,11 @@
             </a>
           </td>
           <td>
-            <span data-toggle="tooltip" data-placement="top" title="创建于 ${ c.created }">
+            <span data-toggle="tooltip" data-html="true" data-placement="top" title="
+              <p>Created: ${ c.created }</p>
+              <p>Memory: ${ c.info['HostConfig']['Memory'] / 1024 / 1024 }MB</p>
+              <p>CPU: ${ c.cpu_quota or u'0 (共享)'}</p>
+              ">
               ${ c.appname } / ${ c.ident }
             </span>
           </td>
@@ -55,7 +58,6 @@
               host / none
             % endif
           </td>
-          <td>${ c.cpu_quota or u'0 (共享)'}</td>
           <td>${ c.entrypoint }</td>
           <td>${ c.env }</td>
           <td>
@@ -75,7 +77,7 @@
             % endif
           </td>
           <td>
-            <a name="delete-container" class="btn btn-xs btn-warning" href="#" data-id="${ c.container_id }"><span class="fui-trash"></span> Delete</a>
+            <a name="delete-container" class="btn btn-xs btn-warning" href="#" data-id="${ c.container_id }"><span class="fui-trash"></span></a>
           </td>
         </tr>
       % endfor
