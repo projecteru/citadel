@@ -75,5 +75,5 @@ def add_node(name):
 
     if not all(bundle) and any(bundle):
         abort(400, 'cafile, certfile, keyfile must be either all empty or none empty')
-    
+
     return core.add_node(nodename, endpoint, pod.name, cafile, certfile, keyfile, public)

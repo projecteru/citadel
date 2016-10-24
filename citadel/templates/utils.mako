@@ -150,13 +150,13 @@
       </tr>
     </thead>
     <tbody>
-      % for v in releases:
+      % for release in releases:
         <tr>
-          <td><a href="${ url_for('app.get_release', name=v.name, sha=v.sha) }">${ v.sha[:7] }</a></td>
-          <td>${ v.created }</td>
+          <td><a href="${ url_for('app.release', name=release.name, sha=release.sha) }">${ release.sha[:7] }</a></td>
+          <td>${ release.created }</td>
           <%
             try:
-              commit = project.commits.get(v.sha)
+              commit = project.commits.get(release.sha)
               author = commit.author_name
               message = commit.message
             except:
@@ -169,27 +169,42 @@
             </span>
           </td>
           <td>
-            <a href="${ url_for('app.gitlab_url', name=v.name, sha=v.sha) }" target="_blank">${ v.sha[:7] }</a>
+            <a href="${ url_for('app.gitlab_url', name=release.name, sha=release.sha) }" target="_blank">${ release.sha[:7] }</a>
           </td>
           <td>
-            % if v.image:
-              <a class="btn btn-xs btn-success" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
+            % if release.image:
+              <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
                 <span class="fui-plus"></span> Add Container
               </a>
             % elif g.user.privilege:
-              <a class="btn btn-xs btn-success" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
+              <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
                 <span class="fui-plus"></span> Add Container With Raw Mode
               </a>
             % else:
-              <a class="btn btn-xs btn-success" disabled href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
+              <a class="btn btn-xs btn-success" disabled href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
                 <span class="fui-plus"></span> Add Container
               </a>
             % endif
+            <a id="delete" class="btn btn-xs btn-warning" data-release-id="${ release.short_sha }" data-delete-url="${ url_for('app.release', name=release.name, sha=release.sha) }" }}><span class="fui-trash"></span></a>
           </td>
         </tr>
       % endfor
     </tbody>
   </table>
+  <script>
+    $('a#delete').click(function (){
+      var self = $(this);
+      if (!confirm('确定删除' + self.data('release-id') + '?')) { return; }
+      $.ajax({
+        url: self.data('delete-url'),
+        type: "DELETE",
+        success: function(r) {
+          console.log(r);
+          self.parent().parent().remove();
+      }
+      });
+    });
+  </script>
 </%def>
 
 <%def name="panel(panel_class='info')">

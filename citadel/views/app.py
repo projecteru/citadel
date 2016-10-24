@@ -2,7 +2,7 @@
 import os
 
 import tailer
-from flask import abort, g, request, url_for, redirect
+from flask import g, request, abort, flash, jsonify, url_for, redirect
 from flask_mako import render_template
 
 from citadel.config import IGNORE_PODS, MFS_LOG_FILE_PATH, GITLAB_URL
@@ -35,12 +35,19 @@ def get_app(name):
     return render_template('/app/app.mako', app=app, releases=releases, containers=containers)
 
 
-@bp.route('/<name>/version/<sha>')
-def get_release(name, sha):
+@bp.route('/<name>/version/<sha>', methods=['GET', 'DELETE'])
+def release(name, sha):
     app = bp_get_app(name)
     release = Release.get_by_app_and_sha(app.name, sha)
     if not all([app, release]):
         abort(404, 'App or release not found')
+
+    if request.method == 'DELETE':
+        if AppUserRelation.user_permitted_to_app(g.user.id, name):
+            release.delete()
+            return jsonify({'message': 'OK'})
+        else:
+            flash(u'Don\'t touch me')
 
     containers = Container.get_by_release(app.name, sha, limit=None)
     appspecs = get_file_content(app.project_name, 'app.yaml', release.sha)
