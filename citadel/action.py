@@ -119,7 +119,7 @@ def build_image(repo, sha, uid='', artifact='', gitlab_build_id=''):
 
 class CreateContainerThread(ContextThread):
 
-    def __init__(self, q, repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args=''):
+    def __init__(self, q, repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args='', debug=False):
         super(CreateContainerThread, self).__init__()
         self.daemon = True
 
@@ -173,10 +173,10 @@ class CreateContainerThread(ContextThread):
         self.count = count
         self.networks = networks
         self.envname = envname
-        self.extra_env = extra_env
         self.env = env
         self.raw = raw
         self.extra_args = extra_args
+        self.debug = debug
         self.user_id = _get_current_user_id()
 
     def execute(self):
@@ -185,8 +185,8 @@ class CreateContainerThread(ContextThread):
                                               self.nodename, self.entrypoint,
                                               self.cpu, self.memory,
                                               self.count, self.networks,
-                                              self.env, self.raw,
-                                              self.extra_args))
+                                              self.env, raw=self.raw,
+                                              extra_args=self.extra_args, debug=self.debug))
 
         release = Release.get_by_app_and_sha(self.appname, self.sha)
         if not release:
@@ -220,9 +220,9 @@ class CreateContainerThread(ContextThread):
         self.q.put(_eof)
 
 
-def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args=''):
+def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args='', debug=False):
     q = Queue()
-    t = CreateContainerThread(q, repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=raw, extra_args=extra_args)
+    t = CreateContainerThread(q, repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=raw, extra_args=extra_args, debug=debug)
     t.start()
     return q
 

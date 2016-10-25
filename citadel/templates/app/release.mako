@@ -156,6 +156,12 @@
           % endfor
         </div>
       </div>
+      <div class="form-group collapse advance-form-group">
+        <label class="col-sm-2 control-label" for="">Debug</label>
+        <div class="col-sm-10">
+          <input class="form-control" type="checkbox" name="debug" value="">
+        </div>
+      </div>
       % if g.user.privilege:
         <div class="form-group collapse advance-form-group">
           <label class="col-sm-2 control-label" for="">Raw</label>

@@ -73,12 +73,14 @@ def deploy_release(release_id):
     envs = request.form.get('envs', '')
     nodename = request.form.get('nodename', '')
     raw = request.form.get('raw', type=int, default=0)
+    debug = request.form.get('debug', type=int, default=0)
 
     if raw and not g.user.privilege:
         abort(400, 'Raw deploy only supported for admins')
 
     if nodename == '_random':
         nodename = ''
+
     extra_env = [env.strip() for env in envs.split(';')]
     extra_env = [env for env in extra_env if env]
 
@@ -86,7 +88,7 @@ def deploy_release(release_id):
     networks = {key: '' for key in request.form.getlist('networks[]')}
 
     try:
-        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env, bool(raw))
+        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=bool(raw), debug=bool(debug))
     except ActionError as e:
         logger.error('error when creating container: %s', e.message)
         return {'error': e.message}
