@@ -115,8 +115,9 @@ class CoreRPC(object):
             yield BuildImageMessage(m)
 
     @handle_rpc_exception(default=list)
-    def create_container(self, specs, appname, image, podname, nodename, entrypoint,
-                         cpu_quota, memory, count, networks, env, raw, extra_args=''):
+    def create_container(self, specs, appname, image, podname, nodename,
+                         entrypoint, cpu_quota, memory, count, networks, env,
+                         raw=False, extra_args='', debug=False):
         stub = self._get_stub()
         opts = DeployOptions(specs=specs,
                              appname=appname,
@@ -130,7 +131,8 @@ class CoreRPC(object):
                              memory=memory,
                              networks=networks,
                              env=env,
-                             raw=raw)
+                             raw=raw,
+                             debug=debug)
 
         for m in stub.CreateContainer(opts, _STREAM_TIMEOUT):
             yield CreateContainerMessage(m)

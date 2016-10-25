@@ -55,6 +55,7 @@ $('#add-container-button').click(function(e){
   }
   data.networks = networks;
   data.raw = form.find('input[name=raw]:checked').length;
+  data.debug = form.find('input[name=debug]:checked').length;
 
   console.log(data);
   var progressBar = $('div.progress-bar');
