@@ -22,7 +22,7 @@ $('#add-container-form select[name=pod]').change(function(){
   $.get(get_networks_url, {}, function(r){
     network_checkboxes.html("")
     for (var i=0; i<r.length; i++) {
-      network_checkboxes.append('<label class="checkbox"><input type="checkbox" name="network" value="' + r[i].name + '">' + r[i].name + ' - ' + r[i].subnets + '</label>');
+      network_checkboxes.append('<label class="checkbox"><input type="checkbox" name="network" value="' + r[i].name + '" checked>' + r[i].name + ' - ' + r[i].subnets + '</label>');
     }
   });
 });

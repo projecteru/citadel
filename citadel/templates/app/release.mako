@@ -148,7 +148,7 @@
         <div class="col-sm-10" id="network-checkbox">
           % for network in networks:
             <label class="checkbox" for="">
-              <input type="checkbox" name="network" value="${ network.name }">${ network.name } -
+              <input type="checkbox" name="network" value="${ network.name }" checked>${ network.name } -
               % for cidr in network.subnets:
                 <span class="label label-info">${ cidr }</span>
               % endfor

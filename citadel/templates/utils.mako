@@ -68,7 +68,7 @@
               <span class="label label-${ 'success' if status == 'running' else 'danger' }">
                 % if status == 'running':
                   运行
-                % elif c.info['State']['OOMKilled']:
+                % elif c.info.get('State', {}).get('OOMKilled'):
                   OOM
                 % else:
                   挂了
