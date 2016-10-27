@@ -71,7 +71,7 @@
         <div class="col-sm-10">
           <select name="release" class="form-control">
             % for release in releases:
-              <option value="${release.sha}">${release.short_sha}</option>
+              <option value="${ release.sha }">${ release.short_sha }</option>
             % endfor
           </select>
         </div>

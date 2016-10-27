@@ -61,122 +61,256 @@
       <h3 class="modal-title">Add Container</h3>
     </%def>
 
-    <form id="add-container-form" class="form-horizontal" action="">
-      <div class="form-group collapse advance-form-group">
-        <label class="col-sm-2 control-label" for="">Release</label>
-        <div class="col-sm-10">
-          <input class="form-control" type="text" name="release" value="${release.name} / ${release.short_sha}" data-id="${release.id}" disabled>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Pod</label>
-        <div class="col-sm-10">
-          <select name="pod" class="form-control">
-            % for p in pods:
-              <option value="${ p.name }">${ p.name }</option>
-            % endfor
-          </select>
-        </div>
-      </div>
-      <div class="form-group collapse advance-form-group">
-        <label class="col-sm-2 control-label" for="">Node</label>
-        <div class="col-sm-10">
-          <select class="form-control" name="node">
-            % if len(nodes) > 1:
-              <option value="_random">Let Eru choose for me</option>
-            % endif
-            % for n in nodes:
-              <option value="${ n.name }">${ n.name }</option>
-            % endfor
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Entrypoint</label>
-        <div class="col-sm-10">
-          <select class="form-control" name="entrypoint">
-            % for entry in release.specs.entrypoints.keys():
-              <option value="${ entry }">${ entry }</option>
-            % endfor
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Env</label>
-        <div class="col-sm-10">
-          <select class="form-control" name="envname">
-            % for env in envs:
-              <option value="${ env.envname }">${ env.envname }</option>
-            % endfor
-          </select>
-        </div>
-      </div>
-      <div class="form-group collapse advance-form-group">
-        <label class="col-sm-2 control-label" for="">几个？</label>
-        <div class="col-sm-10">
-          <input class="form-control" type="number" name="count" value="1">
-        </div>
-      </div>
-      <div class="form-group collapse advance-form-group">
-        <label class="col-sm-2 control-label" for="">CPU</label>
-        <div class="col-sm-10">
-          <select class="form-control" name="cpu">
-            % for cpu_value in (0.5, 1, 2, 4, 8):
-              <option value="${ cpu_value }" type="number">${ cpu_value }</option>
-            % endfor
-          </select>
-        </div>
-      </div>
-      <div class="form-group collapse advance-form-group">
-        <label class="col-sm-2 control-label" for="">Memory</label>
-        <div class="col-sm-10">
-          <select class="form-control" name="memory">
-            % for memory_value in ('512MB', '1GB', '2GB', '4GB', '8GB', '16GB'):
-              <option value="${ memory_value }">${ memory_value }</option>
-            % endfor
-          </select>
-        </div>
-      </div>
-      <div class="form-group collapse advance-form-group">
-        <label class="col-sm-2 control-label" for="">Extra Env</label>
-        <div class="col-sm-10">
-          <input class="form-control" type="text" name="envs" value="" placeholder="例如a=1;b=2;">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="col-sm-2 control-label" for="">Network</label>
-        <div class="col-sm-10" id="network-checkbox">
-          % for network in networks:
-            <label class="checkbox" for="">
-              <input type="checkbox" name="network" value="${ network.name }" checked>${ network.name } -
-              % for cidr in network.subnets:
-                <span class="label label-info">${ cidr }</span>
-              % endfor
-            </label>
-          % endfor
-        </div>
-      </div>
-      <div class="form-group collapse advance-form-group">
-        <label class="col-sm-2 control-label" for="">Debug</label>
-        <div class="col-sm-10">
-          <input class="form-control" type="checkbox" name="debug" value="">
-        </div>
-      </div>
-      % if g.user.privilege:
-        <div class="form-group collapse advance-form-group">
-          <label class="col-sm-2 control-label" for="">Raw</label>
-          <div class="col-sm-10">
-            <input class="form-control" type="checkbox" name="raw" value="">
-          </div>
-        </div>
-      % endif
-    </form>
+    % if combos and draw_combos:
 
-    <%def name="footer()">
-      <button class="btn btn-warning pull-left" data-toggle="collapse" data-target=".advance-form-group">老子搞点高级的</button>
-      <button class="btn btn-warning" id="close-modal" data-dismiss="modal"><span class="fui-cross"></span>Close</button>
-      <button class="btn btn-info" id="add-container-button"><span class="fui-plus"></span>Go</button>
-    </%def>
+      <ul class="nav nav-tabs" id="add-container-form">
+
+        <% active_ = {'active': 'active'} %>
+          % for mode, combo in combos.items():
+            % if combo.allow(g.user.name) or g.user.privilege:
+              <li class="${ active_.pop('active', '') }"><a class="btn" data-target="#${ mode }" data-toggle="tab">${ mode }</a></li>
+            % else:
+              <li class="${ active_.pop('active', '') } disabled"><a class="btn" data-target="#${ mode }">${ mode }</a></li>
+            % endif
+          % endfor
+
+        </ul>
+
+        <div class="tab-content">
+          <% active_ = {'active': 'active'} %>
+            % for mode, combo in combos.items():
+              <div class="tab-pane ${ active_.pop('active', '') }" id="${ mode }">
+                <br>
+
+                <form id="add-container-form" class="form-horizontal" action="">
+                  <div class="form-group collapse advance-form-group">
+                    <label class="col-sm-2 control-label" for="">Release</label>
+                    <div class="col-sm-10">
+                      <input class="form-control" type="text" name="release" value="${ release.name } / ${ release.short_sha }" data-id="${ release.id }" disabled>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label" for="">Pod</label>
+                    <div class="col-sm-10">
+                      <select name="pod" class="form-control" disabled>
+                        <option value="${ combo.podname }">${ combo.podname }</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-group collapse advance-form-group">
+                    <label class="col-sm-2 control-label" for="">Node</label>
+                    <div class="col-sm-10">
+                      <select class="form-control" name="node" disabled hidden>
+                        <option value="_random">Let Eru choose for me</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label" for="">Entrypoint</label>
+                    <div class="col-sm-10">
+                      <select class="form-control" name="entrypoint" disabled>
+                        <option value="${ combo.entrypoint }">${ combo.entrypoint }</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label" for="">Env</label>
+                    <div class="col-sm-10">
+                      <select class="form-control" name="envname" disabled>
+                        <option value="${ combo.envname }">${ combo.envname }</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label" for="">几个？</label>
+                    <div class="col-sm-10">
+                      <input class="form-control" type="number" name="count" value="${ combo.count }">
+                    </div>
+                  </div>
+                  <div class="form-group collapse advance-form-group">
+                    <label class="col-sm-2 control-label" for="">CPU</label>
+                    <div class="col-sm-10">
+                      <select class="form-control" name="cpu" disabled>
+                        <option value="${ combo.cpu }" type="number">${ combo.cpu }</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-group collapse advance-form-group">
+                    <label class="col-sm-2 control-label" for="">Memory</label>
+                    <div class="col-sm-10">
+                      <select class="form-control" name="memory" disabled>
+                        <option value="${ combo.memory }">${ combo.memory_str }</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-group collapse advance-form-group">
+                    <label class="col-sm-2 control-label" for="">Extra Env</label>
+                    <div class="col-sm-10">
+                      <input class="form-control" type="text" name="envs" value="${ combo.env_string() }" disabled>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label" for="">Network</label>
+                    <div class="col-sm-10">
+                      % for name in combo.networks:
+                        <label class="checkbox" for="">
+                          <input type="checkbox" name="network" value="${ name }" checked="checked" disabled>${ name }
+                        </label>
+                      % endfor
+                    </div>
+                  </div>
+                  <div class="form-group collapse advance-form-group">
+                    <label class="col-sm-2 control-label" for="">Debug</label>
+                    <div class="col-sm-10">
+                      <input class="form-control" type="checkbox" name="debug" value="">
+                    </div>
+                  </div>
+                  % if g.user.privilege:
+                    <div class="form-group collapse advance-form-group">
+                      <label class="col-sm-2 control-label" for="">Raw</label>
+                      <div class="col-sm-10">
+                        <input class="form-control" type="checkbox" name="raw" value="">
+                      </div>
+                    </div>
+                  % endif
+                </form>
+
+              </div>
+            % endfor
+          </div>
+
+        % else:
+
+          <form id="add-container-form" class="form-horizontal" action="">
+            <div class="form-group collapse advance-form-group">
+              <label class="col-sm-2 control-label" for="">Release</label>
+              <div class="col-sm-10">
+                <input class="form-control" type="text" name="release" value="${ release.name } / ${ release.short_sha }" data-id="${ release.id }" disabled>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-2 control-label" for="">Pod</label>
+              <div class="col-sm-10">
+                <select name="pod" class="form-control">
+                  % for p in pods:
+                    <option value="${ p.name }">${ p.name }</option>
+                  % endfor
+                </select>
+              </div>
+            </div>
+            <div class="form-group collapse advance-form-group">
+              <label class="col-sm-2 control-label" for="">Node</label>
+              <div class="col-sm-10">
+                <select class="form-control" name="node">
+                  % if len(nodes) > 1:
+                    <option value="_random">Let Eru choose for me</option>
+                  % endif
+                  % for n in nodes:
+                    <option value="${ n.name }">${ n.name }</option>
+                  % endfor
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-2 control-label" for="">Entrypoint</label>
+              <div class="col-sm-10">
+                <select class="form-control" name="entrypoint">
+                  % for entry in release.specs.entrypoints.keys():
+                    <option value="${ entry }">${ entry }</option>
+                  % endfor
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-2 control-label" for="">Env</label>
+              <div class="col-sm-10">
+                <select class="form-control" name="envname">
+                  % for env in envs:
+                    <option value="${ env.envname }">${ env.envname }</option>
+                  % endfor
+                </select>
+              </div>
+            </div>
+            <div class="form-group collapse advance-form-group">
+              <label class="col-sm-2 control-label" for="">几个？</label>
+              <div class="col-sm-10">
+                <input class="form-control" type="number" name="count" value="1">
+              </div>
+            </div>
+            <div class="form-group collapse advance-form-group">
+              <label class="col-sm-2 control-label" for="">CPU</label>
+              <div class="col-sm-10">
+                <select class="form-control" name="cpu">
+                  % for cpu_value in (0.5, 1, 2, 4, 8):
+                    <option value="${ cpu_value }" type="number">${ cpu_value }</option>
+                  % endfor
+                </select>
+              </div>
+            </div>
+            <div class="form-group collapse advance-form-group">
+              <label class="col-sm-2 control-label" for="">Memory</label>
+              <div class="col-sm-10">
+                <select class="form-control" name="memory">
+                  % for memory_value in ('512MB', '1GB', '2GB', '4GB', '8GB', '16GB'):
+                    <option value="${ memory_value }">${ memory_value }</option>
+                  % endfor
+                </select>
+              </div>
+            </div>
+            <div class="form-group collapse advance-form-group">
+              <label class="col-sm-2 control-label" for="">Extra Env</label>
+              <div class="col-sm-10">
+                <input class="form-control" type="text" name="envs" value="" placeholder="例如a=1;b=2;">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="col-sm-2 control-label" for="">Network</label>
+              <div class="col-sm-10" id="network-checkbox">
+                % for network in networks:
+                  <label class="checkbox" for="">
+                    <input type="checkbox" name="network" value="${ network.name }" checked>${ network.name } -
+                    % for cidr in network.subnets:
+                      <span class="label label-info">${ cidr }</span>
+                    % endfor
+                  </label>
+                % endfor
+              </div>
+            </div>
+            <div class="form-group collapse advance-form-group">
+              <label class="col-sm-2 control-label" for="">Debug</label>
+              <div class="col-sm-10">
+                <input class="form-control" type="checkbox" name="debug" value="">
+              </div>
+            </div>
+            % if g.user.privilege:
+              <div class="form-group collapse advance-form-group">
+                <label class="col-sm-2 control-label" for="">Raw</label>
+                <div class="col-sm-10">
+                  <input class="form-control" type="checkbox" name="raw" value="">
+                </div>
+              </div>
+            % endif
+          </form>
+
+        % endif
+
+        <%def name="footer()">
+          <button class="btn btn-warning pull-left" data-toggle="collapse" data-target=".advance-form-group">老子搞点高级的</button>
+          % if g.user.privilege and combos:
+            <button class="btn btn-info pull-left" id="toggle-combos">切换部署模式</button>
+            <script>
+              $('#toggle-combos').click(function(){
+              if (window.location.search.includes("draw_combos=0")) {
+                window.location.search = "draw_combos=1"
+              } else {
+                window.location.search = "draw_combos=0"
+              }
+              });
+            </script>
+          % endif
+          <button class="btn btn-warning" id="close-modal" data-dismiss="modal"><span class="fui-cross"></span>Close</button>
+          <button class="btn btn-info" id="add-container-button"><span class="fui-plus"></span>Go</button>
+        </%def>
 
   </%call>
 

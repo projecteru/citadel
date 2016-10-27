@@ -12,7 +12,7 @@ Add Rule
 </%def>
 
 <div class="col-md-8 col-md-offset-2">
-  <form class="form-horizontal" action="${url_for('loadbalance.edit_rule', name=name, domain=domain)}" method="POST">
+  <form class="form-horizontal" action="${ url_for('loadbalance.edit_rule', name=name, domain=domain) }" method="POST">
     <div class="form-group">
       <label class="col-sm-2 control-label" for="">Domain</label>
       <div class="col-sm-10">

@@ -85,7 +85,7 @@
   </table>
 
   <button name="delete-all" class="btn btn-warning pull-right"><span class="fui-trash"></span> Delete Chosen</button>
-  ${caller.body()}
+  ${ caller.body() }
 
   <script>
 
@@ -208,7 +208,7 @@
 </%def>
 
 <%def name="panel(panel_class='info')">
-  <div class="panel panel-${panel_class}">
+  <div class="panel panel-${ panel_class }">
     <div class="panel-heading">
       ${ caller.header() }
     </div>
