@@ -139,6 +139,11 @@ class Container(BaseModelMixin, PropsMixin):
         return self.name.rsplit('_', 2)[-1]
 
     @property
+    def used_mem(self):
+        mem = self.info.get('HostConfig', {}).get('Memory', 0)
+        return mem
+
+    @property
     def short_id(self):
         return self.container_id[:7]
 

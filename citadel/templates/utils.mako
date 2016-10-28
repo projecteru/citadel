@@ -41,7 +41,7 @@
           <td>
             <span data-toggle="tooltip" data-html="true" data-placement="top" title="
               <p>Created: ${ c.created }</p>
-              <p>Memory: ${ 'HostConfig' in c.info and c.info['HostConfig']['Memory'] / 1024 / 1024 }MB</p>
+              <p>Memory: ${ c.used_mem / 1024 / 1024 }MB</p>
               <p>CPU: ${ c.cpu_quota or u'0 (共享)'}</p>
               ">
               ${ c.appname } / ${ c.ident }

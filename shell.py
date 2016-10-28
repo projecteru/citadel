@@ -40,8 +40,9 @@ def pre_imports():
     import citadel.models as module
     from citadel.models import __all__
     from citadel.ext import db, rds, gitlab
+    from citadel.rpc import core
 
-    imports = {'db': db, 'rds': rds, 'gitlab': gitlab}
+    imports = {'db': db, 'rds': rds, 'gitlab': gitlab, 'core': core}
     for name in __all__:
         m = module.__dict__.get(name, None)
         if m:

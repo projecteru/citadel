@@ -65,17 +65,28 @@ class Node(_CoreRPC):
     def memory_total(self):
         """memory total in MB"""
         mem = self.info.get('MemTotal', 0)
-        return mem / 1024 / 1024
+        verbose_mem = mem
+        return verbose_mem
 
     @property
     def total_cpu_count(self):
         return self.info.get('NCPU', 0)
 
     @property
-    def used_cpu_count(self):
+    def containers(self):
         from citadel.models import Container
         containers = Container.get_by_node(self.name, limit=None)
-        return sum([c.cpu_quota for c in containers])
+        return containers
+
+    @property
+    def used_cpu_count(self):
+        return sum([c.cpu_quota for c in self.containers])
+
+    @property
+    def used_mem(self):
+        mem = sum([c.used_mem for c in self.containers])
+        verbose_mem = mem
+        return verbose_mem
 
     @property
     def cpu_count(self):

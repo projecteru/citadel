@@ -19,10 +19,14 @@
         <tr>
           <th>Name</th>
           <th>OS</th>
+
           <th>CPU(total)</th>
           <th>CPU(used)</th>
           <th>CPU(remain)</th>
-          <th>Memory</th>
+
+          <th>Memory(total)</th>
+          <th>Memory(used)</th>
+
           <th>IP</th>
         </tr>
       </thead>
@@ -31,10 +35,14 @@
           <tr>
             <td><a href="${ url_for('admin.get_node_containers', podname=pod.name, nodename=node.name) }">${ node.name }</a></td>
             <td>${ node.info.get('OperatingSystem', 'unknown') }</td>
+
             <td>${ node.total_cpu_count }</td>
             <td>${ node.used_cpu_count }</td>
             <td>${ node.cpu_count }</td>
-            <td>${ node.memory_total } MB</td>
+
+            <td>${ node.memory_total / 1024 / 1024 } MB</td>
+            <td>${ node.used_mem / 1024 / 1024 } MB</td>
+
             <td>${ node.ip }</td>
           </tr>
         % endfor
