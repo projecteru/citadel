@@ -126,7 +126,9 @@
         <div class="form-group">
           <label class="col-sm-2 control-label" for="">Domain</label>
           <div class="col-sm-10">
-            <input class="form-control" type="text" name="domain">
+            <span data-toggle="tooltip" data-placement="top" title="带不带http://都可以的，我会帮你清理">
+              <input class="form-control" type="text" name="domain">
+            </span>
           </div>
         </div>
         <div class="form-group">
@@ -152,7 +154,9 @@
         <div class="form-group">
           <label class="col-sm-2 control-label" for="">Domain</label>
           <div class="col-sm-10">
-            <input class="form-control" type="text" name="domain">
+            <span data-toggle="tooltip" data-placement="top" title="带不带http://都可以的，我会帮你清理">
+              <input class="form-control" type="text" name="domain">
+            </span>
           </div>
         </div>
         <div class="form-group">
@@ -174,6 +178,11 @@
 </%block>
 
 <%def name="bottom_script()">
+  <script>
+    $(function(){
+      $('[data-toggle="tooltip"]').tooltip();
+    });
+  </script>
   <script src="/citadel/static/js/balancer.js" type="text/javascript"></script>
   <script src="/citadel/static/js/add-loadbalance.js" type="text/javascript"></script>
 </%def>
