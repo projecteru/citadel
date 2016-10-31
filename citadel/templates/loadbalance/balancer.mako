@@ -16,7 +16,7 @@
           <th>IP</th>
           <th>ContainerID</th>
           <th>Version</th>
-          <th>Operation</th>
+          <th>Operations</th>
         </tr>
       </thead>
       <tbody>
@@ -62,7 +62,7 @@
       <tbody>
         % for rule in rules:
           <tr id="${ rule.domain }">
-            <td>${ rule.domain }</td>
+            <td><a href="http://${ rule.domain }" target="_blank">${ rule.domain }</a></td>
             <td><a target="_blank" href="${ url_for('app.get_app', name=rule.appname) }">${ rule.appname }</a></td>
             <td>
               <a class="btn btn-xs btn-info" href="${ url_for('loadbalance.rule', name=name, domain=rule.domain) }" name="get-rule">View</a>

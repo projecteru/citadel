@@ -14,7 +14,7 @@
           <th>Name</th>
           <th>Git</th>
           <th>Update</th>
-          <th>Operation</th>
+          <th>Operations</th>
         </tr>
       </thead>
       <tbody>

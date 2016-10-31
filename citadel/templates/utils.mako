@@ -19,7 +19,7 @@
         <th>Entrypoint</th>
         <th>Env</th>
         <th>Status</th>
-        <th>Operation</th>
+        <th>Operations</th>
       </tr>
     </thead>
     <tbody>
@@ -146,7 +146,7 @@
         <th>Created</th>
         <th>Author</th>
         <th>GitLab Link</th>
-        <th>Operation</th>
+        <th>Operations</th>
       </tr>
     </thead>
     <tbody>
