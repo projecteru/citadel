@@ -90,14 +90,14 @@ def deploy_release(release_id):
     try:
         q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=bool(raw), debug=bool(debug))
     except ActionError as e:
-        logger.error('error when creating container: %s', e.message)
-        return {'error': e.message}
+        logger.error('Error when creating container: code %s, message %s, details %s', e.code, e.message, e.details)
+        return {'error': e.message}, 500
 
     for line in action_stream(q):
         m = json.loads(line)
         if not m['success']:
-            logger.error('error when creating container: %s', m['error'])
-            flash('error when creating container: {}'.format(m['error']))
+            logger.error('Error when creating container: %s', m['error'])
+            flash('Error when creating container: {}'.format(m['error']))
             continue
 
     return DEFAULT_RETURN_VALUE
