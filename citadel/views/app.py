@@ -64,10 +64,11 @@ def release(name, sha):
     if combos and not draw_combos and g.user.privilege:
         draw_combos = False
 
-    return render_template('/app/release.mako', app=app, release=release, envs=envs,
-                           appspecs=appspecs, containers=containers,
-                           networks=networks, nodes=nodes, pods=pods,
-                           combos=combos, draw_combos=draw_combos)
+    return render_template('/app/release.mako', app=app, release=release,
+                           envs=envs, appspecs=make_unicode(appspecs),
+                           containers=containers, networks=networks,
+                           nodes=nodes, pods=pods, combos=combos,
+                           draw_combos=draw_combos)
 
 
 @bp.route('/<name>/env', methods=['GET', 'POST'])
