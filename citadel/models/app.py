@@ -53,6 +53,11 @@ class App(BaseModelMixin):
     def project_name(self):
         return get_project_name(self.git)
 
+    def delete(self):
+        relations = AppUserRelation.query.filter_by(appname=self.name)
+        relations.delete()
+        return super(App, self).delete()
+
     def get_online_entrypoints(self):
         from .container import Container
         containers = Container.get_by_app(self.name, limit=100)
