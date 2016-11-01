@@ -2,21 +2,23 @@
 """
 run use citadel/bin/run-etcd-watcher
 """
-import time
 import json
 import logging
-from thread import get_ident
-from threading import Thread
+import time
 from Queue import Queue
 from optparse import OptionParser
+from thread import get_ident
+from threading import Thread
 
 from etcd import EtcdWatchTimedOut, EtcdConnectionFailed
 
+from citadel.action import remove_container
+from citadel.config import ETCD_URL
 from citadel.ext import etcd
-from citadel.publish import publisher
+from citadel.libs.utils import with_appcontext
 from citadel.models import Container
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
-from citadel.libs.utils import with_appcontext
+from citadel.publish import publisher
 
 
 logging.getLogger('requests').setLevel(logging.CRITICAL)
@@ -63,6 +65,8 @@ def deal(key, data):
             logger.info('[%s, %s, %s] REMOVE [%s]', container.appname, container.podname, container.entrypoint, container_id)
             publisher.remove_container(container)
             update_elb_for_containers(container, UpdateELBAction.REMOVE)
+            if container.info['State']['ExitCode'] == 0:
+                remove_container([container.container_id])
 
         publisher.publish_app(appname)
     finally:
@@ -70,7 +74,7 @@ def deal(key, data):
 
 
 def producer(etcd_path):
-    logger.info('Start watching %s...', etcd_path)
+    logger.info('Start watching etcd at %s, path %s', ETCD_URL, etcd_path)
     while not _quit:
         try:
             resp = etcd.watch(etcd_path, recursive=True, timeout=0)
