@@ -19,14 +19,14 @@
       <tbody>
         % for user in users:
           <tr>
-            <td>${user.id}</td>
-            <td>${user.realname}</td>
+            <td>${ user.id }</td>
+            <td>${ user.realname }</td>
           </tr>
         % endfor
       </tbody>
     </table>
   </%call>
 
-  ${utils.paginator(g.start, g.limit)}
+  ${ utils.paginator(g.start, g.limit) }
 
 </%block>

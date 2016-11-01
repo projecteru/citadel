@@ -16,11 +16,10 @@
         <th>Version</th>
         <th>Location</th>
         <th>Network</th>
-        <th>CPU</th>
         <th>Entrypoint</th>
         <th>Env</th>
         <th>Status</th>
-        <th>Operation</th>
+        <th>Operations</th>
       </tr>
     </thead>
     <tbody>
@@ -40,7 +39,11 @@
             </a>
           </td>
           <td>
-            <span data-toggle="tooltip" data-placement="top" title="创建于 ${ c.created }">
+            <span data-toggle="tooltip" data-html="true" data-placement="top" title="
+              <p>Created: ${ c.created }</p>
+              <p>Memory: ${ c.used_mem / 1024 / 1024 }MB</p>
+              <p>CPU: ${ c.cpu_quota or u'0 (共享)'}</p>
+              ">
               ${ c.appname } / ${ c.ident }
             </span>
           </td>
@@ -55,7 +58,6 @@
               host / none
             % endif
           </td>
-          <td>${ c.cpu_quota or u'0 (共享)'}</td>
           <td>${ c.entrypoint }</td>
           <td>${ c.env }</td>
           <td>
@@ -66,7 +68,7 @@
               <span class="label label-${ 'success' if status == 'running' else 'danger' }">
                 % if status == 'running':
                   运行
-                % elif c.info['State']['OOMKilled']:
+                % elif c.info.get('State', {}).get('OOMKilled'):
                   OOM
                 % else:
                   挂了
@@ -75,7 +77,7 @@
             % endif
           </td>
           <td>
-            <a name="delete-container" class="btn btn-xs btn-warning" href="#" data-id="${ c.container_id }"><span class="fui-trash"></span> Delete</a>
+            <a name="delete-container" class="btn btn-xs btn-warning" href="#" data-id="${ c.container_id }"><span class="fui-trash"></span></a>
           </td>
         </tr>
       % endfor
@@ -83,7 +85,7 @@
   </table>
 
   <button name="delete-all" class="btn btn-warning pull-right"><span class="fui-trash"></span> Delete Chosen</button>
-  ${caller.body()}
+  ${ caller.body() }
 
   <script>
 
@@ -144,17 +146,17 @@
         <th>Created</th>
         <th>Author</th>
         <th>GitLab Link</th>
-        <th>Operation</th>
+        <th>Operations</th>
       </tr>
     </thead>
     <tbody>
-      % for v in releases:
+      % for release in releases:
         <tr>
-          <td><a href="${ url_for('app.get_release', name=v.name, sha=v.sha) }">${ v.sha[:7] }</a></td>
-          <td>${ v.created }</td>
+          <td><a href="${ url_for('app.release', name=release.name, sha=release.sha) }">${ release.sha[:7] }</a></td>
+          <td>${ release.created }</td>
           <%
             try:
-              commit = project.commits.get(v.sha)
+              commit = project.commits.get(release.sha)
               author = commit.author_name
               message = commit.message
             except:
@@ -167,31 +169,46 @@
             </span>
           </td>
           <td>
-            <a href="${ url_for('app.gitlab_url', name=v.name, sha=v.sha) }" target="_blank">${ v.sha[:7] }</a>
+            <a href="${ url_for('app.gitlab_url', name=release.name, sha=release.sha) }" target="_blank">${ release.sha[:7] }</a>
           </td>
           <td>
-            % if v.image:
-              <a class="btn btn-xs btn-success" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
+            % if release.image:
+              <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
                 <span class="fui-plus"></span> Add Container
               </a>
             % elif g.user.privilege:
-              <a class="btn btn-xs btn-success" href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
+              <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
                 <span class="fui-plus"></span> Add Container With Raw Mode
               </a>
             % else:
-              <a class="btn btn-xs btn-success" disabled href="${ url_for('app.get_release', name=v.name, sha=v.sha) }#add">
+              <a class="btn btn-xs btn-success" disabled href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
                 <span class="fui-plus"></span> Add Container
               </a>
             % endif
+            <a id="delete" class="btn btn-xs btn-warning" data-release-id="${ release.short_sha }" data-delete-url="${ url_for('app.release', name=release.name, sha=release.sha) }" }}><span class="fui-trash"></span></a>
           </td>
         </tr>
       % endfor
     </tbody>
   </table>
+  <script>
+    $('a#delete').click(function (){
+      var self = $(this);
+      if (!confirm('确定删除' + self.data('release-id') + '?')) { return; }
+      $.ajax({
+        url: self.data('delete-url'),
+        type: "DELETE",
+        success: function(r) {
+          console.log(r);
+          self.parent().parent().remove();
+      }
+      });
+    });
+  </script>
 </%def>
 
 <%def name="panel(panel_class='info')">
-  <div class="panel panel-${panel_class}">
+  <div class="panel panel-${ panel_class }">
     <div class="panel-heading">
       ${ caller.header() }
     </div>

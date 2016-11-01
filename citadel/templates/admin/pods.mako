@@ -18,7 +18,7 @@
       <tbody>
         % for pod in pods:
           <tr>
-            <td><a href="${url_for('admin.get_pod_nodes', name=pod.name)}">${ pod.name }</a></td>
+            <td><a href="${ url_for('admin.get_pod_nodes', name=pod.name) }">${ pod.name }</a></td>
             <td>${ pod.desc }</td>
           </tr>
         % endfor

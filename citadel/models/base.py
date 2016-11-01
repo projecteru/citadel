@@ -8,7 +8,7 @@ from flask_sqlalchemy import sqlalchemy as sa
 
 from citadel.ext import db, rds
 from citadel.libs.json import Jsonized
-from citadel.libs.utils import log
+from citadel.libs.utils import logger
 
 
 _missing = object()
@@ -40,7 +40,7 @@ class BaseModelMixin(db.Model, Jsonized):
             db.session.delete(self)
             db.session.commit()
         except sqlalchemy.orm.exc.ObjectDeletedError:
-            log.warn('Error during deleting: Object %s already deleted', self)
+            logger.warn('Error during deleting: Object %s already deleted', self)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.id == other.id

@@ -1,13 +1,15 @@
 # coding: utf-8
 
-import json
 import itertools
+import json
+
 from sqlalchemy.exc import IntegrityError
 
 from citadel.ext import db
-from citadel.rpc import core
+from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
 from citadel.network.plugin import get_ips_by_container
+from citadel.rpc import core
 
 
 class Container(BaseModelMixin, PropsMixin):
@@ -137,6 +139,11 @@ class Container(BaseModelMixin, PropsMixin):
         return self.name.rsplit('_', 2)[-1]
 
     @property
+    def used_mem(self):
+        mem = self.info.get('HostConfig', {}).get('Memory', 0)
+        return mem
+
+    @property
     def short_id(self):
         return self.container_id[:7]
 
@@ -203,7 +210,7 @@ class Container(BaseModelMixin, PropsMixin):
         try:
             self.destroy_props()
         except sqlalchemy.orm.exc.ObjectDeletedError:
-            log.warn('Error during deleting: Object %s already deleted', self)
+            logger.warn('Error during deleting: Object %s already deleted', self)
             return None
         super(Container, self).delete()
 

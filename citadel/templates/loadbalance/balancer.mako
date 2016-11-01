@@ -16,7 +16,7 @@
           <th>IP</th>
           <th>ContainerID</th>
           <th>Version</th>
-          <th>Operation</th>
+          <th>Operations</th>
         </tr>
       </thead>
       <tbody>
@@ -30,8 +30,8 @@
                 data-html='true'
                 data-original-title='钻进去看看'
                 data-content="
-                <a href='http://${elb.ip}/__erulb__/upstream' target='_blank'><span class='label label-info'>upstream</span></a>
-                <a href='http://${elb.ip}/__erulb__/rule' target='_blank'><span class='label label-info'>rule</span></a>
+                <a href='http://${ elb.ip }/__erulb__/upstream' target='_blank'><span class='label label-info'>upstream</span></a>
+                <a href='http://${ elb.ip }/__erulb__/rule' target='_blank'><span class='label label-info'>rule</span></a>
                 <br> <br>
                 <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }@${ elb.container.nodename } -t 'sudo docker-enter ${ elb.container.short_id }'</code></pre>">
                 ${ elb.ip }
@@ -39,7 +39,7 @@
             </td>
             <td><span class="label label-${'success' if elb.is_alive() else 'danger'}">${ elb.container.short_id }</span></td>
             <td>${ elb.container.short_sha }</td>
-            <td><a class="btn btn-xs btn-warning" href="#" data-id="${elb.id}" name="delete-balancer"><span class="fui-trash"></span> Remove</a></td>
+            <td><a class="btn btn-xs btn-warning" href="#" data-id="${ elb.id }" name="delete-balancer"><span class="fui-trash"></span> Remove</a></td>
           </tr>
         % endfor
       </tbody>
@@ -62,7 +62,7 @@
       <tbody>
         % for rule in rules:
           <tr id="${ rule.domain }">
-            <td>${ rule.domain }</td>
+            <td><a href="http://${ rule.domain }" target="_blank">${ rule.domain }</a></td>
             <td><a target="_blank" href="${ url_for('app.get_app', name=rule.appname) }">${ rule.appname }</a></td>
             <td>
               <a class="btn btn-xs btn-info" href="${ url_for('loadbalance.rule', name=name, domain=rule.domain) }" name="get-rule">View</a>
@@ -126,7 +126,9 @@
         <div class="form-group">
           <label class="col-sm-2 control-label" for="">Domain</label>
           <div class="col-sm-10">
-            <input class="form-control" type="text" name="domain">
+            <span data-toggle="tooltip" data-placement="top" title="带不带http://都可以的，我会帮你清理">
+              <input class="form-control" type="text" name="domain">
+            </span>
           </div>
         </div>
         <div class="form-group">
@@ -138,7 +140,7 @@
     </div>
 
     <div class="col-md-8 col-md-offset-2 tab-pane" id="add-rule">
-      <form class="form-horizontal" action="${url_for('loadbalance.add_rule', name=name)}" method="POST">
+      <form class="form-horizontal" action="${ url_for('loadbalance.add_rule', name=name) }" method="POST">
         <div class="form-group">
           <label class="col-sm-2 control-label" for="">App Name</label>
           <div class="col-sm-10">
@@ -152,7 +154,9 @@
         <div class="form-group">
           <label class="col-sm-2 control-label" for="">Domain</label>
           <div class="col-sm-10">
-            <input class="form-control" type="text" name="domain">
+            <span data-toggle="tooltip" data-placement="top" title="带不带http://都可以的，我会帮你清理">
+              <input class="form-control" type="text" name="domain">
+            </span>
           </div>
         </div>
         <div class="form-group">
@@ -174,6 +178,11 @@
 </%block>
 
 <%def name="bottom_script()">
+  <script>
+    $(function(){
+      $('[data-toggle="tooltip"]').tooltip();
+    });
+  </script>
   <script src="/citadel/static/js/balancer.js" type="text/javascript"></script>
   <script src="/citadel/static/js/add-loadbalance.js" type="text/javascript"></script>
 </%def>

@@ -1,15 +1,15 @@
 # coding: utf-8
 
 import json
+
 from flask import jsonify, request, Response
 
-from citadel.libs.view import create_api_blueprint
-from citadel.libs.datastructure import AbortDict
-from citadel.libs.agent import EruAgentError, EruAgentClient
-
-from citadel.rpc import core
 from citadel.action import (build_image, create_container, remove_container,
-        upgrade_container, action_stream, ActionError)
+                            upgrade_container, action_stream, ActionError)
+from citadel.libs.agent import EruAgentError, EruAgentClient
+from citadel.libs.datastructure import AbortDict
+from citadel.libs.view import create_api_blueprint
+from citadel.rpc import core
 
 
 # 把action都挂在/api/:version/下, 不再加前缀
@@ -53,8 +53,9 @@ def deploy():
     extra_args = data.get('extra_args', '')
     nodename = data.get('nodename', '')
     raw = bool(data.get('raw', ''))
+    debug = data.get('debug', False)
 
-    q = create_container(repo, sha, podname, nodename, entrypoint, cpu, 0, count, networks, envname, extra_env, raw=raw, extra_args=extra_args)
+    q = create_container(repo, sha, podname, nodename, entrypoint, cpu, 0, count, networks, envname, extra_env, raw=raw, extra_args=extra_args, debug=debug)
     return Response(action_stream(q), mimetype='application/json')
 
 

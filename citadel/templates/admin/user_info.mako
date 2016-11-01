@@ -14,7 +14,7 @@
           <th>Name</th>
           <th>Git</th>
           <th>Update</th>
-          <th>Operation</th>
+          <th>Operations</th>
         </tr>
       </thead>
       <tbody>
@@ -53,6 +53,7 @@
       </div>
     </form>
   </div>
+
 </%block>
 
 <%def name="bottom_script()">

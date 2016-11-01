@@ -2,7 +2,7 @@
 
 <%block name="main">
   <div class="center">
-    ${self.error_content()}
+    ${ self.error_content() }
   </div>
 </%block>
 

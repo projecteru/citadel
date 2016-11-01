@@ -9,7 +9,7 @@ from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 
 from citadel.libs.json import JSONEncoder
-from citadel.libs.utils import log, ContextThread
+from citadel.libs.utils import logger, ContextThread
 from citadel.models.app import App, Release
 from citadel.models.container import Container
 from citadel.models.env import Environment
@@ -66,7 +66,8 @@ def _peek_grpc(call):
 
 class BuildThread(ContextThread):
 
-    def __init__(self, q, repo, sha, uid, artifact='', gitlab_build_id=''):
+    def __init__(self, q, repo, sha, uid='', artifact='', gitlab_build_id=''):
+        logger.debug('Initialize BuildThread for %s:%s, uid %s, artifact %s, gitlab_build_id %s', repo, sha, uid, artifact, gitlab_build_id)
         super(BuildThread, self).__init__()
         self.daemon = True
         self.q = q
@@ -95,6 +96,7 @@ class BuildThread(ContextThread):
         self.artifact = artifact
 
     def execute(self):
+        logger.debug('Building in thread, repo %s:%s, uid %s, artifact %s', self.repo, self.sha, self.uid, self.artifact)
         image = ''
         ms = _peek_grpc(core.build_image(self.repo, self.sha, self.uid, self.artifact))
         for m in ms:
@@ -110,15 +112,14 @@ class BuildThread(ContextThread):
 
 def build_image(repo, sha, uid='', artifact='', gitlab_build_id=''):
     q = Queue()
-    t = BuildThread(q, repo, sha, uid, artifact)
+    t = BuildThread(q, repo, sha, uid=uid, artifact=artifact, gitlab_build_id=gitlab_build_id)
     t.start()
     return q
 
 
 class CreateContainerThread(ContextThread):
 
-    def __init__(self, q, repo, sha, podname, nodename, entrypoint, cpu,
-                 memory, count, networks, envname, extra_env=(), raw=False, extra_args=''):
+    def __init__(self, q, repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args='', debug=False):
         super(CreateContainerThread, self).__init__()
         self.daemon = True
 
@@ -147,7 +148,7 @@ class CreateContainerThread(ContextThread):
         if raw:
             image = specs.get('base', '')
         if not image:
-            log.error('repo %s, %s has no image, may not been built yet', repo, sha)
+            logger.error('repo %s, %s has no image, may not been built yet', repo, sha)
             raise ActionError(400, 'repo %s, %s has no image, may not been built yet' % (repo, sha))
 
         # 找不到对应env就算了
@@ -156,8 +157,7 @@ class CreateContainerThread(ContextThread):
         env = env and env.to_env_vars() or []
         env.extend(extra_env)
 
-        log.debug('Creating %s:%s container using env %s on pod %s:%s with network %s, cpu %s, memory %s',
-                  appname, entrypoint, env, podname, nodename, networks, cpu, memory)
+        logger.debug('Creating %s:%s container using env %s on pod %s:%s with network %s, cpu %s, memory %s', appname, entrypoint, env, podname, nodename, networks, cpu, memory)
 
         self.q = q
         self.specs_text = specs_text
@@ -173,16 +173,20 @@ class CreateContainerThread(ContextThread):
         self.count = count
         self.networks = networks
         self.envname = envname
-        self.extra_env = extra_env
         self.env = env
         self.raw = raw
         self.extra_args = extra_args
+        self.debug = debug
         self.user_id = _get_current_user_id()
 
     def execute(self):
         ms = _peek_grpc(core.create_container(self.specs_text, self.appname,
-            self.image, self.podname, self.nodename, self.entrypoint, self.cpu,
-            self.memory, self.count, self.networks, self.env, self.raw, self.extra_args))
+                                              self.image, self.podname,
+                                              self.nodename, self.entrypoint,
+                                              self.cpu, self.memory,
+                                              self.count, self.networks,
+                                              self.env, raw=self.raw,
+                                              extra_args=self.extra_args, debug=self.debug))
 
         release = Release.get_by_app_and_sha(self.appname, self.sha)
         if not release:
@@ -195,7 +199,7 @@ class CreateContainerThread(ContextThread):
                 container = Container.create(release.app.name, release.sha, m.id,
                                              self.entrypoint, self.envname, self.cpu, m.podname, m.nodename)
                 if not container:
-                    log.error('Create [%s] created failed', m.id)
+                    logger.error('Create [%s] created failed', m.id)
                     continue
 
                 # 记录oplog, cpu这里需要处理下, 因为返回的消息里也有这个值
@@ -206,7 +210,7 @@ class CreateContainerThread(ContextThread):
 
                 containers.append(container)
                 publisher.add_container(container)
-                log.info('Container [%s] created', m.id)
+                logger.info('Container [%s] created', m.id)
             # 这里的顺序一定要注意
             # 必须在创建容器完成之后再把消息丢入队列
             # 否则调用者可能会碰到拿到了消息但是没有容器的状况.
@@ -216,11 +220,9 @@ class CreateContainerThread(ContextThread):
         self.q.put(_eof)
 
 
-def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args=''):
+def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args='', debug=False):
     q = Queue()
-    t = CreateContainerThread(q, repo, sha, podname, nodename, entrypoint,
-                              cpu, memory, count, networks, envname, extra_env,
-                              raw, extra_args)
+    t = CreateContainerThread(q, repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=raw, extra_args=extra_args, debug=debug)
     t.start()
     return q
 
@@ -250,16 +252,16 @@ class RemoveContainerThread(ContextThread):
         for m in ms:
             container = Container.get_by_container_id(m.id)
             if not container:
-                log.info('Container [%s] not found when deleting', m.id)
+                logger.info('Container [%s] not found when deleting', m.id)
                 continue
 
             if m.success:
                 # 记录oplog
                 op_content = {'container_id': m.id}
                 OPLog.create(self.user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
-                log.info('Container [%s] deleted', m.id)
+                logger.info('Container [%s] deleted', m.id)
             else:
-                log.info('Container [%s] error, but still deleted', m.id)
+                logger.info('Container [%s] error, but still deleted', m.id)
             container.delete()
             self.q.put(json.dumps(m, cls=JSONEncoder) + '\n')
         self.q.put(_eof)
@@ -337,12 +339,13 @@ class UpgradeContainerThread(ContextThread):
                 update_elb_for_containers(old, UpdateELBAction.REMOVE)
                 old.delete()
 
-                log.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
+                logger.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
             # 这里也要注意顺序
             # 不要让外面出现拿到了消息但是数据还没有更新.
             self.q.put(json.dumps(m, cls=JSONEncoder) + '\n')
 
         self.q.put(_eof)
+
 
 def upgrade_container(ids, repo, sha):
     q = Queue()

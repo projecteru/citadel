@@ -33,7 +33,8 @@
       % for entry in releases[0].entrypoints.keys():
         <li class="list-group-item"><a target="_blank" href="${ url_for('app.get_app_log', name=app.name, entrypoint=entry, dt=datetime.now()) }?limit=500">${ entry }</a></li>
       % endfor
-    </ul>
+      <li class="list-group-item">ssh ${ g.user.name }@c2-eru-1.ricebook.link -t 'tailf /mnt/mfs/logs/heka/debug-output.log -n 100 | ag ${ app.name }'</li>
+  </ul>
     <h5>域名</h5>
     <ul class="list-group">
       % for rule in app.get_associated_elb_rules():
@@ -71,7 +72,7 @@
         <div class="col-sm-10">
           <select name="release" class="form-control">
             % for release in releases:
-              <option value="${release.sha}">${release.short_sha}</option>
+              <option value="${ release.sha }">${ release.short_sha }</option>
             % endfor
           </select>
         </div>

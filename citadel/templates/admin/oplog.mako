@@ -6,7 +6,7 @@
 <%block name="main">
 
   <ol class="breadcrumb">
-    <li><a href="${url_for('admin.index')}">Admin</a></li>
+    <li><a href="${ url_for('admin.index') }">Admin</a></li>
     <li class="active"><b>OP Log</b></li>
   </ol>
 
@@ -27,17 +27,17 @@
       <tbody>
         % for oplog in oplogs:
           <tr>
-            <td>${oplog.created}</td>
-            <td>${oplog.user_id}</td>
-            <td>${oplog.appname}</td>
-            <td>${oplog.sha}</td>
-            <td>${oplog.action.name}</td>
+            <td>${ oplog.created }</td>
+            <td>${ oplog.user_id }</td>
+            <td>${ oplog.appname }</td>
+            <td>${ oplog.sha }</td>
+            <td>${ oplog.action.name }</td>
           </tr>
         % endfor
       </tbody>
     </table>
   </%call>
 
-  ${utils.paginator(g.start, g.limit)}
+  ${ utils.paginator(g.start, g.limit) }
 
 </%block>
