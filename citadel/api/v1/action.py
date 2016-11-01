@@ -54,8 +54,9 @@ def deploy():
     nodename = data.get('nodename', '')
     raw = bool(data.get('raw', ''))
     debug = data.get('debug', False)
+    memory = int(data.get('memory', 0))
 
-    q = create_container(repo, sha, podname, nodename, entrypoint, cpu, 0, count, networks, envname, extra_env, raw=raw, extra_args=extra_args, debug=debug)
+    q = create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env, raw=raw, extra_args=extra_args, debug=debug)
     return Response(action_stream(q), mimetype='application/json')
 
 
