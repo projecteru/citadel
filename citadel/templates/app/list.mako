@@ -26,8 +26,7 @@
             <% containers = Container.get_by_app(app.name, limit=100) %>
             % if containers:
               <td>
-                <span class="label label-info">Running</span>
-                <span class="label label-success">${ len(containers) } Containers</span>
+                <span class="label label-${ 'danger' if app.has_problematic_container else 'success' }">${ len(containers) } Containers</span>
               </td>
               <td>
                 <% pods = set([c.podname for c in containers])%>
@@ -42,7 +41,7 @@
                 % endfor
               </td>
             % else:
-              <td><span class="label label-warning">Not running yet</span></td>
+              <td><span class="label label-warning">Nothing</span></td>
               <td><span class="label label-warning">No pods</span></td>
               <td><span class="label label-warning">No versions</span></td>
             % endif

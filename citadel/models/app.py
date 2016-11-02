@@ -53,6 +53,15 @@ class App(BaseModelMixin):
     def project_name(self):
         return get_project_name(self.git)
 
+    @property
+    def has_problematic_container(self):
+        from .container import Container
+        containers = Container.get_by_app(self.name)
+        if not containers or {c.status() for c in containers} == {'running'}:
+            return False
+        else:
+            return True
+
     def delete(self):
         relations = AppUserRelation.query.filter_by(appname=self.name)
         relations.delete()
@@ -60,12 +69,12 @@ class App(BaseModelMixin):
 
     def get_online_entrypoints(self):
         from .container import Container
-        containers = Container.get_by_app(self.name, limit=100)
+        containers = Container.get_by_app(self.name)
         return list(set([c.entrypoint for c in containers]))
 
     def get_online_pods(self):
         from .container import Container
-        containers = Container.get_by_app(self.name, limit=100)
+        containers = Container.get_by_app(self.name)
         return list(set([c.podname for c in containers]))
 
     def get_associated_elb_rules(self):
