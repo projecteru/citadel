@@ -185,9 +185,10 @@ def create_loadbalance():
     envname = request.form['envname']
     env = Environment.get_by_app_and_env(ELB_APP_NAME, envname)
     name = env.get('ELBNAME', 'unnamed')
+    memory = to_number('2GB')
 
     try:
-        q = create_container(release.app.git, release.sha, ELB_POD_NAME, nodename, entrypoint, cpu, 0, 1, {}, envname)
+        q = create_container(release.app.git, release.sha, ELB_POD_NAME, nodename, entrypoint, cpu, memory, 1, {}, envname)
     except ActionError as e:
         msg = 'error when creating ELB: %s', e.message
         logger.error(msg)
