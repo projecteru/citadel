@@ -52,14 +52,21 @@ def action_stream(q):
             break
 
 
-def _peek_grpc(call):
-    """peek一下stream的返回, 不next一次他是不会raise exception的"""
+def _peek_grpc(call, thread_queue=None):
+    """peek一下stream的返回, 不next一次他是不会raise exception的,
+    如果是在thread里call，出错的时候还要把eof写进queue里"""
     try:
         ms = peekable(call)
         ms.peek()
     except (face.RemoteError, face.RemoteShutdownError) as e:
+        if thread_queue:
+            thread_queue.put(_eof)
+
         raise ActionError(400, e.details)
     except face.AbortionError as e:
+        if thread_queue:
+            thread_queue.put(_eof)
+
         raise ActionError(500, 'gRPC remote server not available')
     return ms
 
@@ -98,7 +105,7 @@ class BuildThread(ContextThread):
     def execute(self):
         logger.debug('Building in thread, repo %s:%s, uid %s, artifact %s', self.repo, self.sha, self.uid, self.artifact)
         image = ''
-        ms = _peek_grpc(core.build_image(self.repo, self.sha, self.uid, self.artifact))
+        ms = _peek_grpc(core.build_image(self.repo, self.sha, self.uid, self.artifact), thread_queue=self.q)
         for m in ms:
             if m.status == 'finished':
                 image = m.progress
@@ -186,7 +193,8 @@ class CreateContainerThread(ContextThread):
                                               self.cpu, self.memory,
                                               self.count, self.networks,
                                               self.env, raw=self.raw,
-                                              extra_args=self.extra_args, debug=self.debug))
+                                              extra_args=self.extra_args, debug=self.debug),
+                        thread_queue=self.q)
 
         release = Release.get_by_app_and_sha(self.appname, self.sha)
         if not release:
@@ -196,6 +204,7 @@ class CreateContainerThread(ContextThread):
         containers = []
         for m in ms:
             if m.success:
+                logger.debug('Creating %s:%s container Got grpc message %s', self.appname, self.entrypoint, m)
                 container = Container.create(release.app.name, release.sha, m.id,
                                              self.entrypoint, self.envname, self.cpu, m.podname, m.nodename)
                 if not container:
@@ -248,7 +257,7 @@ class RemoveContainerThread(ContextThread):
         self.user_id = _get_current_user_id()
 
     def execute(self):
-        ms = _peek_grpc(core.remove_container(self.ids))
+        ms = _peek_grpc(core.remove_container(self.ids), thread_queue=self.q)
         for m in ms:
             container = Container.get_by_container_id(m.id)
             if not container:
@@ -318,7 +327,7 @@ class UpgradeContainerThread(ContextThread):
         self.user_id = _get_current_user_id()
 
     def execute(self):
-        ms = _peek_grpc(core.upgrade_container(self.ids, self.image))
+        ms = _peek_grpc(core.upgrade_container(self.ids, self.image), thread_queue=self.q)
         for m in ms:
             if m.success:
                 old = Container.get_by_container_id(m.id)
