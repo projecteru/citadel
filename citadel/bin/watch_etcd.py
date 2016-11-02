@@ -65,7 +65,7 @@ def deal(key, data):
             logger.info('[%s, %s, %s] REMOVE [%s]', container.appname, container.podname, container.entrypoint, container_id)
             publisher.remove_container(container)
             update_elb_for_containers(container, UpdateELBAction.REMOVE)
-            if container.info['State']['ExitCode'] == 0:
+            if container.info.get('State', {}).get('ExitCode', 1) == 0:
                 remove_container([container.container_id])
 
         publisher.publish_app(appname)
