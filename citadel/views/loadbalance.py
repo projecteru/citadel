@@ -25,6 +25,10 @@ def index():
     current_instances = ELBInstance.get_all()
     occupied_pods = set()
     for elb in current_instances:
+        if not elb.container:
+            elb.delete()
+            continue
+
         occupied_pods.add(elb.container.nodename)
         elb_dict.setdefault(elb.name, []).append(elb)
 
