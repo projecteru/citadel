@@ -4,7 +4,7 @@ import sys
 import os
 sys.path.append(os.path.abspath('.'))
 
-from citadel.app import create_app
+from citadel import flask_app as app
 from citadel.ext import db
 from citadel.models import *
 
@@ -16,7 +16,6 @@ def flushdb(app):
 
 
 if __name__ == '__main__':
-    app = create_app()
     dsn = app.config['SQLALCHEMY_DATABASE_URI']
     if '127.0.0.1' in dsn or 'localhost' in dsn or '--force' in sys.argv:
         flushdb(app)

@@ -1,10 +1,6 @@
-# coding: utf-8
-
+# -*- coding: utf-8 -*-
+from citadel import flask_app as app
 from citadel.config import DEBUG
-from citadel.app import create_app
-
-
-app = create_app()
 
 
 if __name__ == '__main__':
