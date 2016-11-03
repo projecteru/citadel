@@ -9,6 +9,7 @@
 </%def>
 
 <%block name="main">
+
   <div class="col-md-8 col-md-offset-2">
     <table class="table">
       <thead>
@@ -50,4 +51,11 @@
       </tbody>
     </table>
   </div>
+
+  % if g.user.privilege:
+    <div class="col-md-offset-8 col-md-4">
+      <a href="${ url_for('app.index') }?all=1" class="btn"><button class="btn btn-sm btn-info">还有啥</button></a>
+    </div>
+  % endif
+
 </%block>

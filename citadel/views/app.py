@@ -6,7 +6,7 @@ from flask import g, request, abort, flash, jsonify, url_for, redirect
 from flask_mako import render_template
 
 from citadel import flask_app
-from citadel.config import IGNORE_PODS, MFS_LOG_FILE_PATH, GITLAB_URL
+from citadel.config import IGNORE_PODS, MFS_LOG_FILE_PATH, GITLAB_URL, ELB_APP_NAME
 from citadel.libs.utils import make_unicode
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release, AppUserRelation
@@ -24,7 +24,11 @@ bp = create_page_blueprint('app', __name__, url_prefix='/app')
 
 @bp.route('/')
 def index():
-    apps = App.get_by_user(g.user.id, limit=None)
+    if g.user.privilege and request.values.get('all', type=int):
+        apps = [a for a in App.get_all(g.start, g.limit) if a.name != ELB_APP_NAME]
+    else:
+        apps = App.get_by_user(g.user.id, limit=None)
+
     return render_template('/app/list.mako', apps=apps)
 
 
