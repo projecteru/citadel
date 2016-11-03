@@ -25,7 +25,7 @@ def anonymous_path(path):
     return False
 
 
-flask_app = Flask(__name__)
+flask_app = Flask(__name__, static_url_path='/citadel/static')
 flask_app.url_map.converters['date'] = DateConverter
 flask_app.url_map.strict_slashes = False
 flask_app.config.from_object('citadel.config')
