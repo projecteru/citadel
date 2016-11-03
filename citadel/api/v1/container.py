@@ -1,6 +1,7 @@
 # coding: utf-8
 from flask import abort
 
+from citadel import flask_app
 from citadel.libs.view import create_api_blueprint
 from citadel.models.container import Container
 
@@ -14,3 +15,6 @@ def get_container(container_id):
     if not c:
         abort(404, 'Container not found: {}'.format(container_id))
     return c
+
+
+flask_app.register_blueprint(bp)

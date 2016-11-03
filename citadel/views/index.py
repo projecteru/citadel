@@ -1,13 +1,12 @@
 # coding: utf-8
-
 import yaml
-from citadel.libs.utils import logger
 from flask import redirect, url_for, request
 
-from citadel.libs.view import create_page_blueprint
-from citadel.config import GITLAB_API_URL
-
+from citadel import flask_app
 from citadel.action import build_image, ActionError
+from citadel.config import GITLAB_API_URL
+from citadel.libs.utils import logger
+from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
 from citadel.models.gitlab import get_project_name, get_file_content
 
@@ -66,3 +65,6 @@ def hook():
     except ActionError as e:
         logger.error('error when build image: %s', e.message)
     return 'ok'
+
+
+flask_app.register_blueprint(bp)

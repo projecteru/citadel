@@ -2,6 +2,7 @@
 from flask import request, abort, redirect, url_for, jsonify, flash
 from flask_mako import render_template
 
+from citadel import flask_app
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
@@ -147,3 +148,6 @@ def delete_rule(name):
         flash(u'error during delete elb', 'error')
 
     return redirect(url_for('loadbalance.elb', name=name))
+
+
+flask_app.register_blueprint(bp)
