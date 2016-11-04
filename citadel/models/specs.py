@@ -136,8 +136,7 @@ class Combo(object):
 
 class Specs(Jsonized):
 
-    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base,
-                 mount_paths, combos, permitted_users, raw):
+    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, permitted_users, subscribers, raw):
         # raw to jsonize
         self.appname = appname
         self.entrypoints = entrypoints
@@ -149,6 +148,7 @@ class Specs(Jsonized):
         self.mount_paths = mount_paths
         self.combos = combos
         self.permitted_users = permitted_users
+        self.subscribers = subscribers
         self._raw = raw
 
     @classmethod
@@ -161,6 +161,7 @@ class Specs(Jsonized):
         meta = data.get('meta', {})
         base = data.get('base')
         mount_paths = data.get('mount_paths', ())
+        subscribers = data.get('subscribers', '')
         combos = {key: Combo.from_dict(value) for key, value in data.get('combos', {}).iteritems()}
 
         # permitted_users could be defined in both combos and specs
@@ -169,8 +170,7 @@ class Specs(Jsonized):
         app_permitted_users = tuple(data.get('permitted_users', ()))
         all_permitted_users = frozenset(combos_permitted_users + app_permitted_users)
 
-        return cls(appname, entrypoints, build, volumes, binds, meta, base,
-                   mount_paths, combos, all_permitted_users, data)
+        return cls(appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, all_permitted_users, subscribers, data)
 
     @classmethod
     def from_string(cls, string):

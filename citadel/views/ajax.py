@@ -1,12 +1,12 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 import json
 
-from flask import g, request, abort, flash
+from flask import url_for, g, request, abort, flash
 
 from citadel import flask_app
 from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME
-from citadel.libs.utils import logger, to_number, with_appcontext
+from citadel.libs.utils import notbot_sendmsg, logger, to_number, with_appcontext
 from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import AppUserRelation, Release, App
 from citadel.models.container import Container
@@ -94,12 +94,25 @@ def deploy_release(release_id):
         logger.error('Error when creating container: code %s, message %s, details %s', e.code, e.message, e.details)
         return {'error': e.message}, 500
 
+    good_news = []
+    bad_news = []
     for line in action_stream(q):
         m = json.loads(line)
         if not m['success']:
+            bad_news.append(m)
             logger.error('Error when creating container: %s', m['error'])
             flash('Error when creating container: {}'.format(m['error']))
             continue
+        else:
+            good_news.append(m)
+
+    subscribers = release.specs.subscribers
+    msg = 'Deploy {}\n*BAD NEWS*: {}\n*GOOD NEWS*: {}\nCheckout {}'.format(release.name, bad_news, good_news, url_for('app.release', name=release.name, sha=release.sha, _external=True))
+    if bad_news:
+        subscribers += ';#platform'
+        msg += '\n@timfeirg'
+
+    notbot_sendmsg(subscribers, msg)
 
     return DEFAULT_RETURN_VALUE
 

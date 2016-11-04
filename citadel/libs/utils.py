@@ -1,5 +1,5 @@
-# coding:utf-8
-
+# -*- coding: utf-8 -*-
+import requests
 import logging
 import re
 import types
@@ -9,7 +9,8 @@ from threading import Thread
 from etcd import EtcdException
 from flask import session
 from gitlab import GitlabError
-from citadel.config import LOGGER_NAME
+
+from citadel.config import NOTBOT_SENDMSG_URL, LOGGER_NAME
 
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -118,3 +119,14 @@ def to_number(memory):
     number = r.group(1)
     unit = r.group(2).lower()
     return int(number) * _UNIT_DICT.get(unit, -1)
+
+
+def notbot_sendmsg(to, content, subject='Citadel message'):
+    if not all([to, content]):
+        return
+    try:
+        res = requests.post(NOTBOT_SENDMSG_URL, {'to': to, 'content': content, subject: subject})
+    except:
+        logger.error('Send notbot msg failed, got code %s, response %s', res.status_code, res.rext)
+        return
+    return res
