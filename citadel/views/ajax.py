@@ -107,7 +107,7 @@ def deploy_release(release_id):
             good_news.append(m)
 
     subscribers = release.specs.subscribers
-    msg = 'Deploy {}\n*BAD NEWS*: {}\n*GOOD NEWS*: {}\nCheckout {}'.format(release.name, bad_news, good_news, url_for('app.release', name=release.name, sha=release.sha, _external=True))
+    msg = 'Deploy {}\n*BAD NEWS*:\n```{}```\n*GOOD NEWS*:\n```{}```\nCheckout {}'.format(release.name, bad_news, good_news, url_for('app.release', name=release.name, sha=release.sha, _external=True))
     if bad_news:
         subscribers += ';#platform'
         msg += '\n@timfeirg'
