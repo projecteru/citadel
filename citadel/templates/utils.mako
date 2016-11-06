@@ -48,7 +48,19 @@
             </span>
           </td>
           <td>${ c.sha[:7] }</td>
-          <td>${ c.podname }: ${ c.nodename }</td>
+          <td>
+            <a href='javascript://'
+              data-placement='right'
+              data-toggle="popover"
+              rel='popover'
+              data-html='true'
+              data-content="
+              <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }@${ c.nodename }.ricebook.link -t 'sudo su'</code></pre>
+              <a href='http://dashboard.ricebook.net/dashboard/db/servers?var-hostname=${ c.nodename }' target='_blank'><span class='label label-info'>host监控</span></a>
+              ">
+              ${ c.podname }: ${ c.nodename }
+            </a>
+          </td>
           <td>
             % if c.get_ips():
               % for n in c.get_ips():

@@ -24,6 +24,9 @@
         <a href="${ url_for('app.app_permitted_users', name=app.name) }" class="btn-xs" target="_blank">
           • Permitted Users
         </a>
+        <a href="http://dashboard.ricebook.net/dashboard/db/eru-apps?var-app=${ app.name }" class="btn-xs" target="_blank">
+          • 监控
+        </a>
       </h3>
     </%def>
     <h4>${ app.name }</h4>
@@ -34,7 +37,7 @@
         <li class="list-group-item"><a target="_blank" href="${ url_for('app.get_app_log', name=app.name, entrypoint=entry, dt=datetime.now()) }?limit=500">${ entry }</a></li>
       % endfor
       <li class="list-group-item">debug log 暂时用 terminal 看：ssh ${ g.user.name }@c2-eru-1.ricebook.link -t 'tailf /mnt/mfs/logs/heka/debug-output.log -n 100 | ag ${ app.name }'</li>
-  </ul>
+    </ul>
     <h5>域名</h5>
     <ul class="list-group">
       % for rule in app.get_associated_elb_rules():
