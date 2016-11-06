@@ -20,7 +20,9 @@ $ ./bin/run-etcd-watcher
 
 ## DEV
 
-#### Setup
+测试服为 http://citadel.test.ricebook.net，citadel 部署在 neltharion (10.10.107.144)，core 部署在 zzz1 (10.10.31.119)，都用 systemd 托管起来了。
+
+#### 本地搭建
 
 ```shell
 python tools/flushdb.py
