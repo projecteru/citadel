@@ -36,7 +36,7 @@
       % for entry in releases[0].entrypoints.keys():
         <li class="list-group-item"><a target="_blank" href="${ url_for('app.get_app_log', name=app.name, entrypoint=entry, dt=datetime.now()) }?limit=500">${ entry }</a></li>
       % endfor
-      <li class="list-group-item">debug log 暂时用 terminal 看：ssh ${ g.user.name }@c2-eru-1.ricebook.link -t 'tailf /mnt/mfs/logs/heka/debug-output.log -n 100 | ag ${ app.name }'</li>
+      <li class="list-group-item">debug log 暂时用 terminal 看：ssh ${ g.user.name }@c2-eru-1.ricebook.link -t 'tail -F /mnt/mfs/logs/heka/debug-output.log -n 100 | ag ${ app.name }'</li>
     </ul>
     <h5>域名</h5>
     <ul class="list-group">
