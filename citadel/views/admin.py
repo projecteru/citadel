@@ -2,7 +2,6 @@
 from flask import g, request, url_for, redirect, abort
 from flask_mako import render_template
 
-from citadel import flask_app
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import AppUserRelation, App
 from citadel.models.container import Container
@@ -86,6 +85,3 @@ def oplog():
 def access_control():
     if not g.user.privilege:
         abort(403, 'Only for admin')
-
-
-flask_app.register_blueprint(bp)

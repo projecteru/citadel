@@ -1,12 +1,12 @@
 # coding: utf-8
+
 from flask import abort, g, request
 
-from citadel import flask_app
-from citadel.libs.datastructure import AbortDict
+from citadel.rpc import core
 from citadel.libs.view import create_api_blueprint
+from citadel.libs.datastructure import AbortDict
 from citadel.models.container import Container
 from citadel.network.plugin import get_all_networks
-from citadel.rpc import core
 
 
 bp = create_api_blueprint('pod', __name__, 'pod')
@@ -77,6 +77,3 @@ def add_node(name):
         abort(400, 'cafile, certfile, keyfile must be either all empty or none empty')
 
     return core.add_node(nodename, endpoint, pod.name, cafile, certfile, keyfile, public)
-
-
-flask_app.register_blueprint(bp)

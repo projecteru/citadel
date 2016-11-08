@@ -1,8 +1,8 @@
 # coding: utf-8
-from citadel import flask_app
-from citadel.ext import rds
+
 from citadel.libs.view import create_api_blueprint
 from citadel.models.container import Container
+from citadel.ext import rds
 
 
 bp = create_api_blueprint('mimiron', __name__, 'mimiron')
@@ -21,6 +21,3 @@ def get_containers(username):
             'entrypoint': info.entrypoint
         })
     return res
-
-
-flask_app.register_blueprint(bp)

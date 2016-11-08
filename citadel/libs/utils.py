@@ -19,8 +19,9 @@ logger = logging.getLogger(LOGGER_NAME)
 def with_appcontext(f):
     @wraps(f)
     def _(*args, **kwargs):
-        from citadel import flask_app
-        with flask_app.app_context():
+        from citadel.app import create_app
+        app = create_app()
+        with app.app_context():
             return f(*args, **kwargs)
     return _
 

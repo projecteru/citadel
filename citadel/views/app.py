@@ -5,7 +5,6 @@ import tailer
 from flask import g, request, abort, flash, jsonify, url_for, redirect
 from flask_mako import render_template
 
-from citadel import flask_app
 from citadel.config import IGNORE_PODS, MFS_LOG_FILE_PATH, GITLAB_URL, ELB_APP_NAME
 from citadel.libs.utils import make_unicode
 from citadel.libs.view import create_page_blueprint
@@ -129,6 +128,3 @@ def get_app_log(name, entrypoint, dt):
     log_content = tailer.tail(open(log_file_path), file_length)
     decoded = [make_unicode(l) for l in log_content]
     return render_template('/app/applog.mako', log_content=decoded)
-
-
-flask_app.register_blueprint(bp)

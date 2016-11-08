@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import session, Blueprint, redirect, url_for, abort
 
-from citadel import flask_app
 from citadel.ext import sso
 
 
@@ -34,6 +33,3 @@ def login():
 def logout():
     session.pop('sso', None)
     return redirect(url_for('index.index'))
-
-
-flask_app.register_blueprint(bp)

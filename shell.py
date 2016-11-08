@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
-import atexit
+
 import os
 import sys
-
+import atexit
 import IPython
 
-from citadel import flask_app as citadel_app
+from citadel.app import create_app
 
 
 def hook_readline_hist():
@@ -74,6 +74,7 @@ def ipython_shell(user_ns):
     app.initialize()
     app.shell.user_ns.update(user_ns)
 
+    citadel_app = create_app()
     with citadel_app.app_context():
         sys.exit(app.start())
 

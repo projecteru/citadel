@@ -1,9 +1,9 @@
 # coding: utf-8
+
 import json
 
 from flask import jsonify, request, Response
 
-from citadel import flask_app
 from citadel.action import (build_image, create_container, remove_container,
                             upgrade_container, action_stream, ActionError)
 from citadel.libs.agent import EruAgentError, EruAgentClient
@@ -108,6 +108,3 @@ def get_log():
 @bp.errorhandler(ActionError)
 def error_handler(e):
     return jsonify({'error': e.message}), e.code
-
-
-flask_app.register_blueprint(bp)

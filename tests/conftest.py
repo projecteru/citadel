@@ -3,12 +3,13 @@
 import pytest
 from urlparse import urlparse
 
-from citadel import flask_app as app
+from citadel.app import create_app
 from citadel.ext import db, rds
 
 
 @pytest.fixture
 def app(request):
+    app = create_app()
     app.config['TESTING'] = True
 
     ctx = app.app_context()

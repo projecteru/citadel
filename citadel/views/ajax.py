@@ -3,7 +3,6 @@ import json
 
 from flask import url_for, g, request, abort, flash
 
-from citadel import flask_app
 from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.utils import notbot_sendmsg, logger, to_number, with_appcontext
@@ -277,6 +276,3 @@ def access_control():
     # loadbalance和admin的不是admin就不要乱搞了
     if not g.user.privilege and (request.path.startswith('/ajax/admin') or request.path.startswith('/ajax/loadbalance')):
         abort(403, 'Only for admin')
-
-
-flask_app.register_blueprint(bp)
