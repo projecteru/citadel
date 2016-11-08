@@ -28,6 +28,12 @@ class ActionError(Exception):
         self.code = code
         self.message = message
 
+    def __str__(self):
+        return self.message
+
+    def __repr__(self):
+        return '<ActionError {}>'.format(self.message)
+
 
 def _get_current_user_id():
     """with_appcontext的线程是没有g.user的, 得通过其他方式拿到了之后传进去."""
@@ -61,7 +67,7 @@ def _peek_grpc(call, thread_queue=None):
         if thread_queue:
             thread_queue.put(_eof)
 
-        raise ActionError(400, e.details)
+        raise ActionError(500, e.details)
     except face.AbortionError as e:
         if thread_queue:
             thread_queue.put(_eof)
