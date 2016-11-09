@@ -44,10 +44,10 @@
               <p>Memory: ${ c.used_mem / 1024 / 1024 }MB</p>
               <p>CPU: ${ c.cpu_quota or u'0 (共享)'}</p>
               ">
-              ${ c.appname } / ${ c.ident }
+              <a href="${ url_for("app.get_app", name=c.appname) }" target="_blank">${ c.appname }</a> / ${ c.ident }
             </span>
           </td>
-          <td>${ c.sha[:7] }</td>
+          <td><a href="${ url_for('app.release', name=c.appname, sha=c.sha) }" target="_blank">${ c.short_sha }</a></td>
           <td>
             <a href='javascript://'
               data-placement='right'
