@@ -30,7 +30,7 @@
       </h3>
     </%def>
     <h4>${ app.name }</h4>
-    <br>
+    <p>${ app.gitlab_project.as_dict()['description'] }</p>
     <h5>Log</h5>
     <ul class="list-group">
       % for entry in releases[0].entrypoints.keys():

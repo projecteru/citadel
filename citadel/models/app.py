@@ -3,7 +3,7 @@ from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
 
-from citadel.ext import db
+from citadel.ext import db, gitlab
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
@@ -61,6 +61,11 @@ class App(BaseModelMixin):
             return False
         else:
             return True
+
+    @property
+    def gitlab_project(self):
+        gitlab_project_name = get_project_name(self.git)
+        return gitlab.projects.get(gitlab_project_name)
 
     def delete(self):
         relations = AppUserRelation.query.filter_by(appname=self.name)
