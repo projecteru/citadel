@@ -90,7 +90,7 @@ def deploy_release(release_id):
     try:
         q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=bool(raw), debug=bool(debug))
     except ActionError as e:
-        logger.error('Error when creating container: code %s, message %s, details %s', e.code, e.message, e.details)
+        logger.error('Error when creating container: code %s, message %s', e.code, e.message)
         return {'error': e.message}, 500
 
     good_news = []
