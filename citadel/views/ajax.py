@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 import json
 
-from flask import url_for, g, request, abort, flash
+from flask import Blueprint, jsonify, Response, g, request, abort, flash
 
 from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME
+from citadel.libs.json import jsonize
 from citadel.libs.utils import notbot_sendmsg, logger, to_number, with_appcontext
-from citadel.libs.view import create_ajax_blueprint, DEFAULT_RETURN_VALUE
+from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
 from citadel.models.app import AppUserRelation, Release, App
 from citadel.models.container import Container
 from citadel.models.env import Environment
@@ -16,10 +17,18 @@ from citadel.rpc import core
 from citadel.views.helper import bp_get_app, bp_get_balancer
 
 
-bp = create_ajax_blueprint('ajax', __name__, url_prefix='/ajax')
+bp = Blueprint('ajax', __name__, url_prefix='/ajax')
+
+
+def _error_hanlder(error):
+    return jsonify({'error': error.description}), error.code
+
+for code in ERROR_CODES:
+    bp.errorhandler(code)(_error_hanlder)
 
 
 @bp.route('/app/<name>/delete-env', methods=['POST'])
+@jsonize
 def delete_app_env(name):
     envname = request.form['env']
     app = bp_get_app(name)
@@ -35,18 +44,21 @@ def delete_app_env(name):
 
 
 @bp.route('/app/<name>/online-entrypoints', methods=['GET'])
+@jsonize
 def get_app_online_entrypoints(name):
     app = bp_get_app(name)
     return app.get_online_entrypoints()
 
 
 @bp.route('/app/<name>/online-pods', methods=['GET'])
+@jsonize
 def get_app_online_pods(name):
     app = bp_get_app(name)
     return app.get_online_pods()
 
 
 @bp.route('/app/<name>/backends')
+@jsonize
 def get_app_backends(name):
     return {}
 
@@ -64,16 +76,20 @@ def deploy_release(release_id):
     if not (release.specs and release.specs.entrypoints):
         abort(404, 'Release %s has no entrypoints')
 
-    podname = request.form['podname']
-    entrypoint = request.form['entrypoint']
-    count = request.form.get('count', type=int, default=1)
-    cpu = request.form.get('cpu', type=float, default=1)
-    memory = to_number(request.form.get('memory', default='512MB'))
-    envname = request.form.get('envname', '')
-    envs = request.form.get('envs', '')
-    nodename = request.form.get('nodename', '')
-    raw = request.form.get('raw', type=int, default=0)
-    debug = request.form.get('debug', type=int, default=0)
+    payload = request.get_json()
+    print('Got payload ', payload)
+    podname = payload['podname']
+    entrypoint = payload['entrypoint']
+    count = int(payload.get('count', 1))
+    cpu = float(payload.get('cpu', 1))
+    memory = to_number(payload.get('memory', '512MB'))
+    envname = payload.get('envname', '')
+    envs = payload.get('envs', '')
+    nodename = payload.get('nodename', '')
+    raw = payload.get('raw', False)
+    debug = payload.get('debug', False)
+    # 这里来的就都走自动分配吧
+    networks = {key: '' for key in payload['networks']}
 
     if raw and not g.user.privilege:
         abort(400, 'Raw deploy only supported for admins')
@@ -84,39 +100,38 @@ def deploy_release(release_id):
     extra_env = [env.strip() for env in envs.split(';')]
     extra_env = [env for env in extra_env if env]
 
-    # 这里来的就都走自动分配吧
-    networks = {key: '' for key in request.form.getlist('networks[]')}
-
     try:
         q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=bool(raw), debug=bool(debug))
     except ActionError as e:
         logger.error('Error when creating container: code %s, message %s', e.code, e.message)
-        return {'error': e.message}, 500
+        return jsonify({'error': e.message}), 500
 
-    good_news = []
-    bad_news = []
-    for line in action_stream(q):
-        m = json.loads(line)
-        if not m['success']:
-            bad_news.append(m)
-            logger.error('Error when creating container: %s', m['error'])
-            flash('Error when creating container: {}'.format(m['error']))
-            continue
-        else:
-            good_news.append(m)
+    def generate_deploy_message():
+        good_news = []
+        bad_news = []
+        for line in action_stream(q):
+            m = json.loads(line)
+            yield line
+            if not m.get('success'):
+                bad_news.append(m)
+                logger.error('Error when creating container: %s', m['error'])
+                continue
+            else:
+                good_news.append(m)
 
-    subscribers = release.specs.subscribers
-    msg = 'Deploy {}\n*BAD NEWS*:\n```{}```\n*GOOD NEWS*:\n```{}```\nCheckout {}'.format(release.name, bad_news, good_news, url_for('app.release', name=release.name, sha=release.sha, _external=True))
-    if bad_news:
-        subscribers += ';#platform'
-        msg += '\n@timfeirg'
+        subscribers = release.specs.subscribers
+        msg = 'Deploy {}\n*BAD NEWS*:\n```{}```\n*GOOD NEWS*:\n```{}```'.format(release.name, bad_news, good_news)
+        if bad_news:
+            subscribers += ';#platform'
+            msg += '\n@timfeirg'
 
-    notbot_sendmsg(subscribers, msg)
+        notbot_sendmsg(subscribers, msg)
 
-    return DEFAULT_RETURN_VALUE
+    return Response(generate_deploy_message(), mimetype='application/json')
 
 
 @bp.route('/release/<release_id>/entrypoints')
+@jsonize
 def get_release_entrypoints(release_id):
     release = Release.get(release_id)
     if not release:
@@ -129,6 +144,7 @@ def get_release_entrypoints(release_id):
 
 
 @bp.route('/rmcontainer', methods=['POST'])
+@jsonize
 def remove_containers():
     # 过滤掉ELB的容器, ELB不要走这个方式下线
     container_ids = request.form.getlist('container_id')
@@ -150,6 +166,7 @@ def remove_containers():
 
 
 @bp.route('/upgrade-container', methods=['POST'])
+@jsonize
 def upgrade_containers():
     container_ids = request.form.getlist('container_id')
     sha = request.form['sha']
@@ -175,16 +192,19 @@ def upgrade_containers():
 
 
 @bp.route('/pods')
+@jsonize
 def get_all_pods():
     return core.list_pods()
 
 
 @bp.route('/pod/<name>/nodes')
+@jsonize
 def get_pod_nodes(name):
     return core.get_pod_nodes(name)
 
 
 @bp.route('/loadbalance', methods=['POST'])
+@jsonize
 def create_loadbalance():
     release_id = request.form['releaseid']
     release = Release.get(release_id)
@@ -237,6 +257,7 @@ def create_loadbalance():
 
 
 @bp.route('/loadbalance/<id>/remove', methods=['POST'])
+@jsonize
 def remove_loadbalance(id):
     elb = bp_get_balancer(id)
     if elb.is_only_instance():
@@ -264,6 +285,7 @@ def remove_loadbalance(id):
 
 
 @bp.route('/admin/revoke-app', methods=['POST'])
+@jsonize
 def revoke_app():
     user_id = request.form['user_id']
     name = request.form['name']

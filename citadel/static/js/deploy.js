@@ -29,12 +29,10 @@ $('#add-container-form select[name=pod]').change(function(){
 
 $('#add-container-button').click(function(e){
   e.preventDefault();
-  var url = '/ajax/release/{releaseId}/deploy';
+  var releaseId = $('#add-container-form input[name=release]').data('id');
+  var url = '/ajax/release/' + releaseId + '/deploy';
   var data = {};
   var networks = [];
-  var releaseId = $('#add-container-form input[name=release]').data('id');
-
-  url = url.replace('{releaseId}', releaseId);
 
   if ($('div.active #add-container-form').length) {
     var form = $('div.active #add-container-form');
@@ -54,24 +52,34 @@ $('#add-container-button').click(function(e){
     networks.push($(ns[i]).val());
   }
   data.networks = networks;
-  data.raw = form.find('input[name=raw]:checked').length;
-  data.debug = form.find('input[name=debug]:checked').length;
+  data.raw = form.find('input[name=raw]').prop('checked');
+  data.debug = form.find('input[name=debug]').prop('checked');
 
   console.log(data);
-  var progressBar = $('div.progress-bar');
 
   $('#add-container-modal').modal('hide');
   $('#container-progress').modal('show');
-  progressBar.width('0').animate({width: '100%'}, 10000);
-  $.post(url, data, function(r){
-    if (r.error !== null) {
-      alert(r.error);
-      $('#container-progress').modal('hide');
-      return;
-    }
-    $('#container-progress').modal('hide');
-    window.location.href = window.location.href.replace(/#\w+/g, '');
-  });
+
+  var success = true;
+  var logDisplay = $('#add-container-pre');
+  logDisplay.val('');
+  oboe({url: url, method: 'POST', body: data})
+    .node('*', function(r) {
+      if (r.error) {
+        success = false;
+      }
+      console.log(r);
+      logDisplay.append('\n' + r);
+      $(window).scrollTop($(document).height() - $(window).height());
+    })
+    .done(function(r) {
+      console.log(r);
+      if (success == true) {
+        $('#container-progress').modal('hide');
+        window.location.href = window.location.href.replace(/#\w+/g, '');
+      }
+    })
+
 });
 
 })(jQuery);
