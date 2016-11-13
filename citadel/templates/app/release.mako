@@ -321,11 +321,8 @@
     <%def name="footer()">
     </%def>
 
-    <div class="progress">
-      <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aira-valuemax="100">
-        <span class="sr-only">Waiting ...</span>
-      </div>
-    </div>
+    <pre id="add-container-pre"></pre>
+
   </%call>
 
 </%def>

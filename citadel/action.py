@@ -61,15 +61,25 @@ def _peek_grpc(call, thread_queue=None):
     """peek一下stream的返回, 不next一次他是不会raise exception的,
     如果是在thread里call，出错的时候还要把eof写进queue里"""
     try:
+        logger.debug('Peek grpc call %s', call)
         ms = peekable(call)
         ms.peek()
+        logger.debug('Peek grpc call %s done', call)
     except (face.RemoteError, face.RemoteShutdownError) as e:
+        logger.error('gRPC exception: %s', e.details)
         if thread_queue:
+            err_msg = {'error': e.details}
+            thread_queue.put(json.dumps(err_msg))
             thread_queue.put(_eof)
 
+        # raise ActionError here to terminate queue, but we won't be able to
+        # handle this exception
         raise ActionError(500, e.details)
     except face.AbortionError as e:
+        logger.error('gRPC exception: %s', e.details)
         if thread_queue:
+            err_msg = {'error': e.details}
+            thread_queue.put(json.dumps(err_msg))
             thread_queue.put(_eof)
 
         raise ActionError(500, 'gRPC remote server not available')
@@ -114,7 +124,9 @@ class BuildThread(ContextThread):
         for m in ms:
             if m.status == 'finished':
                 image = m.progress
+
             self.q.put(json.dumps(m, cls=JSONEncoder) + '\n')
+
         self.q.put(_eof)
 
         release = Release.get_by_app_and_sha(self.appname, self.sha)

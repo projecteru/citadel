@@ -11,6 +11,7 @@
     <link href="https://staticfile.qnssl.com/flat-ui/2.3.0/css/flat-ui.min.css" rel="stylesheet" type="text/css">
     <script src="https://staticfile.qnssl.com/flat-ui/2.3.0/js/vendor/jquery.min.js"></script>
     <script src="https://staticfile.qnssl.com/flat-ui/2.3.0/js/flat-ui.min.js"></script>
+    <script src="https://cdn.staticfile.org/oboe.js/2.1.2/oboe-browser.min.js"></script>
     <script src="/citadel/static/js/common.js"></script>
     ${ self.more_header() }
     <style>
