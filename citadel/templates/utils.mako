@@ -230,9 +230,9 @@
   </div>
 </%def>
 
-<%def name="modal(id, role='dialog')">
+<%def name="modal(id, role='dialog', dialog_class='')">
   <div class="modal fade" role="${ role }" id="${ id }">
-    <div class="modal-dialog">
+    <div class="modal-dialog ${ dialog_class }">
       <div class="modal-content">
         <div class="modal-header">
           ${ caller.header() }

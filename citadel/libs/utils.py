@@ -123,6 +123,7 @@ def to_number(memory):
 
 
 def notbot_sendmsg(to, content, subject='Citadel message'):
+    to = to.strip(';')
     if not all([to, content]):
         return
     try:

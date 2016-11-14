@@ -77,7 +77,8 @@ def deploy_release(release_id):
         abort(404, 'Release %s has no entrypoints')
 
     payload = request.get_json()
-    print('Got payload ', payload)
+    # TODO: args validation
+    logger.debug('Deploy release ajax API got payload: %s', payload)
     podname = payload['podname']
     entrypoint = payload['entrypoint']
     count = int(payload.get('count', 1))
@@ -101,16 +102,17 @@ def deploy_release(release_id):
     extra_env = [env for env in extra_env if env]
 
     try:
-        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=bool(raw), debug=bool(debug))
+        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=raw, debug=debug)
     except ActionError as e:
         logger.error('Error when creating container: code %s, message %s', e.code, e.message)
         return jsonify({'error': e.message}), 500
 
-    def generate_deploy_message():
+    def generate_stream_response():
         good_news = []
         bad_news = []
         for line in action_stream(q):
             m = json.loads(line)
+            logger.debug('Stream response emit %s', line)
             yield line
             if not m.get('success'):
                 bad_news.append(m)
@@ -127,7 +129,7 @@ def deploy_release(release_id):
 
         notbot_sendmsg(subscribers, msg)
 
-    return Response(generate_deploy_message(), mimetype='application/json')
+    return Response(generate_stream_response(), mimetype='text/event-stream')
 
 
 @bp.route('/release/<release_id>/entrypoints')

@@ -215,6 +215,7 @@ class CreateContainerThread(ContextThread):
 
         release = Release.get_by_app_and_sha(self.appname, self.sha)
         if not release:
+            self.q.put(json.dumps({'error': 'Release {} not found'.format(self.sha)}) + '\n')
             self.q.put(_eof)
             return
 

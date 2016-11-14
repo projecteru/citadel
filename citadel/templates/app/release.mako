@@ -314,7 +314,7 @@
 
   </%call>
 
-  <%call expr="utils.modal('container-progress')">
+  <%call expr="utils.modal('container-progress', dialog_class='modal-lg')">
     <%def name="header()">
       <h3 class="modal-title">Please wait...</h3>
     </%def>

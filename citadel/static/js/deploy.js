@@ -60,22 +60,27 @@ $('#add-container-button').click(function(e){
   $('#add-container-modal').modal('hide');
   $('#container-progress').modal('show');
 
-  var success = true;
   var logDisplay = $('#add-container-pre');
+  var success = true
   logDisplay.val('');
   oboe({url: url, method: 'POST', body: data})
-    .node('*', function(r) {
-      if (r.error) {
-        success = false;
-      }
-      console.log(r);
-      logDisplay.append('\n' + r);
-      $(window).scrollTop($(document).height() - $(window).height());
-    })
     .done(function(r) {
       console.log(r);
-      if (success == true) {
-        $('#container-progress').modal('hide');
+      logDisplay.append(JSON.stringify(r) + '\n');
+      $(window).scrollTop($(document).height() - $(window).height());
+      if (r.error) {
+        success = false
+        $('#container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
+      }
+    }).fail(function(r) {
+      logDisplay.append(JSON.stringify(r) + '\n');
+      $('#container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
+      console.log(r);
+    })
+    .on('end', function() {
+      if (success != true) {
+        $('#container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
+      } else {
         window.location.href = window.location.href.replace(/#\w+/g, '');
       }
     })
