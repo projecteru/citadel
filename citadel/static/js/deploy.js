@@ -66,7 +66,11 @@ $('#add-container-button').click(function(e){
   oboe({url: url, method: 'POST', body: data})
     .done(function(r) {
       console.log(r);
-      logDisplay.append(JSON.stringify(r) + '\n');
+      if (r.channel) {
+        logDisplay.append(r.data + '\n');
+      } else {
+        logDisplay.append(JSON.stringify(r) + '\n');
+      }
       $(window).scrollTop($(document).height() - $(window).height());
       if (r.error) {
         success = false
