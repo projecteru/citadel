@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, Response, g, request, abort, flash
 
 from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME
+from citadel.ext import rds
 from citadel.libs.json import jsonize
 from citadel.libs.utils import notbot_sendmsg, logger, to_number, with_appcontext
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
@@ -22,6 +23,7 @@ bp = Blueprint('ajax', __name__, url_prefix='/ajax')
 
 def _error_hanlder(error):
     return jsonify({'error': error.description}), error.code
+
 
 for code in ERROR_CODES:
     bp.errorhandler(code)(_error_hanlder)
@@ -108,18 +110,19 @@ def deploy_release(release_id):
         return jsonify({'error': e.message}), 500
 
     def generate_stream_response():
+        """relay grpc message, if in debug mode, stream logs as well"""
         good_news = []
         bad_news = []
         for line in action_stream(q):
-            m = json.loads(line)
+            msg = json.loads(line)
             logger.debug('Stream response emit %s', line)
             yield line
-            if not m.get('success'):
-                bad_news.append(m)
-                logger.error('Error when creating container: %s', m['error'])
+            if not msg.get('success'):
+                bad_news.append(msg)
+                logger.error('Error when creating container: %s', msg['error'])
                 continue
             else:
-                good_news.append(m)
+                good_news.append(msg)
 
         subscribers = release.specs.subscribers
         msg = 'Deploy {}\n*BAD NEWS*:\n```{}```\n*GOOD NEWS*:\n```{}```'.format(release.name, bad_news, good_news)
@@ -128,6 +131,15 @@ def deploy_release(release_id):
             msg += '\n@timfeirg'
 
         notbot_sendmsg(subscribers, msg)
+
+        if debug:
+            pubsub = rds.pubsub()
+            channel_name = 'eru-debug:{}*'.format(release.name)
+            logger.debug('Subscribe to channel %s for container debug log', channel_name)
+            pubsub.psubscribe(channel_name)
+            for item in pubsub.listen():
+                logger.debug('Stream response emit debug log: %s', item)
+                yield json.dumps(item)
 
     return Response(generate_stream_response(), mimetype='text/event-stream')
 
