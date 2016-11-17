@@ -9,6 +9,7 @@ from citadel.config import IGNORE_PODS, MFS_LOG_FILE_PATH, GITLAB_URL, ELB_APP_N
 from citadel.libs.utils import make_unicode
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release, AppUserRelation
+from citadel.models.base import ModelDeleteError
 from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_file_content
@@ -31,9 +32,19 @@ def index():
     return render_template('/app/list.mako', apps=apps)
 
 
-@bp.route('/<name>')
-def get_app(name):
+@bp.route('/<name>', methods=['GET', 'DELETE'])
+def app(name):
     app = bp_get_app(name)
+    if request.method == 'DELETE':
+        if not AppUserRelation.user_permitted_to_app(g.user.id, name):
+            return jsonify({'message': u'没权限'}), 403
+        else:
+            try:
+                app.delete()
+                return jsonify({'message': u'OK'}), 200
+            except ModelDeleteError:
+                return jsonify({'message': u'容器删干净之后才能删除应用'}), 400
+
     releases = Release.get_by_app(app.name, limit=8)
     containers = Container.get_by_app(app.name, limit=None)
     return render_template('/app/app.mako', app=app, releases=releases, containers=containers)

@@ -23,7 +23,7 @@
       <tbody>
         % for app in apps:
           <tr>
-            <td><a href="${ url_for('app.get_app', name=app.name) }">${ app.name }</a></td>
+            <td><a href="${ url_for('app.app', name=app.name) }">${ app.name }</a></td>
             <% containers = Container.get_by_app(app.name, limit=100) %>
             % if containers:
               <td>
