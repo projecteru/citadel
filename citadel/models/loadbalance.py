@@ -133,7 +133,7 @@ class ELBRule(BaseModelMixin):
         self.rule = rule
         db.session.add(self)
         db.session.commit()
-        return self.write_rules(rule)
+        return self.write_rules()
 
     @classmethod
     def get_by_app(cls, appname):
