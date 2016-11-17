@@ -44,7 +44,7 @@
               <p>Memory: ${ c.used_mem / 1024 / 1024 }MB</p>
               <p>CPU: ${ c.cpu_quota or u'0 (共享)'}</p>
               ">
-              <a href="${ url_for("app.get_app", name=c.appname) }" target="_blank">${ c.appname }</a> / ${ c.ident }
+              <a href="${ url_for("app.app", name=c.appname) }" target="_blank">${ c.appname }</a> / ${ c.ident }
             </span>
           </td>
           <td><a href="${ url_for('app.release', name=c.appname, sha=c.sha) }" target="_blank">${ c.short_sha }</a></td>
@@ -197,7 +197,7 @@
                 <span class="fui-plus"></span> Add Container
               </a>
             % endif
-            <a id="delete" class="btn btn-xs btn-warning" data-release-id="${ release.short_sha }" data-delete-url="${ url_for('app.release', name=release.name, sha=release.sha) }" }}><span class="fui-trash"></span></a>
+            <a id="delete" class="btn btn-xs btn-warning" data-release-id="${ release.short_sha }" data-delete-url="${ url_for('app.release', name=release.name, sha=release.sha) }" ><span class="fui-trash"></span></a>
           </td>
         </tr>
       % endfor
@@ -213,7 +213,7 @@
         success: function(r) {
           console.log(r);
           self.parent().parent().remove();
-      }
+        }
       });
     });
   </script>

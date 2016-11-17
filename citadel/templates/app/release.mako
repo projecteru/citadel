@@ -18,7 +18,7 @@
     <%def name="header()">
       <h3 class="panel-title">Release</h3>
     </%def>
-    <h4><a href="${ url_for('app.get_app', name=app.name) }">${ app.name }</a> @ ${ release.short_sha }</h4>
+    <h4><a href="${ url_for('app.app', name=app.name) }">${ app.name }</a> @ ${ release.short_sha }</h4>
     <p>image: ${ release.image }</p>
     % if release.image:
       <button class="btn btn-info pull-right" data-toggle="modal" data-target="#add-container-modal">

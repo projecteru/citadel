@@ -33,9 +33,11 @@
     <p>${ app.gitlab_project.as_dict()['description'] }</p>
     <h5>Log</h5>
     <ul class="list-group">
-      % for entry in releases[0].entrypoints.keys():
-        <li class="list-group-item"><a target="_blank" href="${ url_for('app.get_app_log', name=app.name, entrypoint=entry, dt=datetime.now()) }?limit=500">${ entry }</a></li>
-      % endfor
+      % if releases:
+        % for entry in releases[0].entrypoints.keys():
+          <li class="list-group-item"><a target="_blank" href="${ url_for('app.get_app_log', name=app.name, entrypoint=entry, dt=datetime.now()) }?limit=500">${ entry }</a></li>
+        % endfor
+      % endif
       <li class="list-group-item">debug log 暂时用 terminal 看：ssh ${ g.user.name }@c2-eru-1.ricebook.link -t 'tail -F /mnt/mfs/logs/heka/debug-output.log -n 100 | ag ${ app.name }'</li>
     </ul>
     <h5>域名</h5>
@@ -44,6 +46,7 @@
         <li class="list-group-item"><a target="_blank" href="${ url_for('loadbalance.elb', name=rule.elbname) }#${ rule.domain }">${ rule.domain }</a></li>
       % endfor
     </ul>
+    <button id="delete-app" class="btn btn-warning pull-right" data-appname="${ app.name }"><span class="fui-trash"></span> Delete App</button>
   </%utils:panel>
 
   <%utils:panel>
@@ -89,6 +92,7 @@
   </%call>
 
   <script>
+
     $('button[id=upgrade-container-button]').click(function(e){
       e.preventDefault();
       if (!$('input[name=container-id]:checked').length) {
@@ -100,12 +104,31 @@
       payload.push('appname=' + $('h4').html());
       $.each($('input[name=container-id]:checked'), function(){
         payload.push('container_id=' + $(this).val());
-      });
+      })
 
       $.post('/ajax/upgrade-container', payload.join('&'), function(){
         location.reload();
-      });
-    });
+      })
+    })
+
+    $('button#delete-app').click(function (){
+      var self = $(this);
+      if (!confirm('确定删除' + self.data('appname') + '?')) { return; }
+      $.ajax({
+        url: "${ url_for('app.app', name=app.name) }",
+        type: 'DELETE',
+        success: function(r) {
+          console.log(r);
+          if (r.status == 200) {
+            location.href = "${ url_for('app.index') }";
+          }
+        },
+        error: function(r) {
+          console.log(r);
+          alert(JSON.stringify(r.responseJSON));
+        }
+      })
+    })
   </script>
 
 </%block>

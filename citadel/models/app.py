@@ -5,7 +5,7 @@ from werkzeug.utils import cached_property
 
 from citadel.ext import db, gitlab
 from citadel.libs.utils import logger
-from citadel.models.base import BaseModelMixin
+from citadel.models.base import BaseModelMixin, ModelDeleteError
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
 from citadel.models.loadbalance import ELBRule
 from citadel.models.specs import Specs
@@ -68,8 +68,21 @@ class App(BaseModelMixin):
         return gitlab.projects.get(gitlab_project_name)
 
     def delete(self):
-        relations = AppUserRelation.query.filter_by(appname=self.name)
-        relations.delete()
+        appname = self.name
+        from .container import Container
+        from .loadbalance import ELBRule
+        containers = Container.get_by_app(self.name)
+        if containers:
+            raise ModelDeleteError('App {} got containers {}, remove them before deleting app'.format(appname, containers))
+        # delete all releases
+        Release.query.filter_by(app_id=self.id).delete()
+        # delete all permissions
+        AppUserRelation.query.filter_by(appname=appname).delete()
+        # delete all ELB rules
+        rules = ELBRule.get_by_app(appname)
+        for rule in rules:
+            rule.delete()
+
         return super(App, self).delete()
 
     def get_online_entrypoints(self):
