@@ -116,6 +116,7 @@ def app_permitted_users(name):
 
     user_ids = AppUserRelation.get_user_id_by_appname(name)
     users = [User.get(id_) for id_ in user_ids]
+    users = [u for u in users if u]
     return render_template('/app/permitted-users.mako', users=users)
 
 
