@@ -143,6 +143,9 @@ def rule(name):
 def delete_rule(name):
     domain = request.values['domain']
     rule = ELBRule.get_by(elbname=name, domain=domain)
+    if not rule:
+        abort(404, 'ELB rule not found: {}'.format(domain))
+
     if not rule.delete():
         flash(u'error during delete elb', 'error')
 
