@@ -40,24 +40,27 @@
             </li>
 
             <li class="dropdown ${ 'active' if request.path.startswith(url_for('admin.index')) else '' }">
-              <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                <span class="fui-eye"></span> Admin Area
-              </a>
-              <ul class="dropdown-menu">
-                <li class="${ 'active' if request.path.startswith(url_for('admin.users')) else '' }">
-                <a href="${ url_for('admin.users') }"><span class="fui-user"></span> Users</a>
-                </li>
-                <li class="divider"></li>
-                <li class="${ 'active' if request.path.startswith(url_for('admin.pods')) else '' }">
-                <a href="${ url_for('admin.pods') }"><span class="fui-list-thumbnailed"></span> Pods</a>
-                </li>
-                <li class="divider"></li>
-                <li class="${ 'active' if request.path.startswith(url_for('admin.oplog')) else '' }">
-                <a href="${ url_for('admin.oplog') }"><span class="fui-list-thumbnailed"></span> OPLog</a>
-                </li>
-              </ul>
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+              <span class="fui-eye"></span> Admin Area
+            </a>
+            <ul class="dropdown-menu">
+              <li class="${ 'active' if request.path.startswith(url_for('admin.users')) else '' }">
+              <a href="${ url_for('admin.users') }"><span class="fui-user"></span> Users</a>
+              </li>
+              <li class="divider"></li>
+              <li class="${ 'active' if request.path.startswith(url_for('admin.pods')) else '' }">
+              <a href="${ url_for('admin.pods') }"><span class="fui-list-thumbnailed"></span> Pods</a>
+              </li>
+              <li class="divider"></li>
+              <li class="${ 'active' if request.path.startswith(url_for('admin.oplog')) else '' }">
+              <a href="${ url_for('admin.oplog') }"><span class="fui-list-thumbnailed"></span> OPLog</a>
+              </li>
+            </ul>
             </li>
           % endif
+          <li>
+          <a href="http://phabricator.ricebook.net/w/develop/platform/deploy-citadel-app/" target="_blank"><span class="fui-question-circle"></span> 我不懂！</a>
+          </li>
         </ul>
         <ul class="nav navbar-nav navbar-right">
           <li class="dropdown">
