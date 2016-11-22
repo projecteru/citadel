@@ -7,7 +7,6 @@ Flask_SQLAlchemy
 redis
 smart_getenv
 SQLAlchemy
-webargs
 Werkzeug
 ipython
 python-etcd
@@ -16,10 +15,10 @@ protobuf
 grpcio
 raven
 PyYAML
-webargs
 more_itertools
 tailer
 gunicorn
 blinker
 MySQL-python
 requests
+six
