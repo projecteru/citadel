@@ -9,6 +9,7 @@ from more_itertools import peekable
 
 from citadel.libs.json import JSONEncoder
 from citadel.libs.utils import logger, ContextThread
+from citadel.libs.mimiron import set_mimiron_route, del_mimiron_route
 from citadel.models.app import App, Release
 from citadel.models.container import Container
 from citadel.models.env import Environment
@@ -237,6 +238,11 @@ class CreateContainerThread(ContextThread):
 
                 containers.append(container)
                 publisher.add_container(container)
+
+                # 更新mimiron
+                specs = container.get_specs()
+                if specs:
+                    set_mimiron_route(container.container_id, container.get_node(), specs.permitted_users)
                 logger.info('Container [%s] created', m.id)
             # 这里的顺序一定要注意
             # 必须在创建容器完成之后再把消息丢入队列
@@ -286,6 +292,9 @@ class RemoveContainerThread(ContextThread):
                 # 记录oplog
                 op_content = {'container_id': m.id}
                 OPLog.create(self.user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
+
+                # 更新mimiron
+                del_mimiron_route(m.id)
                 logger.info('Container [%s] deleted', m.id)
             else:
                 logger.info('Container [%s] error, but still deleted', m.id)
@@ -365,6 +374,12 @@ class UpgradeContainerThread(ContextThread):
                 # 这里只能一个一个更新 elb 了，无法批量更新
                 update_elb_for_containers(old, UpdateELBAction.REMOVE)
                 old.delete()
+
+                # 更新mimiron
+                specs = c.get_specs()
+                del_mimiron_route(m.id)
+                if specs:
+                    set_mimiron_route(c.container_id, c.get_node(), specs.permitted_users)
 
                 logger.info('Container [%s] upgraded to [%s]', m.id, m.new_id)
             # 这里也要注意顺序

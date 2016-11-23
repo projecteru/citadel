@@ -4,6 +4,7 @@ import itertools
 import json
 
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import ObjectDeletedError
 
 from citadel.ext import db
 from citadel.libs.utils import logger
@@ -206,10 +207,18 @@ class Container(BaseModelMixin, PropsMixin):
         ports = [p.port for p in ports]
         return ['%s:%s' % (ip, port) for ip, port in itertools.product(ips, ports)]
 
+    def get_specs(self):
+        from .app import Release
+        release = Release.get_by_app_and_sha(self.appname, self.sha)
+        return release.specs if release else None
+
+    def get_node(self):
+        return core.get_node(self.podname, self.nodename)
+
     def delete(self):
         try:
             self.destroy_props()
-        except sqlalchemy.orm.exc.ObjectDeletedError:
+        except ObjectDeletedError:
             logger.warn('Error during deleting: Object %s already deleted', self)
             return None
         super(Container, self).delete()
