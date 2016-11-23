@@ -4,16 +4,18 @@ from functools import partial
 from grpc.beta import implementations
 from grpc.framework.interfaces.face.face import AbortionError
 
-from citadel.rpc.core_pb2 import (beta_create_CoreRPC_stub, Empty,
-        AddPodOptions, GetPodOptions, ListNodesOptions, GetNodeOptions,
-        AddNodeOptions, BuildImageOptions, DeployOptions, UpgradeOptions,
-        ContainerID, ContainerIDs)
-from citadel.libs.utils import handle_exception
 from citadel.libs.cache import cache, clean_cache, ONE_DAY
-
-from citadel.rpc.exceptions import NoStubError
+from citadel.libs.utils import handle_exception
 from citadel.rpc.core import (Pod, Node, Network, BuildImageMessage,
-        CreateContainerMessage, UpgradeContainerMessage, RemoveContainerMessage)
+                              CreateContainerMessage, UpgradeContainerMessage,
+                              RemoveContainerMessage)
+from citadel.rpc.core_pb2 import (beta_create_CoreRPC_stub, Empty,
+                                  AddPodOptions, GetPodOptions,
+                                  ListNodesOptions, GetNodeOptions,
+                                  AddNodeOptions, BuildImageOptions,
+                                  RemoveNodeOptions, DeployOptions,
+                                  UpgradeOptions, ContainerID, ContainerIDs)
+from citadel.rpc.exceptions import NoStubError
 
 
 handle_rpc_exception = partial(handle_exception, (NoStubError, AbortionError))
@@ -105,6 +107,17 @@ class CoreRPC(object):
         clean_cache(_GET_POD_NODES.format(name=podname))
         clean_cache(_GET_NODE.format(podname=podname, nodename=nodename))
         return n and Node(n)
+
+    @handle_rpc_exception(default=None)
+    def remove_node(self, nodename, podname):
+        stub = self._get_stub()
+        opts = RemoveNodeOptions(nodename=nodename, podname=podname)
+
+        p = stub.RemoveNode(opts, _UNARY_TIMEOUT)
+
+        clean_cache(_GET_POD_NODES.format(name=podname))
+        clean_cache(_GET_NODE.format(podname=podname, nodename=nodename))
+        return p and Pod(p)
 
     @handle_rpc_exception(default=list)
     def build_image(self, repo, version, uid, artifact=''):
