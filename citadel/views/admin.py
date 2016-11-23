@@ -1,5 +1,5 @@
 # coding: utf-8
-from flask import g, request, url_for, redirect, abort
+from flask import jsonify, g, request, abort, url_for, redirect
 from flask_mako import render_template
 
 from citadel.libs.view import create_page_blueprint
@@ -34,8 +34,12 @@ def get_pod_nodes(name):
     return render_template('/admin/pod_nodes.mako', pod=pod, nodes=nodes)
 
 
-@bp.route('/pod/<podname>/node/<nodename>/containers')
-def get_node_containers(podname, nodename):
+@bp.route('/pod/<podname>/node/<nodename>', methods=['GET', 'DELETE'])
+def node(podname, nodename):
+    if request.method == 'DELETE':
+        core.remove_node(nodename, podname)
+        return jsonify({'message': 'OK'})
+
     pod = core.get_pod(podname)
     if not pod:
         abort(404)
