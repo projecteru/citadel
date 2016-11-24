@@ -168,7 +168,7 @@
           <td>${ release.created }</td>
           <%
             try:
-              commit = project.commits.get(release.sha)
+              commit = release.gitlab_commit
               author = commit.author_name
               message = commit.message
             except:

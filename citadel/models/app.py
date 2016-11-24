@@ -229,6 +229,11 @@ class Release(BaseModelMixin):
     def name(self):
         return self.app and self.app.name or ''
 
+    @property
+    def gitlab_commit(self):
+        commit = get_commit(self.app.project_name, self.sha)
+        return commit
+
     @cached_property
     def specs(self):
         """load app.yaml from GitLab"""

@@ -19,6 +19,18 @@
       <h3 class="panel-title">Release</h3>
     </%def>
     <h4><a href="${ url_for('app.app', name=app.name) }">${ app.name }</a> @ ${ release.short_sha }</h4>
+    <p>
+      <%
+        try:
+          commit = release.gitlab_commit
+          author = commit.author_name
+          message = commit.message
+        except:
+          author = 'unknown'
+          message = 'unknown'
+      %>
+      ${ author } : ${ message }
+    </p>
     <p>image: ${ release.image }</p>
     % if release.image:
       <button class="btn btn-info pull-right" data-toggle="modal" data-target="#add-container-modal">
