@@ -54,6 +54,9 @@ def index():
 def elb(name):
     rules = ELBRule.get_by_elb(name)
     all_apps = [a for a in App.get_all(limit=100) if a and a.name != ELB_APP_NAME]
+    if not all_apps:
+        abort(404, 'NO APPS AT ALL')
+
     elbs = ELBInstance.get_by_name(name)
     if not elbs and not rules:
         abort(404, 'No instance found for ELB: {}'.format(name))
