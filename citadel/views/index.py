@@ -7,7 +7,7 @@ from flask import redirect, url_for, request
 from citadel.libs.view import create_page_blueprint
 from citadel.config import GITLAB_API_URL
 
-from citadel.action import build_image, ActionError
+from citadel.tasks import build_image, ActionError
 from citadel.models.app import App, Release
 from citadel.models.gitlab import get_project_name, get_file_content
 

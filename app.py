@@ -1,10 +1,10 @@
 # coding: utf-8
-
+from citadel.app import create_app, make_celery
 from citadel.config import DEBUG
-from citadel.app import create_app
 
 
 app = create_app()
+celery = make_celery(app)
 
 
 if __name__ == '__main__':

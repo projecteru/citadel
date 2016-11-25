@@ -12,7 +12,7 @@ from threading import Thread
 
 from etcd import EtcdWatchTimedOut, EtcdConnectionFailed
 
-from citadel.action import remove_container
+from citadel.tasks import remove_container
 from citadel.config import ETCD_URL
 from citadel.ext import etcd
 from citadel.libs.utils import with_appcontext

@@ -4,7 +4,7 @@ import json
 
 from flask import jsonify, request, Response
 
-from citadel.action import (build_image, create_container, remove_container,
+from citadel.tasks import (build_image, create_container, remove_container,
                             upgrade_container, action_stream, ActionError)
 from citadel.libs.agent import EruAgentError, EruAgentClient
 from citadel.libs.datastructure import AbortDict

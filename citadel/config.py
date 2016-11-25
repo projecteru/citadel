@@ -3,7 +3,7 @@ from smart_getenv import getenv
 
 
 DEBUG = getenv('DEBUG', default=False, type=bool)
-LOGGER_NAME = 'citadel'
+PROJECT_NAME = LOGGER_NAME = 'citadel'
 SERVER_NAME = getenv('SERVER_NAME')
 SENTRY_DSN = getenv('SENTRY_DSN', default='')
 SECRET_KEY = getenv('SECRET_KEY', default='testsecretkey')
@@ -40,12 +40,17 @@ ELB_POD_NAME = getenv('ELB_POD_NAME', default='elb')
 
 REDIS_POD_NAME = getenv('REDIS_POD_NAME', default='redis')
 
-# redis pod is managed by cerberus, elb pod is managed by views.loadbalance
-IGNORE_PODS = {REDIS_POD_NAME, ELB_POD_NAME}
-
 NOTBOT_SENDMSG_URL = getenv('NOTBOT_SENDMSG_URL', default='http://notbot.intra.ricebook.net/api/sendmsg.peter')
 
 try:
     from .local_config import *
 except ImportError:
     pass
+
+# redis pod is managed by cerberus, elb pod is managed by views.loadbalance
+IGNORE_PODS = {REDIS_POD_NAME, ELB_POD_NAME}
+
+TASK_PUBSUB_CHANNEL = 'citadel:task:{task_id}:pubsub'
+CONTAINER_DEBUG_LOG_CHANNEL = 'eru-debug:{}*'
+# send this to mark EOF of stream message
+TASK_PUBSUB_EOF = 'DONE'

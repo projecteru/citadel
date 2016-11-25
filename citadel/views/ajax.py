@@ -3,11 +3,11 @@ import json
 
 from flask import Blueprint, jsonify, Response, g, request, abort, flash
 
-from citadel.action import create_container, remove_container, action_stream, ActionError, upgrade_container
+from citadel.config import TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF, CONTAINER_DEBUG_LOG_CHANNEL
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.ext import rds
 from citadel.libs.json import jsonize
-from citadel.libs.utils import notbot_sendmsg, logger, to_number, with_appcontext
+from citadel.libs.utils import logger, to_number, with_appcontext
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
 from citadel.models.app import AppUserRelation, Release, App
 from citadel.models.container import Container
@@ -15,6 +15,7 @@ from citadel.models.env import Environment
 from citadel.models.loadbalance import ELBInstance
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import core
+from citadel.tasks import create_container, remove_container, ActionError, upgrade_container, action_stream
 from citadel.views.helper import bp_get_app, bp_get_balancer
 
 
@@ -75,69 +76,73 @@ def deploy_release(release_id):
     if release.name == ELB_APP_NAME:
         abort(400, 'Do not deploy %s through this API' % ELB_APP_NAME)
 
-    if not (release.specs and release.specs.entrypoints):
+    specs = release.specs
+    if not (specs and specs.entrypoints):
         abort(404, 'Release %s has no entrypoints')
 
-    payload = request.get_json()
     # TODO: args validation
-    logger.debug('Deploy release ajax API got payload: %s', payload)
-    podname = payload['podname']
-    entrypoint = payload['entrypoint']
-    count = int(payload.get('count', 1))
-    cpu = float(payload.get('cpu', 1))
-    memory = to_number(payload.get('memory', '512MB'))
+    payload = request.get_json()
+    appname = release.name
     envname = payload.get('envname', '')
-    envs = payload.get('envs', '')
-    nodename = payload.get('nodename', '')
-    raw = payload.get('raw', False)
-    debug = payload.get('debug', False)
+    full_envs = Environment.get_by_app_and_env(appname, envname)
+    full_envs = full_envs and full_envs.to_env_vars() or []
+    extra_env = [env.strip() for env in payload.get('envs', '').split(';')]
+    extra_env = [env for env in extra_env if env]
+    full_envs.extend(extra_env)
     # 这里来的就都走自动分配吧
     networks = {key: '' for key in payload['networks']}
-
+    debug = payload.get('debug', False)
+    raw = payload.get('raw', False)
     if raw and not g.user.privilege:
         abort(400, 'Raw deploy only supported for admins')
 
-    if nodename == '_random':
-        nodename = ''
+    deploy_options = {
+        'specs': release.specs_text,
+        'appname': appname,
+        'image': specs.base if raw else release.image,
+        'podname': payload['podname'],
+        'nodename': payload.get('nodename', ''),
+        'entrypoint': payload['entrypoint'],
+        'cpu_quota': float(payload.get('cpu', 1)),
+        'count': int(payload.get('count', 1)),
+        'memory': to_number(payload.get('memory', '512MB')),
+        'networks': networks,
+        'env': full_envs,
+        'raw': raw,
+        'debug': debug,
+    }
 
-    extra_env = [env.strip() for env in envs.split(';')]
-    extra_env = [env for env in extra_env if env]
-
-    try:
-        q = create_container(release.app.git, release.sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=raw, debug=debug)
-    except ActionError as e:
-        logger.error('Error when creating container: code %s, message %s', e.code, e.message)
-        return jsonify({'error': e.message}), 500
+    # TODO: handle stream results
+    logger.debug('Start celery create_container task with payload: %s', deploy_options)
+    async_result = create_container.delay(deploy_options=deploy_options,
+                                          sha=release.sha,
+                                          envname=envname,
+                                          user_id=g.user.id)
 
     def generate_stream_response():
         """relay grpc message, if in debug mode, stream logs as well"""
-        good_news = []
-        bad_news = []
-        for line in action_stream(q):
-            msg = json.loads(line)
-            logger.debug('Stream response emit %s', line)
-            yield line
-            if not msg.get('success'):
-                bad_news.append(msg)
-                logger.error('Error when creating container: %s', msg['error'])
+
+        task_progress_channel = TASK_PUBSUB_CHANNEL.format(task_id=async_result.task_id)
+        pubsub = rds.pubsub()
+        pubsub.subscribe([task_progress_channel])
+        for item in pubsub.listen():
+            logger.debug('Got pubsub message: %s', item)
+            content = item['data']
+            if not isinstance(content, basestring):
                 continue
+            if content == TASK_PUBSUB_EOF:
+                break
             else:
-                good_news.append(msg)
+                yield content
 
-        subscribers = release.specs.subscribers
-        msg = 'Deploy {}\n*BAD NEWS*:\n```{}```\n*GOOD NEWS*:\n```{}```'.format(release.name, bad_news, good_news)
-        if bad_news:
-            subscribers += ';#platform'
-            msg += '\n@timfeirg'
-
-        notbot_sendmsg(subscribers, msg)
+        async_result.wait(timeout=20)
+        yield json.dumps({'error': async_result.traceback})
 
         if debug:
-            pubsub = rds.pubsub()
-            channel_name = 'eru-debug:{}*'.format(release.name)
-            logger.debug('Subscribe to channel %s for container debug log', channel_name)
-            pubsub.psubscribe(channel_name)
-            for item in pubsub.listen():
+            debug_log_channel = CONTAINER_DEBUG_LOG_CHANNEL.format(release.name)
+            debug_log_pubsub = rds.pubsub()
+            debug_log_pubsub.psubscribe(debug_log_channel)
+            for item in debug_log_pubsub.listen():
                 logger.debug('Stream response emit debug log: %s', item)
                 yield json.dumps(item)
 
@@ -168,13 +173,13 @@ def remove_containers():
     try:
         q = remove_container(container_ids)
     except ActionError as e:
-        logger.error('error when removing containers: %s', e.message)
+        logger.error('Error when removing containers: %s', e.message)
         return {'error': e.message}
 
     for line in action_stream(q):
         m = json.loads(line)
         if not m['success']:
-            logger.error('error when deleting container: %s', m['message'])
+            logger.error('Error when deleting container: %s', m['message'])
 
     return DEFAULT_RETURN_VALUE
 

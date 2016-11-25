@@ -235,6 +235,11 @@ class Release(BaseModelMixin):
         return commit
 
     @cached_property
+    def specs_text(self):
+        specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
+        return specs_text
+
+    @cached_property
     def specs(self):
         """load app.yaml from GitLab"""
         specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
@@ -316,5 +321,5 @@ class AppUserRelation(BaseModelMixin):
 event.listen(
     App.__table__,
     'after_create',
-    DDL('ALTER TABLE %(table)s AUTO_INCREMENT = 10001;')
+    DDL('ALTER TABLE %(table)s AUTO_INCREMENT = 10001;'),
 )

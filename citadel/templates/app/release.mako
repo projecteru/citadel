@@ -113,7 +113,7 @@
                     <label class="col-sm-2 control-label" for="">Node</label>
                     <div class="col-sm-10">
                       <select class="form-control" name="node" disabled hidden>
-                        <option value="_random">Let Eru choose for me</option>
+                        <option value="">Let Eru choose for me</option>
                       </select>
                     </div>
                   </div>
@@ -215,7 +215,7 @@
               <div class="col-sm-10">
                 <select class="form-control" name="node">
                   % if len(nodes) > 1:
-                    <option value="_random">Let Eru choose for me</option>
+                    <option value="">Let Eru choose for me</option>
                   % endif
                   % for n in nodes:
                     <option value="${ n.name }">${ n.name }</option>

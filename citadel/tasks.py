@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 import json
-from Queue import Queue, Empty
+from Queue import Empty, Queue
 
 import yaml
+from celery import current_app
 from flask import g
 from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 
+from citadel.config import TASK_PUBSUB_CHANNEL
+from citadel.ext import rds
 from citadel.libs.json import JSONEncoder
-from citadel.libs.utils import logger, ContextThread
+from citadel.libs.utils import logger, ContextThread, notbot_sendmsg
 from citadel.models.app import App, Release
 from citadel.models.container import Container
-from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_name, get_file_content, get_build_artifact
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
@@ -29,31 +31,6 @@ class ActionError(Exception):
 
     def __str__(self):
         return self.message
-
-    def __repr__(self):
-        return '<ActionError {}>'.format(self.message)
-
-
-def _get_current_user_id():
-    """with_appcontext的线程是没有g.user的, 得通过其他方式拿到了之后传进去."""
-    if not hasattr(g, 'user'):
-        return 0
-    return g.user and g.user.id or 0
-
-
-def action_stream(q):
-    """因为grpc这边需要一直同步等待返回, 所以没办法啊, 只好用一个Thread来做这个事情了.
-    q就是对应的queue. 需要返回结果的话就用这个来取就行.
-    为什么要用Thread呢, 因为Greenlet会死... grpc好渣
-    """
-    while True:
-        try:
-            e = q.get(timeout=120)
-            if e is _eof:
-                break
-            yield e
-        except Empty:
-            break
 
 
 def _peek_grpc(call, thread_queue=None):
@@ -140,118 +117,49 @@ def build_image(repo, sha, uid='', artifact='', gitlab_build_id=''):
     return q
 
 
-class CreateContainerThread(ContextThread):
+@current_app.task(bind=True)
+def create_container(self, deploy_options=None, sha=None, user_id=None, envname=None):
+    appname = deploy_options['appname']
+    entrypoint = deploy_options['entrypoint']
+    ms = _peek_grpc(core.create_container(deploy_options))
 
-    def __init__(self, q, repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args='', debug=False):
-        super(CreateContainerThread, self).__init__()
-        self.daemon = True
+    release = Release.get_by_app_and_sha(appname, sha)
 
-        pod = core.get_pod(podname)
-        if not pod:
-            raise ActionError(400, 'pod %s not exist' % podname)
+    containers = []
+    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
+    good_news = []
+    bad_news = []
+    for m in ms:
+        rds.publish(channel_name, json.dumps(m, cls=JSONEncoder))
+        if m.success:
+            good_news.append(m)
+            logger.debug('Creating %s:%s got grpc message %s', appname, entrypoint, m)
+            container = Container.create(appname, sha, m.id, entrypoint, envname, deploy_options['cpu_quota'], m.podname, m.nodename)
+            logger.info('Container [%s] created', m.id)
+            if not container:
+                # TODO: can't just continue here, must create container
+                logger.error('Create [%s] created failed', m.id)
+                continue
+            containers.append(container)
 
-        if nodename:
-            node = core.get_node(podname, nodename)
-            if not node:
-                raise ActionError(400, 'node %s, %s not exist' % (podname, nodename))
+            op_content = {'entrypoint': deploy_options['entrypoint'], 'envname': envname, 'networks': deploy_options['networks']}
+            op_content.update(m.to_dict())
+            op_content['cpu'] = deploy_options['cpu_quota']
+            OPLog.create(user_id, OPType.CREATE_CONTAINER, appname, sha, op_content)
+        else:
+            logger.error('Error when creating container: %s', m.error)
+            bad_news.append(m)
 
-        project_name = get_project_name(repo)
-        specs_text = get_file_content(project_name, 'app.yaml', sha)
-        if not specs_text:
-            raise ActionError(400, 'repo %s, %s does not have app.yaml in root directory' % (repo, sha))
+    update_elb_for_containers(containers)
 
-        specs = yaml.load(specs_text)
-        appname = specs.get('appname', '')
-        release = Release.get_by_app_and_sha(appname, sha)
-        if not release:
-            raise ActionError(400, 'repo %s, %s does not have the right appname in app.yaml' % (repo, sha))
+    subscribers = release.specs.subscribers
+    msg = 'Deploy {}\n*GOOD NEWS*:\n```{}```'.format(release.name, good_news)
+    if bad_news:
+        msg += '\n*BAD NEWS*:\n```{}```'.format(bad_news)
+        subscribers += ';#platform'
+        msg += '\n@timfeirg'
 
-        # 如果是raw模式, 用app.yaml里写的base替代
-        image = release.image
-        if raw:
-            image = specs.get('base', '')
-        if not image:
-            logger.error('repo %s, %s has no image, may not been built yet', repo, sha)
-            raise ActionError(400, 'repo %s, %s has no image, may not been built yet' % (repo, sha))
-
-        # 找不到对应env就算了
-        # 需要加一下额外的env
-        env = Environment.get_by_app_and_env(appname, envname)
-        env = env and env.to_env_vars() or []
-        env.extend(extra_env)
-
-        logger.debug('Creating %s:%s container using env %s on pod %s:%s with network %s, cpu %s, memory %s', appname, entrypoint, env, podname, nodename, networks, cpu, memory)
-
-        self.q = q
-        self.specs_text = specs_text
-        self.appname = appname
-        self.image = image
-        self.repo = repo
-        self.sha = sha
-        self.podname = podname
-        self.nodename = nodename
-        self.entrypoint = entrypoint
-        self.cpu = cpu
-        self.memory = memory
-        self.count = count
-        self.networks = networks
-        self.envname = envname
-        self.env = env
-        self.raw = raw
-        self.extra_args = extra_args
-        self.debug = debug
-        self.user_id = _get_current_user_id()
-
-    def execute(self):
-        ms = _peek_grpc(core.create_container(self.specs_text, self.appname,
-                                              self.image, self.podname,
-                                              self.nodename, self.entrypoint,
-                                              self.cpu, self.memory,
-                                              self.count, self.networks,
-                                              self.env, raw=self.raw,
-                                              extra_args=self.extra_args, debug=self.debug),
-                        thread_queue=self.q)
-
-        release = Release.get_by_app_and_sha(self.appname, self.sha)
-        if not release:
-            self.q.put(json.dumps({'error': 'Release {} not found'.format(self.sha)}) + '\n')
-            self.q.put(_eof)
-            return
-
-        containers = []
-        for m in ms:
-            if m.success:
-                logger.debug('Creating %s:%s container Got grpc message %s', self.appname, self.entrypoint, m)
-                container = Container.create(release.app.name, release.sha, m.id,
-                                             self.entrypoint, self.envname, self.cpu, m.podname, m.nodename)
-                if not container:
-                    logger.error('Create [%s] created failed', m.id)
-                    continue
-
-                # 记录oplog, cpu这里需要处理下, 因为返回的消息里也有这个值
-                op_content = {'entrypoint': self.entrypoint, 'envname': self.envname, 'networks': self.networks}
-                op_content.update(m.to_dict())
-                op_content['cpu'] = self.cpu
-                OPLog.create(self.user_id, OPType.CREATE_CONTAINER, self.appname, release.sha, op_content)
-
-                containers.append(container)
-
-                logger.info('Container [%s] created', m.id)
-
-            # 这里的顺序一定要注意
-            # 必须在创建容器完成之后再把消息丢入队列
-            # 否则调用者可能会碰到拿到了消息但是没有容器的状况.
-            self.q.put(json.dumps(m, cls=JSONEncoder) + '\n')
-
-        update_elb_for_containers(containers)
-        self.q.put(_eof)
-
-
-def create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=(), raw=False, extra_args='', debug=False):
-    q = Queue()
-    t = CreateContainerThread(q, repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env=extra_env, raw=raw, extra_args=extra_args, debug=debug)
-    t.start()
-    return q
+    notbot_sendmsg(subscribers, msg)
 
 
 class RemoveContainerThread(ContextThread):
@@ -267,7 +175,6 @@ class RemoveContainerThread(ContextThread):
         for c in containers:
             c.mark_removing()
 
-        # TODO: handle the situations where core try-and-fail to delete container
         update_elb_for_containers(containers, UpdateELBAction.REMOVE)
 
         self.q = q
@@ -383,3 +290,26 @@ def upgrade_container(ids, repo, sha):
     t = UpgradeContainerThread(q, ids, repo, sha)
     t.start()
     return q
+
+
+def _get_current_user_id():
+    """with_appcontext的线程是没有g.user的, 得通过其他方式拿到了之后传进去."""
+    if not hasattr(g, 'user'):
+        return 0
+    return g.user and g.user.id or 0
+
+
+def action_stream(q):
+    """因为grpc这边需要一直同步等待返回, 所以没办法啊, 只好用一个Thread来做这个事情了.
+    q就是对应的queue. 需要返回结果的话就用这个来取就行.
+    为什么要用Thread呢, 因为Greenlet会死... grpc好渣
+    """
+    while True:
+        try:
+            e = q.get(timeout=120)
+            if e is _eof:
+                break
+            logger.debug('Action stream got message %s', e)
+            yield e
+        except Empty:
+            break

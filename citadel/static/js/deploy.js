@@ -12,7 +12,7 @@ $('#add-container-form select[name=pod]').change(function(){
   var node_selection = $('select[name=node]');
   var get_nodes_url = '/ajax/pod/' + pod + '/nodes';
   $.get(get_nodes_url, {}, function(r){
-    node_selection.html('').append($('<option>').val('_random').text('Let Eru choose for me'));
+    node_selection.html('').append($('<option>').val('').text('Let Eru choose for me'));
     for (var i=0; i<r.length; i++) {
       node_selection.append($('<option>').val(r[i].name).text(r[i].name + ' - ' + r[i].ip));
     }
@@ -66,16 +66,14 @@ $('#add-container-button').click(function(e){
   oboe({url: url, method: 'POST', body: data})
     .done(function(r) {
       console.log(r);
-      if (r.channel) {
-        logDisplay.append(r.data + '\n');
+      if (r.error) {
+        success = false
+        $('#container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
+        logDisplay.append(r.error + '\n');
       } else {
         logDisplay.append(JSON.stringify(r) + '\n');
       }
       $(window).scrollTop($(document).height() - $(window).height());
-      if (r.error) {
-        success = false
-        $('#container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
-      }
     }).fail(function(r) {
       logDisplay.append(JSON.stringify(r) + '\n');
       $('#container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
