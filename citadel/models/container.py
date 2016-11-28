@@ -1,5 +1,4 @@
 # coding: utf-8
-
 import itertools
 import json
 
@@ -7,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import ObjectDeletedError
 
 from citadel.ext import db
+from citadel.libs.mimiron import set_mimiron_route, del_mimiron_route
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
 from citadel.network.plugin import get_ips_by_container
@@ -45,10 +45,15 @@ class Container(BaseModelMixin, PropsMixin):
                     podname=podname, nodename=nodename)
             db.session.add(c)
             db.session.commit()
-            return c.inspect()
         except IntegrityError:
             db.session.rollback()
             return None
+
+        specs = self.release and self.release.specs
+        if specs:
+            set_mimiron_route(self.container_id, self.get_node(), specs.permitted_users)
+
+        return c.inspect()
 
     @classmethod
     def get_by_container_id(cls, container_id):
@@ -207,21 +212,17 @@ class Container(BaseModelMixin, PropsMixin):
         ports = [p.port for p in ports]
         return ['%s:%s' % (ip, port) for ip, port in itertools.product(ips, ports)]
 
-    def get_specs(self):
-        from .app import Release
-        release = Release.get_by_app_and_sha(self.appname, self.sha)
-        return release.specs if release else None
-
     def get_node(self):
         return core.get_node(self.podname, self.nodename)
 
     def delete(self):
         try:
+            del_mimiron_route(self.container_id)
             self.destroy_props()
         except ObjectDeletedError:
             logger.warn('Error during deleting: Object %s already deleted', self)
             return None
-        super(Container, self).delete()
+        return super(Container, self).delete()
 
     def to_dict(self):
         d = super(Container, self).to_dict()
