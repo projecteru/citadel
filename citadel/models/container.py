@@ -49,9 +49,9 @@ class Container(BaseModelMixin, PropsMixin):
             db.session.rollback()
             return None
 
-        specs = self.release and self.release.specs
+        specs = c.release and c.release.specs
         if specs:
-            set_mimiron_route(self.container_id, self.get_node(), specs.permitted_users)
+            set_mimiron_route(c.container_id, c.get_node(), specs.permitted_users)
 
         return c.inspect()
 
