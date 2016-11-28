@@ -25,7 +25,7 @@ bp = create_page_blueprint('app', __name__, url_prefix='/app')
 @bp.route('/')
 def index():
     if g.user.privilege and request.values.get('all', type=int):
-        apps = [a for a in App.get_all(g.start, g.limit) if a.name != ELB_APP_NAME]
+        apps = [a for a in App.get_all(limit=None) if a.name != ELB_APP_NAME]
     else:
         apps = App.get_by_user(g.user.id, limit=None)
 

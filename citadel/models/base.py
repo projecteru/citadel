@@ -33,6 +33,8 @@ class BaseModelMixin(db.Model, Jsonized):
     @classmethod
     def get_all(cls, start=0, limit=20):
         q = cls.query.order_by(cls.id.desc())
+        if not any([start, limit]):
+            return q.all()
         return q[start:start + limit]
 
     def delete(self):
