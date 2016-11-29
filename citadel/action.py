@@ -263,6 +263,7 @@ class RemoveContainerThread(ContextThread):
         # publish backends
         containers = [Container.get_by_container_id(i) for i in ids]
         containers = [c for c in containers if c]
+        container_full_ids = [c.container_id for c in containers]
         for c in containers:
             c.mark_removing()
 
@@ -270,7 +271,7 @@ class RemoveContainerThread(ContextThread):
         update_elb_for_containers(containers, UpdateELBAction.REMOVE)
 
         self.q = q
-        self.ids = ids
+        self.ids = container_full_ids
         self.user_id = _get_current_user_id()
 
     def execute(self):
@@ -286,8 +287,12 @@ class RemoveContainerThread(ContextThread):
                 op_content = {'container_id': m.id}
                 OPLog.create(self.user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
                 logger.info('Container [%s] deleted', m.id)
+            elif 'Container ID must be length of' in m.message:
+                # TODO: this requires core doesn't change this error message,
+                # maybe use error code in the future
+                continue
             else:
-                logger.info('Container [%s] error, but still deleted', m.id)
+                logger.info('Delete container [%s] error: %s, but still deleted', m.id, m.message)
 
             container.delete()
             self.q.put(json.dumps(m, cls=JSONEncoder) + '\n')
