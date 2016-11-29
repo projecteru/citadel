@@ -34,8 +34,8 @@ def build():
     uid = data.get('uid', '')
     gitlab_build_id = data.get('gitlab_build_id', '')
 
-    q = build_image(repo, sha, uid, artifact, gitlab_build_id)
-    return Response(action_stream(q), mimetype='application/json')
+    async_result = build_image.delay(repo, sha, uid, artifact, gitlab_build_id)
+    return Response(celery_task_stream_response(async_result.task_id), mimetype='application/json')
 
 
 @bp.route('/deploy', methods=['POST'])

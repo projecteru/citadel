@@ -62,59 +62,36 @@ def _peek_grpc(call, thread_queue=None):
     return ms
 
 
-class BuildThread(ContextThread):
+@current_app.task(bind=True)
+def build_image(self, repo, sha, uid='', artifact='', gitlab_build_id=''):
+    project_name = get_project_name(repo)
+    specs_text = get_file_content(project_name, 'app.yaml', sha)
+    if not specs_text:
+        raise ActionError(400, 'repo %s does not have app.yaml in root directory' % repo)
 
-    def __init__(self, q, repo, sha, uid='', artifact='', gitlab_build_id=''):
-        logger.debug('Initialize BuildThread for %s:%s, uid %s, artifact %s, gitlab_build_id %s', repo, sha, uid, artifact, gitlab_build_id)
-        super(BuildThread, self).__init__()
-        self.daemon = True
-        self.q = q
+    specs = yaml.load(specs_text)
+    appname = specs.get('appname', '')
+    if not appname:
+        raise ActionError(400, 'repo %s does not have the right appname in app.yaml' % repo)
 
-        project_name = get_project_name(repo)
-        specs_text = get_file_content(project_name, 'app.yaml', sha)
-        if not specs_text:
-            raise ActionError(400, 'repo %s does not have app.yaml in root directory' % repo)
+    # 尝试通过gitlab_build_id去取最近成功的一次artifact
+    if not artifact:
+        artifact = get_build_artifact(project_name, sha, gitlab_build_id)
 
-        specs = yaml.load(specs_text)
-        appname = specs.get('appname', '')
-        if not appname:
-            raise ActionError(400, 'repo %s does not have the right appname in app.yaml' % repo)
+    app = App.get_by_name(appname)
+    uid = str(uid or app.uid)
 
-        # 尝试通过gitlab_build_id去取最近成功的一次artifact
-        if not artifact:
-            artifact = get_build_artifact(project_name, sha, gitlab_build_id)
+    image = ''
+    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
+    ms = _peek_grpc(core.build_image(repo, sha, uid, artifact))
+    for m in ms:
+        rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
+        if m.status == 'finished':
+            image = m.progress
 
-        app = App.get_by_name(appname)
-        uid = uid or app.uid
-
-        self.appname = appname
-        self.repo = repo
-        self.sha = sha
-        self.uid = str(uid)
-        self.artifact = artifact
-
-    def execute(self):
-        logger.debug('Building in thread, repo %s:%s, uid %s, artifact %s', self.repo, self.sha, self.uid, self.artifact)
-        image = ''
-        ms = _peek_grpc(core.build_image(self.repo, self.sha, self.uid, self.artifact), thread_queue=self.q)
-        for m in ms:
-            if m.status == 'finished':
-                image = m.progress
-
-            self.q.put(json.dumps(m, cls=JSONEncoder) + '\n')
-
-        self.q.put(_eof)
-
-        release = Release.get_by_app_and_sha(self.appname, self.sha)
-        if release and image:
-            release.update_image(image)
-
-
-def build_image(repo, sha, uid='', artifact='', gitlab_build_id=''):
-    q = Queue()
-    t = BuildThread(q, repo, sha, uid=uid, artifact=artifact, gitlab_build_id=gitlab_build_id)
-    t.start()
-    return q
+    release = Release.get_by_app_and_sha(appname, sha)
+    if release and image:
+        release.update_image(image)
 
 
 @current_app.task(bind=True)
@@ -130,7 +107,7 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
     good_news = []
     bad_news = []
     for m in ms:
-        rds.publish(channel_name, json.dumps(m, cls=JSONEncoder))
+        rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
         if m.success:
             good_news.append(m)
             logger.debug('Creating %s:%s got grpc message %s', appname, entrypoint, m)
@@ -176,7 +153,7 @@ def remove_container(self, ids, user_id=None):
     channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
     ms = _peek_grpc(core.remove_container(full_ids))
     for m in ms:
-        rds.publish(channel_name, json.dumps(m, cls=JSONEncoder))
+        rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
         container = Container.get_by_container_id(m.id)
         if not container:
             logger.info('Container [%s] not found when deleting', m.id)
@@ -306,7 +283,7 @@ def celery_task_stream_response(celery_task_id):
         logger.debug('Got pubsub message: %s', item)
         # each content is a single JSON encoded grpc message
         content = item['data']
-        # omit the initial 1L message
+        # omit the initial message where item['data'] is 1L
         if not isinstance(content, basestring):
             continue
         # task will publish TASK_PUBSUB_EOF at success or failure
