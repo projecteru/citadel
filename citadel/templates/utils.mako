@@ -120,9 +120,24 @@
       var self = $(this);
       var containerId = self.data('id');
       var url = '/ajax/rmcontainer';
-      $.post(url, {container_id: containerId}, function(){
-        self.parent().parent().remove();
+
+      var data = {container_id: containerId}
+      $.ajax({
+        url: url,
+        dataType: 'json',
+        type: 'post',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(data, textStatus, jQxhr){
+          console.log('Remove container got response: ', data);
+          self.parent().parent().remove();
+        },
+        error: function(jqXhr, textStatus, errorThrown){
+          console.log('Remove container got error: ', jqXhr, textStatus, errorThrown);
+          alert(jqXhr.responseText);
+        }
       })
+
     });
 
     $('button[name=delete-all]').click(function(e){
@@ -134,15 +149,31 @@
       }
       e.preventDefault();
       var ids = [];
+      var data = {};
       var url = '/ajax/rmcontainer';
       $.each($('input[name=container-id]:checked'), function(){
-        ids.push('container_id=' + $(this).val());
+        ids.push($(this).val());
       });
-      $.post(url, ids.join('&'), function(){
-        $.each($('input[name=container-id]:checked'), function(){
-          $(this).parent().parent().remove();
-        });
+      data.container_id = ids;
+
+      $.ajax({
+        url: url,
+        dataType: 'json',
+        type: 'post',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(data, textStatus, jQxhr){
+          console.log('Remove container got response: ', data);
+          $.each($('input[name=container-id]:checked'), function(){
+            $(this).parent().parent().remove();
+          });
+        },
+        error: function(jqXhr, textStatus, errorThrown){
+          console.log('Remove container got error: ', jqXhr, textStatus, errorThrown);
+          alert(jqXhr.responseText);
+        }
       })
+
     });
   </script>
 </%def>

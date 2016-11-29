@@ -213,7 +213,7 @@ class Release(BaseModelMixin):
     def get_by_app_and_sha(cls, name, sha):
         app = App.get_by_name(name)
         if not app:
-            return
+            return None
 
         return cls.query.filter(cls.app_id == app.id, cls.sha.like('{}%'.format(sha))).first()
 

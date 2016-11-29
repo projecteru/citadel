@@ -1,20 +1,19 @@
 # -*- coding: utf-8 -*-
 import json
 
-from flask import Blueprint, jsonify, Response, g, request, abort, flash
+from flask import Blueprint, jsonify, Response, g, request, abort
 
 from citadel.config import CONTAINER_DEBUG_LOG_CHANNEL, ELB_APP_NAME, ELB_POD_NAME
 from citadel.ext import rds
 from citadel.libs.json import jsonize
-from citadel.libs.utils import logger, to_number, with_appcontext
+from citadel.libs.utils import logger, to_number
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
 from citadel.models.app import AppUserRelation, Release, App
 from citadel.models.container import Container
 from citadel.models.env import Environment
-from citadel.models.loadbalance import ELBInstance
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import core
-from citadel.tasks import create_container, remove_container, ActionError, upgrade_container, action_stream, celery_task_stream_response
+from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response
 from citadel.views.helper import bp_get_app, bp_get_balancer
 
 
@@ -82,12 +81,14 @@ def deploy_release(release_id):
     # TODO: args validation
     payload = request.get_json()
     appname = release.name
+
     envname = payload.get('envname', '')
-    full_envs = Environment.get_by_app_and_env(appname, envname)
-    full_envs = full_envs and full_envs.to_env_vars() or []
-    extra_env = [env.strip() for env in payload.get('extra_env', '').split(';')]
-    extra_env = [env for env in extra_env if env]
-    full_envs.extend(extra_env)
+    env = Environment.get_by_app_and_env(appname, envname)
+    env_vars = env and env.to_env_vars() or []
+    extra_env = [s.strip() for s in payload.get('extra_env', '').split(';')]
+    extra_env = [s for s in extra_env if s]
+    env_vars.extend(extra_env)
+
     # 这里来的就都走自动分配吧
     networks = {key: '' for key in payload['networks']}
     debug = payload.get('debug', False)
@@ -106,12 +107,11 @@ def deploy_release(release_id):
         'count': int(payload.get('count', 1)),
         'memory': to_number(payload.get('memory', '512MB')),
         'networks': networks,
-        'env': full_envs,
+        'env': env_vars,
         'raw': raw,
         'debug': debug,
     }
 
-    logger.debug('Start celery create_container task with payload: %s', deploy_options)
     async_result = create_container.delay(deploy_options=deploy_options,
                                           sha=release.sha,
                                           envname=envname,
@@ -122,7 +122,7 @@ def deploy_release(release_id):
         for msg in celery_task_stream_response(async_result.task_id):
             yield msg
 
-        async_result.wait(timeout=20)
+        async_result.wait(timeout=40)
         if async_result.failed():
             logger.debug('Task %s failed, dumping traceback', async_result.task_id)
             yield json.dumps({'error': async_result.traceback})
@@ -155,25 +155,34 @@ def get_release_entrypoints(release_id):
 @jsonize
 def remove_containers():
     # 过滤掉ELB的容器, ELB不要走这个方式下线
-    raw_container_ids = request.form.getlist('container_id')
-    raw_containers = [Container.get_by_container_id(i) for i in raw_container_ids]
-    containers = [c for c in raw_containers if c and c.appname != ELB_APP_NAME]
-    container_ids = [c.container_id for c in containers]
+    payload = request.get_json()
+    raw_container_ids = payload['container_id']
+    if isinstance(raw_container_ids, basestring):
+        raw_container_ids = [raw_container_ids]
+
+    containers = [Container.get_by_container_id(i) for i in raw_container_ids]
     # mark removing so that users would see some changes, but the actual
     # removing happends in celery tasks
+    container_ids = []
     for c in containers:
+        if not c:
+            continue
+        if c.appname == ELB_APP_NAME:
+            return {'error': 'Cannot delete ELB container here'}, 400
         c.mark_removing()
+        container_ids.append(c.container_id)
 
     remove_container.delay(container_ids, user_id=g.user.id)
     return DEFAULT_RETURN_VALUE
 
 
 @bp.route('/upgrade-container', methods=['POST'])
-@jsonize
 def upgrade_containers():
-    container_ids = request.form.getlist('container_id')
-    sha = request.form['sha']
-    appname = request.form['appname']
+    # TODO: validation
+    payload = request.get_json()
+    container_ids = payload['container_ids']
+    sha = payload['sha']
+    appname = payload['appname']
 
     app = App.get_by_name(appname)
     if not app:
@@ -181,17 +190,8 @@ def upgrade_containers():
     if app.name == ELB_APP_NAME:
         abort(400, 'Do not upgrade %s through this API' % ELB_APP_NAME)
 
-    try:
-        q = upgrade_container(container_ids, app.git, sha)
-    except ActionError as e:
-        return {'error': e.message}
-
-    for line in action_stream(q):
-        m = json.loads(line)
-        if not m['success']:
-            logger.error('error when upgrading container %s: %s', m['id'], m['error'])
-
-    return DEFAULT_RETURN_VALUE
+    async_result = upgrade_container.delay(container_ids, app.git, sha)
+    return Response(celery_task_stream_response(async_result.task_id), mimetype='application/json')
 
 
 @bp.route('/pods')
@@ -209,53 +209,40 @@ def get_pod_nodes(name):
 @bp.route('/loadbalance', methods=['POST'])
 @jsonize
 def create_loadbalance():
-    release_id = request.form['releaseid']
-    release = Release.get(release_id)
-    if not release:
-        abort(404, 'Release %s not found' % release_id)
-
-    entrypoint = request.form['entrypoint']
-    cpu = request.form.get('cpu', type=float, default=1)
-    nodename = request.form.get('nodename', '')
-    comment = request.form.get('comment', '')
-    envname = request.form['envname']
+    # TODO: validation
+    logger.debug('Got create_loadbalance payload: %s', request.data)
+    payload = request.get_json()
+    release = Release.get(payload['releaseid'])
+    envname = payload['envname']
     env = Environment.get_by_app_and_env(ELB_APP_NAME, envname)
+    env_vars = env and env.to_env_vars() or []
     name = env.get('ELBNAME', 'unnamed')
-    memory = to_number('2GB')
-
-    try:
-        q = create_container(release.app.git, release.sha, ELB_POD_NAME, nodename, entrypoint, cpu, memory, 1, {}, envname)
-    except ActionError as e:
-        msg = 'error when creating ELB: %s', e.message
-        logger.error(msg)
-        flash(msg)
-        return {'error': e.message}
-
     user_id = g.user.id
+    sha = release.sha
 
-    @with_appcontext
-    def _stream_consumer(q):
-        for line in action_stream(q):
-            m = json.loads(line)
-            if not m['success']:
-                logger.error('error when creating ELB: %s', m['error'])
-                continue
-
-            container = Container.get_by_container_id(m['id'])
-            if not container:
-                continue
-
-            ips = container.get_ips()
-            elb = ELBInstance.create(ips[0], container.container_id, name, comment)
-
-            # 记录oplog
-            op_content = {'elbname': name, 'container_id': container.container_id}
-            OPLog.create(user_id, OPType.CREATE_ELB_INSTANCE, release.app.name, release.sha, op_content)
-
-            yield elb
-
-    for elb in _stream_consumer(q):
-        logger.info('ELB [%s] created', elb.name)
+    deploy_options = {
+        'specs': release.specs_text,
+        'appname': ELB_APP_NAME,
+        'image': release.image,
+        'podname': ELB_POD_NAME,
+        'nodename': payload.get('nodename', ''),
+        'entrypoint': payload['entrypoint'],
+        'cpu_quota': float(payload.get('cpu', 2)),
+        'count': 1,
+        'memory': to_number('2GB'),
+        'networks': {},
+        'env': env_vars,
+    }
+    try:
+        # TODO: slow, async?
+        container_ids = create_container(deploy_options=deploy_options,
+                                         sha=sha, envname=envname,
+                                         user_id=user_id)
+        create_elb_instance_upon_containers(container_ids, name, sha,
+                                            comment=payload['comment'],
+                                            user_id=user_id)
+    except ActionError as e:
+        return {'error': e.message}, 500
     return DEFAULT_RETURN_VALUE
 
 
@@ -267,23 +254,10 @@ def remove_loadbalance(id):
         elb.clear_rules()
 
     try:
-        q = remove_container([elb.container_id], user_id=g.user.id)
-    except ActionError as e:
-        return {'error': e.message}
-
-    if q.empty():
-        # sometimes life is hard, container may already be deleted, but not in
-        # citadel, so the queue is empty
+        remove_container(elb.container_id, user_id=g.user.id)
         elb.delete()
-    else:
-        for line in action_stream(q):
-            m = json.loads(line)
-            if m['success'] and elb.container_id == m['id']:
-                logger.info('ELB [%s] deleted', elb.name)
-                elb.delete()
-            else:
-                logger.error('ELB [%s] delete error, container [%s]', elb.name, m['id'])
-
+    except ActionError as e:
+        return {'error': e.message}, 500
     return DEFAULT_RETURN_VALUE
 
 

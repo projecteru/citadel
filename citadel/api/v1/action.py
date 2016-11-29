@@ -11,7 +11,7 @@ from citadel.models.app import Release
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_name, get_file_content
 from citadel.rpc import core
-from citadel.tasks import create_container, remove_container, ActionError, upgrade_container, action_stream, celery_task_stream_response, build_image
+from citadel.tasks import create_container, remove_container, ActionError, upgrade_container, celery_task_stream_response, build_image
 
 
 # 把action都挂在/api/:version/下, 不再加前缀
@@ -58,9 +58,9 @@ def deploy():
     networks = {key: '' for key in data.get('networks', {})}
     envname = data.get('env', '')
     env = Environment.get_by_app_and_env(appname, envname)
-    full_envs = env and env.to_env_vars() or []
+    env_vars = env and env.to_env_vars() or []
     extra_env = data.get('extra_env', [])
-    full_envs.extend(extra_env)
+    env_vars.extend(extra_env)
 
     raw = bool(data.get('raw', ''))
     deploy_options = {
@@ -74,7 +74,7 @@ def deploy():
         'count': int(data['count']),
         'memory': int(data.get('memory', 0)),
         'networks': networks,
-        'env': full_envs,
+        'env': env_vars,
         'raw': raw,
         'debug': bool(data.get('debug', False)),
         'extra_args': data.get('extra_args', ''),
@@ -99,8 +99,8 @@ def upgrade():
     repo = data['repo']
     sha = data['sha']
 
-    q = upgrade_container(ids, repo, sha)
-    return Response(action_stream(q), mimetype='application/json')
+    async_result = upgrade_container.delay(ids, repo, sha, user_id=g.user.id)
+    return Response(celery_task_stream_response(async_result.task_id), mimetype='application/json')
 
 
 @bp.route('/log', methods=['POST'])

@@ -37,7 +37,6 @@ api_blueprints = [
 ]
 
 ANONYMOUS_PATHS = [
-    '/hook',
     '/user',
 ]
 
@@ -65,7 +64,7 @@ def make_celery(app):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
             rds.publish(channel_name, json.dumps({'error': einfo.traceback}))
             rds.publish(channel_name, TASK_PUBSUB_EOF)
-            msg = 'Deploy with args: `{}`, kwargs: `{}`\n*EXCEPTION*:\n```{}``'.format(args, kwargs, einfo.traceback)
+            msg = 'Deploy with args:\n```\n{}\n```\nkwargs:\n```\n{}\n```\n*EXCEPTION*:\n```\n{}\n```'.format(args, kwargs, einfo.traceback)
             notbot_sendmsg('@timfeirg', msg)
 
         def __call__(self, *args, **kwargs):

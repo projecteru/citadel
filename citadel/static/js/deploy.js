@@ -81,7 +81,7 @@ $('#add-container-button').click(function(e){
       console.log(r);
     })
     .on('end', function() {
-      console.log('Got end signal, deployed succeed:', success);
+      console.log('Got end signal, success:', success);
       if (success == true) {
         window.location.href = window.location.href.replace(/#\w+/g, '');
       } else {
