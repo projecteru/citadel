@@ -1,15 +1,13 @@
 # coding: utf-8
-
 import json
 
-from flask import jsonify, request, Response
+from flask import g, jsonify, request, Response
 
-from citadel.tasks import (build_image, create_container, remove_container,
-                            upgrade_container, action_stream, ActionError)
 from citadel.libs.agent import EruAgentError, EruAgentClient
 from citadel.libs.datastructure import AbortDict
 from citadel.libs.view import create_api_blueprint
 from citadel.rpc import core
+from citadel.tasks import create_container, remove_container, ActionError, upgrade_container, action_stream, celery_task_stream_response, build_image
 
 
 # 把action都挂在/api/:version/下, 不再加前缀
@@ -64,9 +62,8 @@ def deploy():
 def remove():
     data = AbortDict(request.get_json())
     ids = data['ids']
-
-    q = remove_container(ids)
-    return Response(action_stream(q), mimetype='application/json')
+    async_result = remove_container.delay(ids, user_id=g.user.id)
+    return Response(celery_task_stream_response(async_result.task_id), mimetype='application/json')
 
 
 @bp.route('/upgrade', methods=['POST'])

@@ -3,8 +3,7 @@ import json
 
 from flask import Blueprint, jsonify, Response, g, request, abort, flash
 
-from citadel.config import TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF, CONTAINER_DEBUG_LOG_CHANNEL
-from citadel.config import ELB_APP_NAME, ELB_POD_NAME
+from citadel.config import CONTAINER_DEBUG_LOG_CHANNEL, ELB_APP_NAME, ELB_POD_NAME
 from citadel.ext import rds
 from citadel.libs.json import jsonize
 from citadel.libs.utils import logger, to_number, with_appcontext
@@ -15,7 +14,7 @@ from citadel.models.env import Environment
 from citadel.models.loadbalance import ELBInstance
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import core
-from citadel.tasks import create_container, remove_container, ActionError, upgrade_container, action_stream
+from citadel.tasks import create_container, remove_container, ActionError, upgrade_container, action_stream, celery_task_stream_response
 from citadel.views.helper import bp_get_app, bp_get_balancer
 
 
@@ -121,19 +120,8 @@ def deploy_release(release_id):
 
     def generate_stream_response():
         """relay grpc message, if in debug mode, stream logs as well"""
-
-        task_progress_channel = TASK_PUBSUB_CHANNEL.format(task_id=async_result.task_id)
-        pubsub = rds.pubsub()
-        pubsub.subscribe([task_progress_channel])
-        for item in pubsub.listen():
-            logger.debug('Got pubsub message: %s', item)
-            content = item['data']
-            if not isinstance(content, basestring):
-                continue
-            if content == TASK_PUBSUB_EOF:
-                break
-            else:
-                yield content
+        for msg in celery_task_stream_response(async_result.task_id):
+            yield msg
 
         async_result.wait(timeout=20)
         yield json.dumps({'error': async_result.traceback})
@@ -146,7 +134,7 @@ def deploy_release(release_id):
                 logger.debug('Stream response emit debug log: %s', item)
                 yield json.dumps(item)
 
-    return Response(generate_stream_response(), mimetype='text/event-stream')
+    return Response(generate_stream_response(), mimetype='application/json')
 
 
 @bp.route('/release/<release_id>/entrypoints')
@@ -166,21 +154,16 @@ def get_release_entrypoints(release_id):
 @jsonize
 def remove_containers():
     # 过滤掉ELB的容器, ELB不要走这个方式下线
-    container_ids = request.form.getlist('container_id')
-    containers = [Container.get_by_container_id(i) for i in container_ids]
-    container_ids = [c.container_id for c in containers if c and c.appname != ELB_APP_NAME]
+    raw_container_ids = request.form.getlist('container_id')
+    raw_containers = [Container.get_by_container_id(i) for i in raw_container_ids]
+    containers = [c for c in raw_containers if c and c.appname != ELB_APP_NAME]
+    container_ids = [c.container_id for c in containers]
+    # mark removing so that users would see some changes, but the actual
+    # removing happends in celery tasks
+    for c in containers:
+        c.mark_removing()
 
-    try:
-        q = remove_container(container_ids)
-    except ActionError as e:
-        logger.error('Error when removing containers: %s', e.message)
-        return {'error': e.message}
-
-    for line in action_stream(q):
-        m = json.loads(line)
-        if not m['success']:
-            logger.error('Error when deleting container: %s', m['message'])
-
+    remove_container.delay(container_ids, user_id=g.user.id)
     return DEFAULT_RETURN_VALUE
 
 
@@ -283,7 +266,7 @@ def remove_loadbalance(id):
         elb.clear_rules()
 
     try:
-        q = remove_container([elb.container_id])
+        q = remove_container([elb.container_id], user_id=g.user.id)
     except ActionError as e:
         return {'error': e.message}
 

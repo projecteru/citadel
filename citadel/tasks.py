@@ -8,7 +8,7 @@ from flask import g
 from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 
-from citadel.config import TASK_PUBSUB_CHANNEL
+from citadel.config import TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF
 from citadel.ext import rds
 from citadel.libs.json import JSONEncoder
 from citadel.libs.utils import logger, ContextThread, notbot_sendmsg
@@ -162,56 +162,39 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
     notbot_sendmsg(subscribers, msg)
 
 
-class RemoveContainerThread(ContextThread):
+@current_app.task(bind=True)
+def remove_container(self, ids, user_id=None):
+    # publish backends
+    containers = [Container.get_by_container_id(i) for i in ids]
+    containers = [c for c in containers if c]
+    full_ids = [c.container_id for c in containers]
+    for c in containers:
+        c.mark_removing()
 
-    def __init__(self, q, ids):
-        super(RemoveContainerThread, self).__init__()
-        self.daemon = True
+    update_elb_for_containers(containers, UpdateELBAction.REMOVE)
 
-        # publish backends
-        containers = [Container.get_by_container_id(i) for i in ids]
-        containers = [c for c in containers if c]
-        container_full_ids = [c.container_id for c in containers]
-        for c in containers:
-            c.mark_removing()
+    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
+    ms = _peek_grpc(core.remove_container(full_ids))
+    for m in ms:
+        rds.publish(channel_name, json.dumps(m, cls=JSONEncoder))
+        container = Container.get_by_container_id(m.id)
+        if not container:
+            logger.info('Container [%s] not found when deleting', m.id)
+            continue
 
-        update_elb_for_containers(containers, UpdateELBAction.REMOVE)
+        if m.success:
+            # 记录oplog
+            op_content = {'container_id': m.id}
+            OPLog.create(user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
+            logger.info('Container [%s] deleted', m.id)
+        elif 'Container ID must be length of' in m.message:
+            # TODO: this requires core doesn't change this error message,
+            # maybe use error code in the future
+            continue
+        else:
+            logger.info('Container [%s] error, but still deleted', m.id)
 
-        self.q = q
-        self.ids = container_full_ids
-        self.user_id = _get_current_user_id()
-
-    def execute(self):
-        ms = _peek_grpc(core.remove_container(self.ids), thread_queue=self.q)
-        for m in ms:
-            container = Container.get_by_container_id(m.id)
-            if not container:
-                logger.info('Container [%s] not found when deleting', m.id)
-                continue
-
-            if m.success:
-                # 记录oplog
-                op_content = {'container_id': m.id}
-                OPLog.create(self.user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
-                logger.info('Container [%s] deleted', m.id)
-            elif 'Container ID must be length of' in m.message:
-                # TODO: this requires core doesn't change this error message,
-                # maybe use error code in the future
-                continue
-            else:
-                logger.info('Delete container [%s] error: %s, but still deleted', m.id, m.message)
-
-            container.delete()
-            self.q.put(json.dumps(m, cls=JSONEncoder) + '\n')
-
-        self.q.put(_eof)
-
-
-def remove_container(ids):
-    q = Queue()
-    t = RemoveContainerThread(q, ids)
-    t.start()
-    return q
+        container.delete()
 
 
 class UpgradeContainerThread(ContextThread):
@@ -313,3 +296,21 @@ def action_stream(q):
             yield e
         except Empty:
             break
+
+
+def celery_task_stream_response(celery_task_id):
+    task_progress_channel = TASK_PUBSUB_CHANNEL.format(task_id=celery_task_id)
+    pubsub = rds.pubsub()
+    pubsub.subscribe([task_progress_channel])
+    for item in pubsub.listen():
+        logger.debug('Got pubsub message: %s', item)
+        # each content is a single JSON encoded grpc message
+        content = item['data']
+        # omit the initial 1L message
+        if not isinstance(content, basestring):
+            continue
+        # task will publish TASK_PUBSUB_EOF at success or failure
+        if content == TASK_PUBSUB_EOF:
+            break
+        else:
+            yield content
