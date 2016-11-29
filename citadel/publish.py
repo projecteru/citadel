@@ -3,8 +3,6 @@ import json
 
 from citadel.ext import rds, etcd
 from citadel.libs.utils import handle_etcd_exception
-from citadel.models.app import App
-from citadel.models.container import Container
 
 
 _APP_DISCOVERY_KEY = 'eru:discovery:published'
@@ -73,6 +71,8 @@ class EtcdPublisher(object):
         self.write(path, json.dumps(app))
 
     def publish_app(self, appname):
+        from citadel.models.container import Container
+        from citadel.models.app import App
         app = App.get_by_name(appname)
         if not app:
             return

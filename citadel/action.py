@@ -15,7 +15,6 @@ from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_name, get_file_content, get_build_artifact
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
-from citadel.publish import publisher
 from citadel.rpc import core
 
 
@@ -236,7 +235,6 @@ class CreateContainerThread(ContextThread):
                 OPLog.create(self.user_id, OPType.CREATE_CONTAINER, self.appname, release.sha, op_content)
 
                 containers.append(container)
-                publisher.add_container(container)
 
                 logger.info('Container [%s] created', m.id)
 
@@ -267,7 +265,6 @@ class RemoveContainerThread(ContextThread):
         containers = [c for c in containers if c]
         for c in containers:
             c.mark_removing()
-            publisher.remove_container(c)
 
         # TODO: handle the situations where core try-and-fail to delete container
         update_elb_for_containers(containers, UpdateELBAction.REMOVE)
@@ -340,7 +337,6 @@ class UpgradeContainerThread(ContextThread):
             if not container:
                 continue
             container.mark_removing()
-            publisher.remove_container(container)
 
         self.ids = ids
         self.repo = repo
@@ -365,7 +361,6 @@ class UpgradeContainerThread(ContextThread):
                 op_content = {'old_id': m.id, 'new_id': m.new_id, 'old_sha': old.sha, 'new_sha': c.sha}
                 OPLog.create(self.user_id, OPType.UPGRADE_CONTAINER, c.appname, c.sha, op_content)
 
-                publisher.add_container(c)
                 # 这里只能一个一个更新 elb 了，无法批量更新
                 update_elb_for_containers(old, UpdateELBAction.REMOVE)
                 old.delete()

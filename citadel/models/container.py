@@ -53,6 +53,8 @@ class Container(BaseModelMixin, PropsMixin):
         if specs:
             set_mimiron_route(c.container_id, c.get_node(), specs.permitted_users)
 
+        from citadel.publish import publisher
+        publisher.add_container(c)
         return c.inspect()
 
     @classmethod
@@ -158,7 +160,9 @@ class Container(BaseModelMixin, PropsMixin):
         return self.sha[:7]
 
     def mark_removing(self):
+        from citadel.publish import publisher
         self.removing = 1
+        publisher.remove_container(self)
 
     def inspect(self):
         """must be called after get / create"""
@@ -216,6 +220,8 @@ class Container(BaseModelMixin, PropsMixin):
         return core.get_node(self.podname, self.nodename)
 
     def delete(self):
+        from citadel.publish import publisher
+        publisher.remove_container(self)
         try:
             del_mimiron_route(self.container_id)
             self.destroy_props()
