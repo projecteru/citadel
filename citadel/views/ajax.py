@@ -85,7 +85,7 @@ def deploy_release(release_id):
     envname = payload.get('envname', '')
     full_envs = Environment.get_by_app_and_env(appname, envname)
     full_envs = full_envs and full_envs.to_env_vars() or []
-    extra_env = [env.strip() for env in payload.get('envs', '').split(';')]
+    extra_env = [env.strip() for env in payload.get('extra_env', '').split(';')]
     extra_env = [env for env in extra_env if env]
     full_envs.extend(extra_env)
     # 这里来的就都走自动分配吧

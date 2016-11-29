@@ -1,11 +1,15 @@
 # coding: utf-8
 import json
 
-from flask import g, jsonify, request, Response
+import yaml
+from flask import g, jsonify, Response, request
 
 from citadel.libs.agent import EruAgentError, EruAgentClient
 from citadel.libs.datastructure import AbortDict
 from citadel.libs.view import create_api_blueprint
+from citadel.models.app import Release
+from citadel.models.env import Environment
+from citadel.models.gitlab import get_project_name, get_file_content
 from citadel.rpc import core
 from citadel.tasks import create_container, remove_container, ActionError, upgrade_container, action_stream, celery_task_stream_response, build_image
 
@@ -41,21 +45,43 @@ def deploy():
     # TODO 参数需要类型校验
     repo = data['repo']
     sha = data['sha']
-    podname = data['podname']
-    entrypoint = data['entrypoint']
-    cpu = float(data['cpu_quota'])
-    count = int(data['count'])
-    networks = data.get('networks', {})
-    envname = data.get('env', '')
-    extra_env = data.get('extra_env', [])
-    extra_args = data.get('extra_args', '')
-    nodename = data.get('nodename', '')
-    raw = bool(data.get('raw', ''))
-    debug = data.get('debug', False)
-    memory = int(data.get('memory', 0))
+    project_name = get_project_name(repo)
+    specs_text = get_file_content(project_name, 'app.yaml', sha)
+    if not specs_text:
+        raise ActionError(400, 'repo %s, %s does not have app.yaml in root directory' % (repo, sha))
+    specs = yaml.load(specs_text)
+    appname = specs.get('appname', '')
+    release = Release.get_by_app_and_sha(appname, sha)
+    if not release:
+        raise ActionError(400, 'repo %s, %s does not have the right appname in app.yaml' % (repo, sha))
 
-    q = create_container(repo, sha, podname, nodename, entrypoint, cpu, memory, count, networks, envname, extra_env, raw=raw, extra_args=extra_args, debug=debug)
-    return Response(action_stream(q), mimetype='application/json')
+    networks = {key: '' for key in data.get('networks', {})}
+    envname = data.get('env', '')
+    env = Environment.get_by_app_and_env(appname, envname)
+    full_envs = env and env.to_env_vars() or []
+    extra_env = data.get('extra_env', [])
+    full_envs.extend(extra_env)
+
+    raw = bool(data.get('raw', ''))
+    deploy_options = {
+        'specs': release.specs_text,
+        'appname': appname,
+        'image': specs.base if raw else release.image,
+        'podname': data['podname'],
+        'nodename': data.get('nodename', ''),
+        'entrypoint': data['entrypoint'],
+        'cpu_quota': float(data['cpu_quota']),
+        'count': int(data['count']),
+        'memory': int(data.get('memory', 0)),
+        'networks': networks,
+        'env': full_envs,
+        'raw': raw,
+        'debug': bool(data.get('debug', False)),
+        'extra_args': data.get('extra_args', ''),
+    }
+
+    async_result = create_container.delay(deploy_options, sha=data['sha'], user_id=g.user.id, envname=envname)
+    return Response(celery_task_stream_response(async_result.task_id), mimetype='application/json')
 
 
 @bp.route('/remove', methods=['POST'])
