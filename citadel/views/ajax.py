@@ -111,7 +111,6 @@ def deploy_release(release_id):
         'debug': debug,
     }
 
-    # TODO: handle stream results
     logger.debug('Start celery create_container task with payload: %s', deploy_options)
     async_result = create_container.delay(deploy_options=deploy_options,
                                           sha=release.sha,
@@ -124,7 +123,9 @@ def deploy_release(release_id):
             yield msg
 
         async_result.wait(timeout=20)
-        yield json.dumps({'error': async_result.traceback})
+        if async_result.failed():
+            logger.debug('Task %s failed, dumping traceback', async_result.task_id)
+            yield json.dumps({'error': async_result.traceback})
 
         if debug:
             debug_log_channel = CONTAINER_DEBUG_LOG_CHANNEL.format(release.name)

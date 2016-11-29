@@ -311,6 +311,7 @@ def celery_task_stream_response(celery_task_id):
             continue
         # task will publish TASK_PUBSUB_EOF at success or failure
         if content == TASK_PUBSUB_EOF:
+            logger.debug('Got EOF from pubsub, break celery_task_stream_response')
             break
         else:
             yield content
