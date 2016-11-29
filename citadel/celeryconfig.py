@@ -18,4 +18,4 @@ task_queues = (
 task_default_exchange = PROJECT_NAME
 task_default_routing_key = PROJECT_NAME
 task_serializer = 'pickle'
-accept_content = ['pickle']
+accept_content = ['pickle', 'json']
