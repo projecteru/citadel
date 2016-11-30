@@ -36,7 +36,10 @@ def get_pod_nodes(name):
 
 @bp.route('/pod/<podname>/node/<nodename>', methods=['GET', 'DELETE'])
 def node(podname, nodename):
+    containers = Container.get_by_node(nodename, g.start, g.limit)
     if request.method == 'DELETE':
+        if containers:
+            return jsonify({'error': 'Node not empty'}), 400
         core.remove_node(nodename, podname)
         return jsonify({'message': 'OK'})
 
@@ -47,7 +50,6 @@ def node(podname, nodename):
     if not node:
         abort(404)
 
-    containers = Container.get_by_node(nodename, g.start, g.limit)
     return render_template('/admin/node_containers.mako',
                            pod=pod,
                            node=node,
