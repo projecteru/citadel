@@ -1,11 +1,15 @@
 # coding: utf-8
+import json
 import logging
 
+from celery import Celery, Task
 from flask import g, abort, session, Flask, request
 from werkzeug.utils import import_string
 
-from citadel.ext import db, mako
+from citadel.config import TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF
+from citadel.ext import rds, db, mako
 from citadel.libs.datastructure import DateConverter
+from citadel.libs.utils import notbot_sendmsg
 from citadel.models.user import get_current_user, get_current_user_via_auth
 from citadel.sentry import SentryCollector
 
@@ -33,7 +37,6 @@ api_blueprints = [
 ]
 
 ANONYMOUS_PATHS = [
-    '/hook',
     '/user',
 ]
 
@@ -45,6 +48,34 @@ def anonymous_path(path):
     return False
 
 
+def make_celery(app):
+    celery = Celery(app.import_name)
+    celery.config_from_object('citadel.celeryconfig')
+
+    class EruGRPCTask(Task):
+
+        abstract = True
+
+        def on_success(self, retval, task_id, args, kwargs):
+            channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
+            rds.publish(channel_name, TASK_PUBSUB_EOF)
+
+        def on_failure(self, exc, task_id, args, kwargs, einfo):
+            channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
+            rds.publish(channel_name, json.dumps({'error': einfo.traceback}))
+            rds.publish(channel_name, TASK_PUBSUB_EOF)
+            msg = 'Deploy with args:\n```\n{}\n```\nkwargs:\n```\n{}\n```\n*EXCEPTION*:\n```\n{}\n```'.format(args, kwargs, einfo.traceback)
+            notbot_sendmsg('@timfeirg', msg)
+
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return Task.__call__(self, *args, **kwargs)
+
+    celery.Task = EruGRPCTask
+    celery.autodiscover_tasks(['citadel'])
+    return celery
+
+
 def create_app():
     app = Flask(__name__, static_url_path='/citadel/static')
     app.url_map.converters['date'] = DateConverter
@@ -54,6 +85,7 @@ def create_app():
 
     app.url_map.strict_slashes = False
 
+    make_celery(app)
     db.init_app(app)
     mako.init_app(app)
 

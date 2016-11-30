@@ -59,13 +59,15 @@
   </%utils:panel>
 
   <%utils:panel>
+
     <%def name="header()">
       <h3 class="panel-title">Online Containers: ${ len(containers) }</h3>
     </%def>
-    <%utils:container_list containers="${ containers }">
-      <button name="upgrade-all" class="btn btn-primary pull-left" data-toggle="modal" data-target="#upgrade-container-modal"><span class="fui-apple"></span> Upgrade Chosen</button>
 
+    <%utils:container_list containers="${ containers }">
+      <button name="upgrade-container" class="btn btn-primary pull-left" data-toggle="modal" data-target="#upgrade-container-modal"><span class="fui-apple"></span> Upgrade Chosen</button>
     </%utils:container_list>
+
   </%utils:panel>
 
   <%call expr="utils.modal('upgrade-container-modal')">
@@ -92,24 +94,64 @@
     </%def>
   </%call>
 
-  <script>
+  <%call expr="utils.modal('upgrade-container-progress', dialog_class='modal-lg')">
+    <%def name="header()">
+      <h3 class="modal-title">Upgrading...</h3>
+    </%def>
+    <%def name="footer()">
+    </%def>
 
+    <pre id="upgrade-container-pre"></pre>
+
+  </%call>
+
+  <script>
     $('button[id=upgrade-container-button]').click(function(e){
       e.preventDefault();
       if (!$('input[name=container-id]:checked').length) {
         return;
       }
 
-      var payload = [];
-      payload.push('sha=' + $('select[name=release]').val());
-      payload.push('appname=' + $('h4').html());
+      var data = {};
+      var container_ids = [];
+      data.sha = $('select[name=release]').val();
+      data.appname = $('h4').html();
       $.each($('input[name=container-id]:checked'), function(){
-        payload.push('container_id=' + $(this).val());
+        container_ids.push($(this).val());
       })
+      data.container_ids = container_ids;
 
-      $.post('/ajax/upgrade-container', payload.join('&'), function(){
-        location.reload();
-      })
+      $('#upgrade-container-modal').modal('hide');
+      $('#upgrade-container-progress').modal('show');
+
+
+      var logDisplay = $('#upgrade-container-pre');
+      var success = true;
+      oboe({url: "${ url_for('ajax.upgrade_containers') }", method: 'POST', body: data})
+        .done(function(r) {
+          console.log(r);
+          if (r.error) {
+            console.log('Upgrade Container got error', r);
+            success = false;
+            $('#upgrade-container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
+            logDisplay.append(r.error + '\n');
+          } else {
+            logDisplay.append(JSON.stringify(r) + '\n');
+          }
+          $(window).scrollTop($(document).height() - $(window).height());
+        }).fail(function(r) {
+          logDisplay.append(JSON.stringify(r) + '\n');
+          $('#upgrade-container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
+          console.log(r);
+        })
+        .on('end', function() {
+          console.log('Got end signal, success:', success);
+          if (success == true) {
+            window.location.href = window.location.href.replace(/#\w+/g, '');
+          } else {
+          $('#upgrade-container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
+          }
+        })
     })
 
     $('button#delete-app').click(function (){

@@ -113,7 +113,7 @@
                     <label class="col-sm-2 control-label" for="">Node</label>
                     <div class="col-sm-10">
                       <select class="form-control" name="node" disabled hidden>
-                        <option value="_random">Let Eru choose for me</option>
+                        <option value="">Let Eru choose for me</option>
                       </select>
                     </div>
                   </div>
@@ -158,7 +158,7 @@
                   <div class="form-group collapse advance-form-group">
                     <label class="col-sm-2 control-label" for="">Extra Env</label>
                     <div class="col-sm-10">
-                      <input class="form-control" type="text" name="envs" value="${ combo.env_string() }" disabled>
+                      <input class="form-control" type="text" name="extra_env" value="${ combo.env_string() }" disabled>
                     </div>
                   </div>
                   <div class="form-group">
@@ -215,7 +215,7 @@
               <div class="col-sm-10">
                 <select class="form-control" name="node">
                   % if len(nodes) > 1:
-                    <option value="_random">Let Eru choose for me</option>
+                    <option value="">Let Eru choose for me</option>
                   % endif
                   % for n in nodes:
                     <option value="${ n.name }">${ n.name }</option>
@@ -272,7 +272,7 @@
             <div class="form-group collapse advance-form-group">
               <label class="col-sm-2 control-label" for="">Extra Env</label>
               <div class="col-sm-10">
-                <input class="form-control" type="text" name="envs" value="" placeholder="例如a=1;b=2;">
+                <input class="form-control" type="text" name="extra_env" value="" placeholder="例如a=1;b=2;">
               </div>
             </div>
             <div class="form-group">

@@ -22,3 +22,4 @@ blinker
 MySQL-python
 requests
 six
+celery[redis]

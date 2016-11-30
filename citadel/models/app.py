@@ -213,7 +213,7 @@ class Release(BaseModelMixin):
     def get_by_app_and_sha(cls, name, sha):
         app = App.get_by_name(name)
         if not app:
-            return
+            return None
 
         return cls.query.filter(cls.app_id == app.id, cls.sha.like('{}%'.format(sha))).first()
 
@@ -233,6 +233,11 @@ class Release(BaseModelMixin):
     def gitlab_commit(self):
         commit = get_commit(self.app.project_name, self.sha)
         return commit
+
+    @cached_property
+    def specs_text(self):
+        specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
+        return specs_text
 
     @cached_property
     def specs(self):
@@ -316,5 +321,5 @@ class AppUserRelation(BaseModelMixin):
 event.listen(
     App.__table__,
     'after_create',
-    DDL('ALTER TABLE %(table)s AUTO_INCREMENT = 10001;')
+    DDL('ALTER TABLE %(table)s AUTO_INCREMENT = 10001;'),
 )

@@ -22,18 +22,29 @@ $('#add-load-balance-button').click(function(e){
   var data = {};
 
   data.releaseid = $('select[name=releaseid]').val();
-  data.podname = $('select[name=pod]').val();
   data.nodename = $('select[name=node]').val();
   data.entrypoint = $('select[name=entrypoint]').val();
   data.cpu = $('input[name=cpu]').val() || '1';
   data.comment = $('input[name=comment]').val() || '';
   data.envname = $('select[name=envname]').val() || '';
 
-  console.log(data);
-  $.post(url, data, function(r){
-    console.log(r);
-    location.reload();
-  });
+  console.log('ELB deploy args:', data);
+  $.ajax({
+    url: url,
+    dataType: 'json',
+    type: 'post',
+    contentType: 'application/json',
+    data: JSON.stringify(data),
+    success: function(data, textStatus, jQxhr){
+      console.log('Add loadbalance got response: ', data);
+      location.reload();
+    },
+    error: function(jqXhr, textStatus, errorThrown){
+      console.log('Add loadbalance got error: ', jqXhr, textStatus, errorThrown);
+      alert(jqXhr.responseText);
+    }
+  })
+
 });
 
 $('a[name=delete-balancer]').click(function(e){
@@ -43,10 +54,23 @@ $('a[name=delete-balancer]').click(function(e){
   }
   var self = $(this);
   var url = '/ajax/loadbalance/{id}/remove'.replace('{id}', self.data('id'));
-  self.html('<span class="fui-trash"></span> Removing...');
-  $.post(url, {}, function(){
-    self.parent().parent().remove();
-  });
+
+  $.ajax({
+    url: url,
+    dataType: 'json',
+    type: 'post',
+    contentType: 'application/json',
+    data: JSON.stringify({}),
+    success: function(data, textStatus, jQxhr){
+      console.log('Remove loadbalance got response: ', data);
+      location.reload();
+    },
+    error: function(jqXhr, textStatus, errorThrown){
+      console.log('Remove loadbalance got error: ', jqXhr, textStatus, errorThrown);
+      alert(jqXhr.responseText);
+    }
+  })
+
 });
 
 })(jQuery);

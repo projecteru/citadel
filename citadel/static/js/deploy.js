@@ -12,7 +12,7 @@ $('#add-container-form select[name=pod]').change(function(){
   var node_selection = $('select[name=node]');
   var get_nodes_url = '/ajax/pod/' + pod + '/nodes';
   $.get(get_nodes_url, {}, function(r){
-    node_selection.html('').append($('<option>').val('_random').text('Let Eru choose for me'));
+    node_selection.html('').append($('<option>').val('').text('Let Eru choose for me'));
     for (var i=0; i<r.length; i++) {
       node_selection.append($('<option>').val(r[i].name).text(r[i].name + ' - ' + r[i].ip));
     }
@@ -46,7 +46,7 @@ $('#add-container-button').click(function(e){
   data.count = form.find('input[name=count]').val() || '1';
   data.cpu = form.find('select[name=cpu]').val() || '0.5';
   data.memory = form.find('select[name=memory]').val() || '512MB';
-  data.envs = form.find('input[name=envs]').val();
+  data.extra_env = form.find('input[name=extra_env]').val();
   var ns = form.find('input[name=network]:checked');
   for (var i=0; i<ns.length; i++) {
     networks.push($(ns[i]).val());
@@ -55,37 +55,37 @@ $('#add-container-button').click(function(e){
   data.raw = form.find('input[name=raw]').prop('checked');
   data.debug = form.find('input[name=debug]').prop('checked');
 
-  console.log(data);
+  console.log('Deploy arguments:', data);
 
   $('#add-container-modal').modal('hide');
   $('#container-progress').modal('show');
 
   var logDisplay = $('#add-container-pre');
-  var success = true
+  var success = true;
   logDisplay.val('');
   oboe({url: url, method: 'POST', body: data})
     .done(function(r) {
       console.log(r);
-      if (r.channel) {
-        logDisplay.append(r.data + '\n');
+      if (r.error) {
+        console.log('Got error', r);
+        success = false;
+        $('#container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
+        logDisplay.append(r.error + '\n');
       } else {
         logDisplay.append(JSON.stringify(r) + '\n');
       }
       $(window).scrollTop($(document).height() - $(window).height());
-      if (r.error) {
-        success = false
-        $('#container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
-      }
     }).fail(function(r) {
       logDisplay.append(JSON.stringify(r) + '\n');
       $('#container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
       console.log(r);
     })
     .on('end', function() {
-      if (success != true) {
-        $('#container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
-      } else {
+      console.log('Got end signal, success:', success);
+      if (success == true) {
         window.location.href = window.location.href.replace(/#\w+/g, '');
+      } else {
+        $('#container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
       }
     })
 
