@@ -43,7 +43,6 @@ class CoreRPC(object):
             raise NoStubError(e.message)
 
     @handle_rpc_exception(default=list)
-    @cache(_LIST_PODS_KEY, ttl=ONE_DAY)
     def list_pods(self):
         stub = self._get_stub()
         r = stub.ListPods(Empty(), _UNARY_TIMEOUT)
@@ -60,7 +59,6 @@ class CoreRPC(object):
         return p and Pod(p)
 
     @handle_rpc_exception(default=None)
-    @cache(_GET_POD, ttl=ONE_DAY)
     def get_pod(self, name):
         stub = self._get_stub()
         opts = GetPodOptions(name=name)
@@ -68,7 +66,6 @@ class CoreRPC(object):
         return p and Pod(p)
 
     @handle_rpc_exception(default=list)
-    @cache(_GET_POD_NODES, ttl=ONE_DAY)
     def get_pod_nodes(self, name):
         stub = self._get_stub()
         opts = ListNodesOptions(podname=name)
