@@ -135,7 +135,7 @@ def deploy_release(release_id):
                 logger.debug('Stream response emit debug log: %s', item)
                 yield json.dumps(item)
 
-    return Response(generate_stream_response(), mimetype='application/json')
+    return Response(generate_stream_response(), mimetype='text/event-stream')
 
 
 @bp.route('/release/<release_id>/entrypoints')
