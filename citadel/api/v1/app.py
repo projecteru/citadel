@@ -2,6 +2,7 @@
 from flask import abort, g, request
 
 from citadel.libs.datastructure import AbortDict
+from citadel.libs.utils import logger
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import App, Release
 from citadel.models.container import Container
@@ -82,6 +83,7 @@ def get_release_containers(name, sha):
 @bp.route('/register', methods=['POST'])
 def register_release():
     data = AbortDict(request.get_json())
+    logger.debug('Register release, payload: %s', data)
 
     name = data['name']
     git = data['git']
