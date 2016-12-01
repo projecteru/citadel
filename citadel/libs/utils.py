@@ -110,6 +110,7 @@ def to_number(memory):
 
 
 def notbot_sendmsg(to, content, subject='Citadel message'):
+    logger.debug('Sending notbot message to %s', to)
     to = to.strip(';')
     if not all([to, content]):
         return

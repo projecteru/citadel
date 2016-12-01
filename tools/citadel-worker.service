@@ -1,11 +1,12 @@
 # ln -s -f `pwd`/citadel.service /etc/systemd/system/
 [Unit]
-Description=Citadel
+Description=Citadel Worker
 After=network.target
 
 [Service]
 Type=simple
-Environment="OAUTHLIB_INSECURE_TRANSPORT=1" "GRPC_VERBOSITY=INFO" "CELERY_RESULT_BACKEND=redis://10.10.176.179" "CELERY_BROKER_URL=redis://10.10.176.179"
+User=nobody
+Environment="OAUTHLIB_INSECURE_TRANSPORT=1" "GRPC_VERBOSITY=INFO" "CELERY_RESULT_BACKEND=redis://rds.nova.ricebook.net" "CELERY_BROKER_URL=redis://rds.nova.ricebook.net"
 WorkingDirectory=/opt/citadel
 ExecStart=/usr/bin/celery -A app:celery worker --autoscale=50,8 --loglevel DEBUG -Q citadel
 LimitNOFILE=10485760
