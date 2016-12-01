@@ -98,9 +98,10 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
     good_news = []
     bad_news = []
     for m in ms:
-        rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
+        content = json.dumps(m, cls=JSONEncoder)
+        rds.publish(channel_name, content + '\n')
         if m.success:
-            good_news.append(m)
+            good_news.append(content)
             logger.debug('Creating %s:%s got grpc message %s', appname, entrypoint, m)
             container = Container.create(appname, sha, m.id, entrypoint, envname, deploy_options['cpu_quota'], m.podname, m.nodename)
             logger.debug('Container [%s] created', m.id)
@@ -116,7 +117,7 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
             OPLog.create(user_id, OPType.CREATE_CONTAINER, appname, sha, op_content)
         else:
             logger.error('Error when creating container: %s', m.error)
-            bad_news.append(m)
+            bad_news.append(content)
 
     update_elb_for_containers(containers)
 
