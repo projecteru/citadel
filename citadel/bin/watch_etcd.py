@@ -62,10 +62,12 @@ def deal(key, data):
         else:
             # 嗯这里已经没有办法取到IP了, 只好暂时作罢.
             # 可能可以找个方法把IP给缓存起来.
-            logger.info('[%s, %s, %s] REMOVE [%s]', container.appname, container.podname, container.entrypoint, container_id)
+            logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
             update_elb_for_containers(container, UpdateELBAction.REMOVE)
-            if container.info.get('State', {}).get('ExitCode', 1) == 0:
-                remove_container([container.container_id])
+            # # 先不要清理自然死亡的容器，debug eggsy
+            # if container.info.get('State', {}).get('ExitCode', 1) == 0:
+            #     logger.info('[%s, %s, %s] REMOVE [%s] citadel model due to ExitCode==0', container.appname, container.podname, container.entrypoint, container_id)
+            #     remove_container([container.container_id])
 
         publisher.publish_app(appname)
     finally:
