@@ -16,4 +16,5 @@ EOF
   ssh c2-eru-1.ricebook.link -t 'sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git fetch --all --prune'
   ssh c2-eru-1.ricebook.link -t 'sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git reset --hard origin/master'
   ssh c2-eru-1.ricebook.link -t 'sudo systemctl restart citadel'
+  ssh c2-eru-1.ricebook.link -t 'sudo systemctl restart citadel-worker'
 fi
