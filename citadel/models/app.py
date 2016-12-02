@@ -218,6 +218,11 @@ class Release(BaseModelMixin):
         return cls.query.filter(cls.app_id == app.id, cls.sha.like('{}%'.format(sha))).first()
 
     @cached_property
+    def raw(self):
+        """if no build clause in app.yaml, this release is considered raw"""
+        return not self.specs.build
+
+    @cached_property
     def short_sha(self):
         return self.sha[:7]
 

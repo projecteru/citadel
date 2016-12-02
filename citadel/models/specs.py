@@ -156,6 +156,11 @@ class Specs(Jsonized):
         appname = data['appname']
         entrypoints = {key: Entrypoint.from_dict(value) for key, value in data.get('entrypoints', {}).iteritems()}
         build = data.get('build', ())
+        # compatibility note:
+        # old apps sometimes write: build: 'echo something'
+        if isinstance(build, basestring):
+            build = build,
+
         volumes = data.get('volumes', ())
         binds = {key: Bind.from_dict(value) for key, value in data.get('binds', {}).iteritems()}
         meta = data.get('meta', {})

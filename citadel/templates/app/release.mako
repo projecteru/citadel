@@ -32,16 +32,18 @@
       ${ author } : ${ message }
     </p>
     <p>image: ${ release.image }</p>
-    % if release.image:
-      <button class="btn btn-info pull-right" data-toggle="modal" data-target="#add-container-modal">
-        <span class="fui-plus"></span> Add Container
-      </button>
-    % elif g.user.privilege:
+    % if release.raw:
       <button class="btn btn-info pull-right" data-toggle="modal" data-target="#add-container-modal">
         <span class="fui-plus"></span> Add Raw Container
       </button>
+    % elif not release.image:
+      <span title="去gitlab pipelines上盯着看，它好我也好，不行的话先重试">
+        <a class="btn btn-xs btn-info disabled" href="${ url_for('app.release', name=release.name, sha=release.sha) }" >
+          <span class="fui-time" ></span> Building...
+        </a>
+      </span>
     % else:
-      <button class="btn btn-info pull-right" disabled>
+      <button class="btn btn-info pull-right" data-toggle="modal" data-target="#add-container-modal">
         <span class="fui-plus"></span> Add Container
       </button>
     % endif
@@ -177,14 +179,6 @@
                       <input class="form-control" type="checkbox" name="debug" value="">
                     </div>
                   </div>
-                  % if g.user.privilege:
-                    <div class="form-group collapse advance-form-group">
-                      <label class="col-sm-2 control-label" for="">Raw</label>
-                      <div class="col-sm-10">
-                        <input class="form-control" type="checkbox" name="raw" value="">
-                      </div>
-                    </div>
-                  % endif
                 </form>
 
               </div>
@@ -294,14 +288,6 @@
                 <input class="form-control" type="checkbox" name="debug" value="">
               </div>
             </div>
-            % if g.user.privilege:
-              <div class="form-group collapse advance-form-group">
-                <label class="col-sm-2 control-label" for="">Raw</label>
-                <div class="col-sm-10">
-                  <input class="form-control" type="checkbox" name="raw" value="">
-                </div>
-              </div>
-            % endif
           </form>
 
         % endif
@@ -341,4 +327,9 @@
 
 <%def name="bottom_script()">
   <script src="/citadel/static/js/deploy.js" type="text/javascript"></script>
+  <script>
+    $(function(){
+      $('[data-toggle="tooltip"]').tooltip();
+    });
+  </script>
 </%def>

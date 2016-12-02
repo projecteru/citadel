@@ -94,7 +94,8 @@ combos:
 	* `permdir`: 如果容器需要在 mfs 上共享数据, 这里设置为 true. 会把 mfs 上的 `/mnt/mfs/permdirs/{appname}` 映射到容器内部的 `/{appname}/permdir`, 这个值也可以在容器内部通过 `ERU_PERMDIR` 这个环境变量拿. 注意, 如果这里不是 true, 就没有这个映射关系, 环境变量也就不存在.
 	* `working_dir`: core 默认的工作目录是在 `/{appname}`, 如果你希望切走, 可以在这里写上工作目录的绝对路径, 如果目录不存在, 那就会挂...
 	* `privileged`: 容器默认使用 appname 的 user 来运行, 有时候你可能想监听 80 端口, 需要 root 权限, 这时候这里可以设置为 true, 但是请不要滥用, 万一你被人搞了进来拿到了 root 又搞了什么别的坏事... 不作死就不会死.
-* `base`: 打包镜像的时候使用的基础镜像名字. 如果想用 `raw` 模式来部署, 这里的镜像就是会使用的镜像.
+* `base`: 打包镜像的时候使用的基础镜像名字. 如果不写 `build`, 这里的镜像就是部署时会使用的镜像.
+* `build`: list，打包镜像阶段的 shell 命令，如果缺省，则不为该 app 打包镜像，部署的似乎直接用 `base` 作为镜像。
 * `mount_paths`: flex 对之前恶心的挂载目录方式意见很大, 于是简化了一下. 在这个 `mount_paths` 里, 列出的容器内的目录都会被挂载到对应的 mfs 的 permdir 下面去. 例如这里我们写了 `/var/www/html` 和 `/data/test-ci` 这俩绝对路径, 那么就是说, 容器内部的 `/var/www/html` 会被映射到宿主机的 `/mnt/mfs/permdirs/test-ci/var/www/html`; 容器内部的 `/data/test-ci` 会到 `/mnt/mfs/permdirs/test-ci/data/test-ci`, 同时因为是 mfs, 所以全部容器可以共享数据.
 * `volumes`: 符合 docker volume 格式的挂载方式, 一行一个, 格式是 `{宿主机目录}:{容器目录}:ro` 或者 `{宿主机目录}:{容器目录}`, 不写 ro 就是说可以读写, ro 的话只读.
 * `dns`: 有时候你可能不想用我们默认给的 DNS, 这里可以指定外部 DNS, 一行一个, 但是, 还是那句话, 不作死就不会死.
