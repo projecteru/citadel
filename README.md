@@ -4,10 +4,6 @@
 
 ## RUN
 
-噩耗啊 gRPC 不能跟 gevent 愉快地玩耍, 只好回到原始社会, 用 `Thread` 来做异步, 用同步模式的 gunicorn, 给一个非常长时间的超时时间了.
-
-简直是要哭瞎!!!
-
 ```shell
 start web server
 
@@ -20,7 +16,24 @@ $ ./bin/run-etcd-watcher
 
 ## DEV
 
-测试服为 http://citadel.test.ricebook.net，citadel 部署在 neltharion (10.10.107.144)，core 部署在 zzz1 (10.10.31.119)，都用 systemd 托管起来了。
+测试服为 http://citadel.test.ricebook.net，citadel & core 部署在 c1-eru-1。
+测试自己的分支：
+
+```shell
+tools/upgrade-citadel.sh test
+tools/upgrade-citadel.sh test origin feature/somefeature
+tools/upgrade-citadel.sh test upstream master
+```
+
+## 升级线上
+
+生产服部署在 c2-eru-1.
+
+```shell
+tools/upgrade-citadel.sh prod
+tools/upgrade-citadel.sh prod origin feature/somefeature
+tools/upgrade-citadel.sh prod upstream master
+```
 
 #### 本地搭建
 

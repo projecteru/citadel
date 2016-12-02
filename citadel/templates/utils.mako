@@ -215,16 +215,18 @@
             <a href="${ url_for('app.gitlab_url', name=release.name, sha=release.sha) }" target="_blank">${ release.sha[:7] }</a>
           </td>
           <td>
-            % if release.image:
+            % if release.raw:
               <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
-                <span class="fui-plus"></span> Add Container
+                <span class="fui-plus"></span> Add Raw Container
               </a>
-            % elif g.user.privilege:
-              <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
-                <span class="fui-plus"></span> Add Container With Raw Mode
-              </a>
+            % elif not release.image:
+              <span title="去gitlab pipelines上盯着看，它好我也好，不行的话先重试">
+                <a class="btn btn-xs btn-info disabled" href="${ url_for('app.release', name=release.name, sha=release.sha) }" data-toggle="tooltip" data-html="true" data-placement="top" title="<p>去gitlab pipelines上盯着看，它好我也好</p><p>不行的话先重试</p>" >
+                  <span class="fui-time" ></span> Building...
+                </a>
+              </span>
             % else:
-              <a class="btn btn-xs btn-success" disabled href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
+              <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
                 <span class="fui-plus"></span> Add Container
               </a>
             % endif
@@ -234,6 +236,7 @@
       % endfor
     </tbody>
   </table>
+
   <script>
     $('a#delete').click(function (){
       var self = $(this);
@@ -248,6 +251,7 @@
       });
     });
   </script>
+
 </%def>
 
 <%def name="panel(panel_class='info')">

@@ -97,4 +97,7 @@ def register_release():
     if not release:
         abort(400, 'error during create a release (%s, %s, %s)' % (name, git, sha))
 
+    if release.raw:
+        release.update_image(release.specs.base)
+
     return release

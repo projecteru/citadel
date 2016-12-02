@@ -52,7 +52,6 @@ $('#add-container-button').click(function(e){
     networks.push($(ns[i]).val());
   }
   data.networks = networks;
-  data.raw = form.find('input[name=raw]').prop('checked');
   data.debug = form.find('input[name=debug]').prop('checked');
 
   console.log('Deploy arguments:', data);

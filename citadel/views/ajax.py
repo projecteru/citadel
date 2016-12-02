@@ -92,14 +92,11 @@ def deploy_release(release_id):
     # 这里来的就都走自动分配吧
     networks = {key: '' for key in payload['networks']}
     debug = payload.get('debug', False)
-    raw = payload.get('raw', False)
-    if raw and not g.user.privilege:
-        abort(400, 'Raw deploy only supported for admins')
 
     deploy_options = {
         'specs': release.specs_text,
         'appname': appname,
-        'image': specs.base if raw else release.image,
+        'image': release.image,
         'podname': payload['podname'],
         'nodename': payload.get('nodename', ''),
         'entrypoint': payload['entrypoint'],
@@ -108,7 +105,7 @@ def deploy_release(release_id):
         'memory': to_number(payload.get('memory', '512MB')),
         'networks': networks,
         'env': env_vars,
-        'raw': raw,
+        'raw': release.raw,
         'debug': debug,
     }
 
@@ -156,23 +153,23 @@ def get_release_entrypoints(release_id):
 def remove_containers():
     # 过滤掉ELB的容器, ELB不要走这个方式下线
     payload = request.get_json()
-    raw_container_ids = payload['container_id']
-    if isinstance(raw_container_ids, basestring):
-        raw_container_ids = [raw_container_ids]
+    container_ids = payload['container_id']
+    if isinstance(container_ids, basestring):
+        container_ids = [container_ids]
 
-    containers = [Container.get_by_container_id(i) for i in raw_container_ids]
+    containers = [Container.get_by_container_id(i) for i in container_ids]
     # mark removing so that users would see some changes, but the actual
     # removing happends in celery tasks
-    container_ids = []
+    should_remove = []
     for c in containers:
         if not c:
             continue
         if c.appname == ELB_APP_NAME:
             return {'error': 'Cannot delete ELB container here'}, 400
         c.mark_removing()
-        container_ids.append(c.container_id)
+        should_remove.append(c.container_id)
 
-    remove_container.delay(container_ids, user_id=g.user.id)
+    remove_container.delay(should_remove, user_id=g.user.id)
     return DEFAULT_RETURN_VALUE
 
 

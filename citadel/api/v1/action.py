@@ -62,11 +62,10 @@ def deploy():
     extra_env = data.get('extra_env', [])
     env_vars.extend(extra_env)
 
-    raw = bool(data.get('raw', ''))
     deploy_options = {
         'specs': release.specs_text,
         'appname': appname,
-        'image': specs.base if raw else release.image,
+        'image': release.image,
         'podname': data['podname'],
         'nodename': data.get('nodename', ''),
         'entrypoint': data['entrypoint'],
@@ -75,7 +74,7 @@ def deploy():
         'memory': int(data.get('memory', 0)),
         'networks': networks,
         'env': env_vars,
-        'raw': raw,
+        'raw': release.raw,
         'debug': bool(data.get('debug', False)),
         'extra_args': data.get('extra_args', ''),
     }
