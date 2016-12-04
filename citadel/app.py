@@ -49,7 +49,7 @@ def anonymous_path(path):
 
 def make_celery(app):
     celery = Celery(app.import_name)
-    celery.config_from_object('citadel.celeryconfig')
+    celery.config_from_object('citadel.config')
 
     class EruGRPCTask(Task):
 
@@ -62,8 +62,9 @@ def make_celery(app):
         def on_failure(self, exc, task_id, args, kwargs, einfo):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
             rds.publish(channel_name, TASK_PUBSUB_EOF)
-            msg = 'Deploy with args:\n```\n{}\n```\nkwargs:\n```\n{}\n```\n*EXCEPTION*:\n```\n{}\n```'.format(args, kwargs, einfo.traceback)
-            notbot_sendmsg('@timfeirg', msg)
+            if not DEBUG:
+                msg = 'Deploy with args:\n```\n{}\n```\nkwargs:\n```\n{}\n```\n*EXCEPTION*:\n```\n{}\n```'.format(args, kwargs, einfo.traceback)
+                notbot_sendmsg('@timfeirg', msg)
 
         def __call__(self, *args, **kwargs):
             with app.app_context():

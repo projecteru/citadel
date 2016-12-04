@@ -3,13 +3,11 @@ import json
 from collections import Iterable
 
 import enum
-import requests
-from requests.exceptions import ReadTimeout, ConnectionError
+from erulbpy import ELBClient
 from sqlalchemy.exc import IntegrityError
 
-from citadel.config import ELB_BACKEND_NAME_DELIMITER
+from citadel.config import ELB_REDIS_URL, ELB_BACKEND_NAME_DELIMITER
 from citadel.ext import db, rds
-from citadel.libs.json import Jsonized
 from citadel.libs.utils import logger, make_unicode
 from citadel.models.base import BaseModelMixin, JsonType
 from citadel.models.container import Container
@@ -66,9 +64,9 @@ class ELBRule(BaseModelMixin):
         # TODO
         pass
 
-    def get_lb_clients(self):
-        elb_instances = ELBInstance.get_by_name(self.elbname)
-        return [elb.lb_client for elb in elb_instances]
+    @property
+    def elb(self):
+        return ELBClient(name=self.elbname, redis_url=ELB_REDIS_URL)
 
     @classmethod
     def create(cls, elbname, domain, appname, rule=None, sha='', entrypoint=None, podname=None):
@@ -84,18 +82,13 @@ class ELBRule(BaseModelMixin):
             db.session.rollback()
             return None
 
-        if not r.write_rules():
-            logger.error('Urite rules to elb failed, no ELB or dead ELB')
-            r.delete()
-            return None
-
+        r.write_rules()
         # now that the rule has been created, refresh the relevant
         # backend_names in the associating ELB instances
         backends = rule['backends']
-        lb_clients = r.get_lb_clients()
         for backend_name in backends:
-            for elb in lb_clients:
-                elb.refresh_backend(backend_name)
+            backends = get_backends(backend_name)
+            r.elb.set_upstream(backend_name, backends)
 
         return r
 
@@ -119,12 +112,7 @@ class ELBRule(BaseModelMixin):
     def write_rules(self):
         # now that rule was created in citadel, update all associating ELB
         # clients, if any one fails, rollback in citadel
-        lb_clients = self.get_lb_clients()
-        for elb in lb_clients:
-            if not elb.update_rule(self.domain, self.rule):
-                return False
-
-        return True
+        return self.elb.set_rule(self.domain, self.rule)
 
     def edit_rule(self, rule):
         if not isinstance(rule, dict):
@@ -148,12 +136,8 @@ class ELBRule(BaseModelMixin):
         return cls.query.filter_by(**kwargs).order_by(cls.id.desc()).first()
 
     def delete(self):
-        lb_clients = self.get_lb_clients()
         domain = self.domain
-        for elb in lb_clients:
-            if not elb.delete_rule(domain):
-                logger.warn('delete rule from ELB instance %s failed', elb.addr)
-
+        self.elb.delete_rule(domain)
         super(ELBRule, self).delete()
         return True
 
@@ -203,17 +187,12 @@ class ELBInstance(BaseModelMixin):
     def clear_rules(self):
         """clear rules in the whole ELB"""
         elbname = self.name
-        addr = self.addr
         rules = ELBRule.query.filter_by(elbname=elbname)
         domains = [r.domain for r in rules]
         # if rules were removed from elb instances, we can safely
         # remove them from citadel as well
-        if self.lb_client.delete_rule(domains):
-            rules.delete()
-            return True
-        else:
-            logger.warn('Remove rule %s from ELB instance %s failed', domains, addr)
-            return False
+        self.elb.delete_rule(domains)
+        rules.delete()
 
     @classmethod
     def get_by_name(cls, name):
@@ -224,8 +203,8 @@ class ELBInstance(BaseModelMixin):
         return cls.query.filter(cls.container_id.like('{}%'.format(container_id))).first()
 
     @property
-    def lb_client(self):
-        return LBClient(self.addr)
+    def elb(self):
+        return ELBClient(name=self.name, redis_url=ELB_REDIS_URL)
 
     @property
     def container(self):
@@ -242,93 +221,6 @@ class ELBInstance(BaseModelMixin):
     def is_alive(self):
         return self.container and self.container.status() == 'running'
 
-    def to_dict(self):
-        d = {}
-        d['lb_client'] = self.lb_client.to_dict()
-        d['name'] = self.name
-        return d
-
-
-class LBClient(Jsonized):
-
-    success_codes = {200, 201}
-
-    def __init__(self, addr):
-        if not addr.startswith('http://'):
-            addr = 'http://%s' % addr
-        self.addr = addr
-        self.domain_addr = '%s/__erulb__/domain' % addr
-        self.upstream_addr = '%s/__erulb__/upstream' % addr
-        self.analysis_addr = '%s/__erulb__/analysis' % addr
-        self.rule_addr = '%s/__erulb__/rule' % addr
-
-    def __str__(self):
-        return '<ELB client: {}>'.format(self.addr)
-
-    def __hash__(self):
-        return hash((self.__class__, self.addr))
-
-    def request(self, method, url, **kwargs):
-        try:
-            res = requests.request(method, url, **kwargs)
-        except (ReadTimeout, ConnectionError):
-            logger.critical('Connection problem with ELB instance %s', self.addr)
-            return None
-
-        code = res.status_code
-        if code not in self.success_codes:
-            logger.warn('lb client %s %s, with payload %s, got %s: %s', method, url, kwargs, code, res.text)
-        else:
-            return res.json()
-
-    def get(self, url, **kwargs):
-        return self.request('GET', url, **kwargs)
-
-    def put(self, url, json):
-        return self.request('PUT', url, json=json)
-
-    def delete(self, url, json):
-        return self.request('DELETE', url, json=json)
-
-    def get_rule(self):
-        return self.get(self.rule_addr)
-
-    def update_rule(self, domain, rule):
-        data = {'domain': domain, 'rule': rule}
-        return self.put(self.rule_addr, data)
-
-    def delete_rule(self, domains):
-        data = {'domains': domains}
-        res = self.delete(self.rule_addr, data)
-        logger.debug('Delete rule on ELB %s with payload %s, got %s', self, data, res)
-        return res
-
-    def get_domain(self):
-        return self.get(self.domain_addr)
-
-    def get_upstream(self):
-        return self.get(self.upstream_addr)
-
-    def update_upstream(self, backend_name, servers):
-        if not servers:
-            # if servers is empty, remove the backend instead
-            return self.delete_upstream(backend_name)
-        data = {'backend': backend_name, 'servers': servers}
-        res = self.put(self.upstream_addr, data)
-        logger.debug('Update backend_name %s on ELB %s with payload %s, got %s', backend_name, self, data, res)
-        return res
-
-    def delete_upstream(self, backend_name):
-        data = {'backend': backend_name}
-        return self.delete(self.upstream_addr, data)
-
-    def to_dict(self):
-        return {'domain_addr': self.domain_addr, 'upstream_addr': self.upstream_addr}
-
-    def refresh_backend(self, backend_name):
-        backends = ['server {};'.format(b) for b in get_backends(backend_name)]
-        return self.update_upstream(backend_name, backends)
-
 
 class UpdateELBAction(enum.Enum):
     ADD = 0
@@ -343,24 +235,14 @@ def update_elb_for_containers(containers, action=UpdateELBAction.ADD):
         containers = [containers]
 
     containers = [c for c in containers if c]
-    if not containers:
-        return
-
-    if action == UpdateELBAction.REMOVE:
-        exclude = set(containers)
-    else:
+    for appname in set(c.appname for c in containers):
+        this_batch_containers = [c for c in containers if c.appname == appname]
         exclude = set()
+        if action == UpdateELBAction.REMOVE:
+            exclude = set(this_batch_containers)
 
-    elb_rules = ELBRule.get_by_app(containers[0].appname)
-    already_dealt_with = set()
-    for r in elb_rules:
-        associated_lb_clients = r.get_lb_clients()
-        for backend_name in r.rule['backends']:
-            backends = ['server {};'.format(b) for b in get_backends(backend_name, exclude_containers=exclude)]
-            for lb in associated_lb_clients:
-                if (backend_name, lb) in already_dealt_with:
-                    continue
-                lb.update_upstream(backend_name, backends)
-                already_dealt_with.add((backend_name, lb))
-
-            already_dealt_with.add(backend_name)
+        elb_rules = ELBRule.get_by_app(this_batch_containers[0].appname)
+        for r in elb_rules:
+            for backend_name in r.rule['backends']:
+                backends = get_backends(backend_name, exclude_containers=exclude)
+                r.elb.set_upstream(backend_name, backends)

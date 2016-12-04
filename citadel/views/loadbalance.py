@@ -1,14 +1,15 @@
 # coding: utf-8
+from erulbpy import ELBClient
 from flask import request, abort, redirect, url_for, jsonify, flash
 from flask_mako import render_template
 
-from citadel.config import ELB_APP_NAME, ELB_POD_NAME
+from citadel.config import ELB_REDIS_URL, ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
 from citadel.models.env import Environment
 from citadel.models.loadbalance import ELBInstance, ELBRule
 from citadel.rpc import core
-from citadel.views.helper import bp_get_balancer_by_name, need_admin
+from citadel.views.helper import need_admin
 
 
 bp = create_page_blueprint('loadbalance', __name__, url_prefix='/loadbalance')
@@ -131,13 +132,11 @@ def add_general_rule(name):
 @need_admin
 def rule(name):
     domain = request.args['domain']
-    elbs = bp_get_balancer_by_name(name)
-    elb = elbs[0]
-    rule = elb.lb_client.get_rule()
-    key = ':'.join([name, domain])
+    elb = ELBClient(name=name, redis_url=ELB_REDIS_URL)
+    rule = elb.get_rule(domain)
     return jsonify({
         'domain': domain,
-        'rule': rule[key]
+        'rule': rule,
     })
 
 

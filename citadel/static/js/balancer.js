@@ -1,27 +1,5 @@
 ;(function($){
 
-$('a[name=swither]').click(function(e){
-  e.preventDefault();
-  if (!confirm('确认要改?')) {
-    return;
-  }
-  var self = $(this);
-  var url = '/ajax/loadbalance/record/{id}/analysis'.replace('{id}', self.data('record-id'));
-  var span = self.find('span');
-  var method = span.hasClass('fui-pause') ? 'DELETE' : 'PUT';
-  $.ajax({
-    url: url,
-    type: method,
-    success: function(){
-      if (method === 'PUT') {
-        self.html('<span class="fui-pause"></span> Disable Analysis');
-      } else if (method === 'DELETE') {
-        self.html('<span class="fui-play"></span> Enable Analysis');
-      }
-    }
-  });
-});
-
 $('a[name=delete-route]').click(function(e){
   e.preventDefault();
   if (!confirm('确认删除?')) {

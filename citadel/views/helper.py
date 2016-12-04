@@ -38,13 +38,6 @@ def bp_get_balancer(id):
     return elb
 
 
-def bp_get_balancer_by_name(name):
-    elbs = ELBInstance.get_by_name(name)
-    if not elbs:
-        abort(404, "No ELB named {}".format(name))
-    return elbs
-
-
 def get_nodes_for_first_pod(pods):
     """取一个pods列表里的第一个pod的nodes.
     场景很简单啊, 因为是页面渲染,

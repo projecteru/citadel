@@ -65,7 +65,7 @@
             <td><a href="http://${ rule.domain }" target="_blank">${ rule.domain }</a></td>
             <td><a target="_blank" href="${ url_for('app.app', name=rule.appname) }">${ rule.appname }</a></td>
             <td>
-              <a class="btn btn-xs btn-info" href="${ url_for('loadbalance.rule', name=name, domain=rule.domain) }" name="get-rule">View</a>
+              <a class="btn btn-xs btn-info" href="${ url_for('loadbalance.rule', name=name, domain=rule.domain) }" name="get-rule" target="_blank">View</a>
               <form style=" display:inline!important;" action="${ url_for('loadbalance.delete_rule', name=name) }" method="POST">
                 <input name="domain" value="${ rule.domain }" type="hidden">
                 <button class="btn btn-xs btn-warning" type="submit">嫑了</button>
