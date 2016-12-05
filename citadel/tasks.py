@@ -66,7 +66,7 @@ def build_image(self, repo, sha, uid='', artifact='', gitlab_build_id=''):
         raise ActionError(400, 'repo %s does not have the right appname in app.yaml' % repo)
     release = Release.get_by_app_and_sha(appname, sha)
     if release.raw:
-        release.update_image(specs.base)
+        release.update_image(release.specs.base)
         return None
 
     # 尝试通过gitlab_build_id去取最近成功的一次artifact
