@@ -126,16 +126,3 @@ def gitlab_url(name, sha):
     release = bp_get_release(name, sha)
     url = os.path.join(GITLAB_URL, app.project_name, 'commit', release.sha)
     return redirect(url)
-
-
-@bp.route('/<name>/<entrypoint>/log/<date:dt>')
-def get_app_log(name, entrypoint, dt):
-    bp_get_app(name)
-    log_file_path = MFS_LOG_FILE_PATH.format(app_name=name, entrypoint=entrypoint, dt=dt)
-    if not os.path.isfile(log_file_path):
-        abort(404, 'log not found')
-
-    file_length = min([g.limit, 10000])
-    log_content = tailer.tail(open(log_file_path), file_length)
-    decoded = [make_unicode(l) for l in log_content]
-    return render_template('/app/applog.mako', log_content=decoded)
