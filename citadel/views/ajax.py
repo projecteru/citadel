@@ -122,7 +122,7 @@ def deploy_release(release_id):
         async_result.wait(timeout=40)
         if async_result.failed():
             logger.debug('Task %s failed, dumping traceback', async_result.task_id)
-            yield json.dumps({'error': async_result.traceback})
+            yield json.dumps({'success': False, 'error': async_result.traceback})
 
         if debug:
             debug_log_channel = CONTAINER_DEBUG_LOG_CHANNEL.format(release.name)
