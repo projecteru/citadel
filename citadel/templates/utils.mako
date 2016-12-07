@@ -59,6 +59,7 @@
               data-content="
               <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ c.nodename } -t 'sudo su'</code></pre>
               <a href='http://dashboard.ricebook.net/dashboard/db/servers?var-hostname=${ c.nodename }' target='_blank'><span class='label label-info'>host监控</span></a>
+              <a href='${ url_for('admin.node', podname=c.podname, nodename=c.nodename) }' target='_blank'><span class='label label-info'>这台机还有啥</span></a>
               ">
               ${ c.podname }: ${ c.nodename }
             </a>
