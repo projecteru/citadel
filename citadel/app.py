@@ -1,5 +1,4 @@
 # coding: utf-8
-import json
 import logging
 
 from celery import Celery, Task
@@ -62,7 +61,6 @@ def make_celery(app):
 
         def on_failure(self, exc, task_id, args, kwargs, einfo):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
-            rds.publish(channel_name, json.dumps({'error': einfo.traceback}))
             rds.publish(channel_name, TASK_PUBSUB_EOF)
             msg = 'Deploy with args:\n```\n{}\n```\nkwargs:\n```\n{}\n```\n*EXCEPTION*:\n```\n{}\n```'.format(args, kwargs, einfo.traceback)
             notbot_sendmsg('@timfeirg', msg)
