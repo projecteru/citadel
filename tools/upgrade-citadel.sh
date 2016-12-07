@@ -13,7 +13,7 @@ then
 EOF
   ssh c1-eru-1 -t 'sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git fetch --all --prune'
   ssh c1-eru-1 -t "sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git checkout $remote/$branch"
-  ssh c1-eru-1 -t "sudo pip install -U -e git+http://gitlab.ricebook.net/platform/erulb3.git#egg=erulb-py"
+  ssh c1-eru-1 -t "sudo pip install -U git+http://gitlab.ricebook.net/platform/erulb3.git#egg=erulb-py -i https://pypi.doubanio.com/simple/"
   ssh c1-eru-1 -t 'sudo systemctl restart citadel citadel-worker'
 elif [ $deploy_mode == "prod" ]
 then
@@ -22,6 +22,7 @@ then
 EOF
   ssh c2-eru-1 -t 'sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git fetch --all --prune'
   ssh c2-eru-1 -t "sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git checkout $remote/$branch"
+  ssh c1-eru-1 -t "sudo pip install -U git+http://gitlab.ricebook.net/platform/erulb3.git#egg=erulb-py -i https://pypi.doubanio.com/simple/"
   ssh c2-eru-1 -t 'sudo systemctl restart citadel citadel-worker'
 else
   exit 127

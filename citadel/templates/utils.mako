@@ -34,7 +34,7 @@
               data-html='true'
               data-original-title='钻进去看看'
               data-content="
-              <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }@${ c.nodename }.ricebook.link -t 'sudo docker-enter ${ c.short_id }'</code></pre>
+              <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ c.nodename } -t 'sudo docker-enter ${ c.short_id }'</code></pre>
               <a href='http://kibana.ricebook.net/app/logtrail#/?q=name:${ c.appname }%20%26%26%20ident:${ c.ident }&h=All&t=Now&_g=()' target='_blank'><span class='label label-info'>日志</span></a>
               ">
               ${ c.short_id }
@@ -57,7 +57,7 @@
               rel='popover'
               data-html='true'
               data-content="
-              <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }@${ c.nodename }.ricebook.link -t 'sudo su'</code></pre>
+              <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ c.nodename } -t 'sudo su'</code></pre>
               <a href='http://dashboard.ricebook.net/dashboard/db/servers?var-hostname=${ c.nodename }' target='_blank'><span class='label label-info'>host监控</span></a>
               ">
               ${ c.podname }: ${ c.nodename }

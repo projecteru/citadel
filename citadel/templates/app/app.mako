@@ -39,8 +39,8 @@
           <li class="list-group-item"><a target="_blank" href="http://kibana.ricebook.net/app/logtrail#/?q=name:${ app.name }%20%26%26%20entrypoint:${ entry }&h=All&t=Now&_g=()">${ entry }</a></li>
         % endfor
       % endif
-      <li class="list-group-item">线上 log 也可以 terminal 看（没权限去 #sa-online 申请）：<pre>ssh ${ g.user.name }@c2-eru-2.ricebook.link -t 'tail -F /mnt/mfs/logs/eru2/[APPNAME]/[ENTRYPOINT]/[DATE]/[HOUR] -n 100'</pre></li>
-      <li class="list-group-item">Debug log 在部署以后实时显示的，但是有微小几率丢失开头的几行，可以用 terminal 看：<pre>ssh ${ g.user.name }@c2-eru-2.ricebook.link -t 'tail -F /mnt/mfs/logs/heka/debug-output.log -n 100 | ag ${ app.name }'</pre></li>
+      <li class="list-group-item">线上 log 也可以 terminal 看（没权限去 #sa-online 申请）：<pre>ssh c2-eru-2 -t 'tail -F /mnt/mfs/logs/eru2/[APPNAME]/[ENTRYPOINT]/[DATE]/[HOUR] -n 100'</pre></li>
+      <li class="list-group-item">Debug log 在部署以后实时显示的，但是有微小几率丢失开头的几行，可以用 terminal 看：<pre>ssh c2-eru-2 -t 'tail -F /mnt/mfs/logs/heka/debug-output.log -n 100 | ag ${ app.name }'</pre></li>
     </ul>
     <h5>域名</h5>
     <ul class="list-group">

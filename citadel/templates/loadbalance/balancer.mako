@@ -33,7 +33,7 @@
                 <a href='http://${ elb.ip }/__erulb__/upstream' target='_blank'><span class='label label-info'>upstream</span></a>
                 <a href='http://${ elb.ip }/__erulb__/rule' target='_blank'><span class='label label-info'>rule</span></a>
                 <br> <br>
-                <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }@${ elb.container.nodename } -t 'sudo docker-enter ${ elb.container.short_id }'</code></pre>">
+                <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ elb.container.nodename } -t 'sudo docker-enter ${ elb.container.short_id }'</code></pre>">
                 ${ elb.ip }
               </a>
             </td>
