@@ -4,14 +4,14 @@ import logging
 
 from celery import Celery, Task
 from flask import g, abort, session, Flask, request
+from raven.contrib.flask import Sentry
 from werkzeug.utils import import_string
 
-from citadel.config import TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF
+from citadel.config import DEBUG, SENTRY_DSN, TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF
 from citadel.ext import rds, db, mako
 from citadel.libs.datastructure import DateConverter
 from citadel.libs.utils import notbot_sendmsg
 from citadel.models.user import get_current_user, get_current_user_via_auth
-from citadel.sentry import SentryCollector
 
 
 logging.getLogger('requests').setLevel(logging.CRITICAL)
@@ -89,12 +89,10 @@ def create_app():
     db.init_app(app)
     mako.init_app(app)
 
-    debug = app.config['DEBUG']
-    if debug:
+    if DEBUG:
         logger.setLevel(logging.DEBUG)
-
-    if not debug:
-        sentry = SentryCollector(dsn=app.config['SENTRY_DSN'])
+    else:
+        sentry = Sentry(dsn=SENTRY_DSN)
         sentry.init_app(app)
 
     for bp_name in blueprints:
@@ -111,10 +109,11 @@ def create_app():
         g.limit = request.args.get('limit', type=int, default=20)
 
         token = request.headers.get('X-Neptulon-Token', '') or request.values.get('X-Neptulon-Token')
-        g.user = token and get_current_user_via_auth(token) or (get_current_user() if 'sso' in session or debug else None)
+        g.user = token and get_current_user_via_auth(token) or (get_current_user() if 'sso' in session or DEBUG else None)
 
         if not g.user:
             session.pop('sso', None)
+
         if not g.user and not anonymous_path(request.path):
             abort(401, 'Must login')
 

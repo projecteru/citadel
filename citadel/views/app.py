@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
 
-import tailer
 from flask import g, request, abort, flash, jsonify, url_for, redirect
 from flask_mako import render_template
 
-from citadel.config import IGNORE_PODS, MFS_LOG_FILE_PATH, GITLAB_URL, ELB_APP_NAME
+from citadel.config import IGNORE_PODS, GITLAB_URL, ELB_APP_NAME
 from citadel.libs.utils import make_unicode
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release, AppUserRelation
