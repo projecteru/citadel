@@ -16,9 +16,7 @@ grpcio
 raven
 PyYAML
 more_itertools
-tailer
 gunicorn
-blinker
 MySQL-python
 requests
 six
