@@ -54,9 +54,13 @@ class App(BaseModelMixin):
         return get_project_name(self.git)
 
     @property
-    def has_problematic_container(self):
+    def container_list(self):
         from .container import Container
-        containers = Container.get_by_app(self.name)
+        return Container.get_by_app(self.name)
+
+    @property
+    def has_problematic_container(self):
+        containers = self.container_list
         if not containers or {c.status() for c in containers} == {'running'}:
             return False
         else:
@@ -69,9 +73,8 @@ class App(BaseModelMixin):
 
     def delete(self):
         appname = self.name
-        from .container import Container
         from .loadbalance import ELBRule
-        containers = Container.get_by_app(self.name)
+        containers = self.container_list
         if containers:
             raise ModelDeleteError('App {} got containers {}, remove them before deleting app'.format(appname, containers))
         # delete all releases
@@ -86,14 +89,10 @@ class App(BaseModelMixin):
         return super(App, self).delete()
 
     def get_online_entrypoints(self):
-        from .container import Container
-        containers = Container.get_by_app(self.name)
-        return list(set([c.entrypoint for c in containers]))
+        return tuple(set([c.entrypoint for c in self.container_list]))
 
     def get_online_pods(self):
-        from .container import Container
-        containers = Container.get_by_app(self.name)
-        return list(set([c.podname for c in containers]))
+        return tuple(set([c.podname for c in self.container_list]))
 
     def get_associated_elb_rules(self):
         from citadel.models.loadbalance import ELBRule
@@ -128,13 +127,12 @@ class Release(BaseModelMixin):
         appname = app.name
         commit = get_commit(app.project_name, sha)
         if not commit:
-            logger.warn('error getting commit %s %s', app, sha)
+            logger.warn('Error getting commit %s %s', app, sha)
             return None
 
         specs_text = get_file_content(app.project_name, 'app.yaml', sha)
-        logger.debug('got specs_text:\n%s', specs_text)
         if not specs_text:
-            logger.warn('empty specs %s %s', appname, sha)
+            logger.warn('Empty specs %s %s', appname, sha)
             return None
 
         try:
@@ -142,7 +140,7 @@ class Release(BaseModelMixin):
             db.session.add(new_release)
             db.session.commit()
         except IntegrityError:
-            logger.warn('fail to create Release %s %s, duplicate', appname, sha)
+            logger.warn('Fail to create Release %s %s, duplicate', appname, sha)
             db.session.rollback()
             return cls.get_by_app_and_sha(appname, sha)
 
@@ -232,7 +230,12 @@ class Release(BaseModelMixin):
 
     @cached_property
     def name(self):
-        return self.app and self.app.name or ''
+        return self.app.name
+
+    @property
+    def container_list(self):
+        from .container import Container
+        return Container.get_by(appname=self.name, sha=self.sha)
 
     @property
     def gitlab_commit(self):
@@ -260,7 +263,7 @@ class Release(BaseModelMixin):
 
     def update_image(self, image):
         self.image = image
-        logger.debug('set image %s for release %s', image, self.sha)
+        logger.debug('Set image %s for release %s', image, self.sha)
         db.session.add(self)
         db.session.commit()
 

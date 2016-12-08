@@ -57,11 +57,11 @@ def release(name, sha):
         abort(404, 'App or release not found')
 
     if request.method == 'DELETE':
-        if AppUserRelation.user_permitted_to_app(g.user.id, name):
+        if AppUserRelation.user_permitted_to_app(g.user.id, name) or release.container_list:
             release.delete()
             return jsonify({'message': 'OK'})
         else:
-            flash(u'Don\'t touch me')
+            flash(u'要么没权限，要么还在跑')
 
     containers = Container.get_by_release(app.name, sha, limit=None)
     appspecs = get_file_content(app.project_name, 'app.yaml', release.sha)
