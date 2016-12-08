@@ -35,20 +35,15 @@ class ActionError(Exception):
 
 
 def _peek_grpc(call):
-    """peek一下stream的返回, 不next一次他是不会raise exception的,
-    如果是在thread里call，出错的时候还要把eof写进queue里"""
+    """peek一下stream的返回, 不next一次他是不会raise exception的"""
     try:
         logger.debug('Peek grpc call %s', call)
         ms = peekable(call)
         ms.peek()
         logger.debug('Peek grpc call %s done', call)
     except (face.RemoteError, face.RemoteShutdownError) as e:
-        logger.error('gRPC exception: %s', e.details)
-        # raise ActionError here to terminate queue, but we won't be able to
-        # handle this exception
         raise ActionError(500, e.details)
     except face.AbortionError as e:
-        logger.error('gRPC exception: %s', e.details)
         raise ActionError(500, 'gRPC remote server not available')
     return ms
 

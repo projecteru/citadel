@@ -21,3 +21,4 @@ MySQL-python
 requests
 six
 celery[redis]
+humanize
