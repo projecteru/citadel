@@ -63,7 +63,7 @@ def make_celery(app):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
             rds.publish(channel_name, TASK_PUBSUB_EOF)
             if not DEBUG:
-                msg = 'Deploy with args:\n```\n{}\n```\nkwargs:\n```\n{}\n```\n*EXCEPTION*:\n```\n{}\n```'.format(args, kwargs, einfo.traceback)
+                msg = 'Citadel task {}:\nargs\n```\n{}\n```\nkwargs:\n```\n{}\n```\n*EXCEPTION*:\n```\n{}\n```'.format(self.name, args, kwargs, einfo.traceback)
                 notbot_sendmsg('@timfeirg', msg)
 
         def __call__(self, *args, **kwargs):
