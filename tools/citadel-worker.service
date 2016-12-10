@@ -6,7 +6,7 @@ After=network.target
 [Service]
 Type=simple
 User=nobody
-Environment="OAUTHLIB_INSECURE_TRANSPORT=1" "GRPC_VERBOSITY=INFO" "CELERY_RESULT_BACKEND=redis://rds.nova.ricebook.net" "CELERY_BROKER_URL=redis://rds.nova.ricebook.net"
+Environment="OAUTHLIB_INSECURE_TRANSPORT=1" "GRPC_VERBOSITY=INFO"
 WorkingDirectory=/opt/citadel
 ExecStart=/usr/bin/celery -A app:celery worker --autoscale=50,8 --loglevel DEBUG -Q citadel
 LimitNOFILE=10485760

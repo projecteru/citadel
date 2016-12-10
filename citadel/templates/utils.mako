@@ -80,6 +80,10 @@
             <% status = c.status() %>
             % if status == 'InRemoval':
               <span class="label label-warning">删除中...</span>
+            % elif status == 'sick':
+              <span title="有可能是容器在初始化，也有可能是跑死了">
+                <span class="label label-warning">不健康</span>
+              </span>
             % else:
               <span class="label label-${ 'success' if status == 'running' else 'danger' }">
                 % if status == 'running':

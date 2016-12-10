@@ -48,7 +48,8 @@ def delete_app_env(name):
 @jsonize
 def get_app_online_entrypoints(name):
     app = bp_get_app(name)
-    return app.get_online_entrypoints()
+    entrypoints = app.get_online_entrypoints()
+    return entrypoints
 
 
 @bp.route('/app/<name>/online-pods', methods=['GET'])

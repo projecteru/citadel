@@ -89,10 +89,10 @@ class App(BaseModelMixin):
         return super(App, self).delete()
 
     def get_online_entrypoints(self):
-        return tuple(set([c.entrypoint for c in self.container_list]))
+        return list(set([c.entrypoint for c in self.container_list]))
 
     def get_online_pods(self):
-        return tuple(set([c.podname for c in self.container_list]))
+        return list(set([c.podname for c in self.container_list]))
 
     def get_associated_elb_rules(self):
         from citadel.models.loadbalance import ELBRule
