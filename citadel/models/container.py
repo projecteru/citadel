@@ -5,7 +5,7 @@ import json
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import ObjectDeletedError
 
-from citadel.ext import db
+from citadel.ext import etcd, db
 from citadel.libs.mimiron import set_mimiron_route, del_mimiron_route
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
@@ -147,6 +147,14 @@ class Container(BaseModelMixin, PropsMixin):
         return self.name.rsplit('_', 2)[-1]
 
     @property
+    def healthy(self):
+        # TODO: hard code, ugly
+        agent2_container_path = '/agent2/{}.ricebook.link/containers/{}'.format(self.nodename, self.container_id)
+        res = etcd.read(agent2_container_path)
+        container_info = json.loads(res.value)
+        return container_info['Healthy']
+
+    @property
     def used_mem(self):
         mem = self.info.get('HostConfig', {}).get('Memory', 0)
         return mem
@@ -195,7 +203,10 @@ class Container(BaseModelMixin, PropsMixin):
         # 我估计也没办法返回这个状态... 删除的时候好像没办法inspect的
         if self.removing:
             return 'InRemoval'
-        return self.info.get('State', {}).get('Status', 'unknown')
+        status = self.info.get('State', {}).get('Status', 'unknown')
+        if status == 'running' and not self.healthy:
+            return 'sick'
+        return status
 
     def get_ips(self):
         return get_ips_by_container(self)

@@ -78,7 +78,7 @@ class EtcdPublisher(object):
             return
 
         ctable = {}
-        for c in Container.get_by_app(app.name, limit=1000):
+        for c in Container.get_by_app(app.name, limit=None):
             ctable.setdefault(c.podname, []).append(c)
 
         for podname, containers in ctable.iteritems():

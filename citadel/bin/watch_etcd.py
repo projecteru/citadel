@@ -12,8 +12,7 @@ from threading import Thread
 
 from etcd import EtcdWatchTimedOut, EtcdConnectionFailed
 
-from citadel.tasks import remove_container
-from citadel.config import ETCD_URL
+from citadel.config import ETCD_URL, DEBUG
 from citadel.ext import etcd
 from citadel.libs.utils import with_appcontext
 from citadel.models import Container
@@ -23,7 +22,12 @@ from citadel.publish import publisher
 
 logging.getLogger('requests').setLevel(logging.CRITICAL)
 logging.getLogger('urllib3').setLevel(logging.CRITICAL)
-logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(asctime)s: %(message)s')
+if DEBUG:
+    log_level = logging.DEBUG
+else:
+    log_level = logging.INFO
+
+logging.basicConfig(level=log_level, format='%(levelname)s - %(asctime)s: %(message)s')
 logger = logging.getLogger('etcd-watcher')
 _queue = Queue()
 _missing = object()
@@ -33,6 +37,7 @@ _quit = False
 
 @with_appcontext
 def deal(key, data):
+    logger.debug('Got etcd data: %s', data)
     global _jobs
 
     container_id = data.get('ID', '')
@@ -43,31 +48,24 @@ def deal(key, data):
     _jobs[ident] = container_id
 
     try:
+        healthy = data.get('Healthy', _missing)
         alive = data.get('Alive', _missing)
-        if alive is _missing:
-            return
-
         appname = data.get('Name', _missing)
-        if appname is _missing:
+        if _missing in [healthy, alive, appname]:
             return
 
         container = Container.get_by_container_id(container_id)
         if not container:
             return
 
-        if alive:
+        if healthy:
             logger.info('[%s, %s, %s] ADD [%s] [%s]', container.appname, container.podname, container.entrypoint, container_id, ','.join(container.get_backends()))
             publisher.add_container(container)
             update_elb_for_containers(container)
-        else:
-            # 嗯这里已经没有办法取到IP了, 只好暂时作罢.
-            # 可能可以找个方法把IP给缓存起来.
+
+        if not alive:
             logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
             update_elb_for_containers(container, UpdateELBAction.REMOVE)
-            # # 先不要清理自然死亡的容器，debug eggsy
-            # if container.info.get('State', {}).get('ExitCode', 1) == 0:
-            #     logger.info('[%s, %s, %s] REMOVE [%s] citadel model due to ExitCode==0', container.appname, container.podname, container.entrypoint, container_id)
-            #     remove_container([container.container_id])
 
         publisher.publish_app(appname)
     finally:

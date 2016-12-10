@@ -117,8 +117,6 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
             logger.error('Error when creating container: %s', m.error)
             bad_news.append(content)
 
-    update_elb_for_containers(containers)
-
     subscribers = release.specs.subscribers
     msg = 'Deploy {}\n*GOOD NEWS*:\n```{}```'.format(release.name, good_news)
     if bad_news:
