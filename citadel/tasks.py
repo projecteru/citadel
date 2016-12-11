@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from celery.result import AsyncResult
 import json
 
 import yaml
@@ -256,3 +257,11 @@ def celery_task_stream_response(celery_task_id):
             break
         else:
             yield content
+
+
+def celery_task_stream_traceback(celery_task_id):
+    async_result = AsyncResult(celery_task_id)
+    async_result.wait(timeout=120, propagate=False)
+    if async_result.failed():
+        logger.debug('Task %s failed, dumping traceback', async_result.task_id)
+        yield json.dumps({'success': False, 'error': async_result.traceback})
