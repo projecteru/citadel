@@ -257,7 +257,7 @@
               <label class="col-sm-2 control-label" for="">Memory</label>
               <div class="col-sm-10">
                 <select class="form-control" name="memory">
-                  % for memory_value in ('512MB', '1GB', '2GB', '4GB', '8GB', '16GB'):
+                  % for memory_value in ('512MiB', '1GiB', '2GiB', '4GiB', '8GiB', '16GiB'):
                     <option value="${ memory_value }">${ memory_value }</option>
                   % endfor
                 </select>

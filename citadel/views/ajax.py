@@ -3,11 +3,12 @@ import json
 from itertools import chain
 
 from flask import Blueprint, jsonify, Response, g, request, abort
+from humanfriendly import parse_size
 
 from citadel.config import CONTAINER_DEBUG_LOG_CHANNEL, ELB_APP_NAME, ELB_POD_NAME
 from citadel.ext import rds
 from citadel.libs.json import jsonize
-from citadel.libs.utils import logger, to_number
+from citadel.libs.utils import logger
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
 from citadel.models.app import AppUserRelation, Release, App
 from citadel.models.container import Container
@@ -104,7 +105,7 @@ def deploy_release(release_id):
         'entrypoint': payload['entrypoint'],
         'cpu_quota': float(payload.get('cpu', 1)),
         'count': int(payload.get('count', 1)),
-        'memory': to_number(payload.get('memory', '512MB')),
+        'memory': parse_size(payload.get('memory', '512MiB'), binary=True),
         'networks': networks,
         'env': env_vars,
         'raw': release.raw,
@@ -226,7 +227,7 @@ def create_loadbalance():
         'entrypoint': payload['entrypoint'],
         'cpu_quota': float(payload.get('cpu', 2)),
         'count': 1,
-        'memory': to_number('2GB'),
+        'memory': parse_size('2GiB', binary=True),
         'networks': {},
         'env': env_vars,
     }
