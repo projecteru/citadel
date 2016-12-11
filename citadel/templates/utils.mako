@@ -1,6 +1,6 @@
 <%!
   from citadel.models.gitlab import get_project
-  from humanize import naturaltime
+  from humanize import naturaltime, naturalsize
 %>
 
 <%def name="container_list(containers)">
@@ -45,7 +45,7 @@
             <span data-toggle="tooltip" data-html="true" data-placement="top" title="
               <p>${ naturaltime(c.created) }</p>
               <p>CPU: ${ c.cpu_quota or u'0 (共享)'}</p>
-              <p>Memory: ${ c.used_mem / 1024 / 1024 }MB</p>
+              <p>Memory: ${ naturalsize(c.used_mem, binary=True) }</p>
               ">
               <a href="${ url_for("app.app", name=c.appname) }" target="_blank">${ c.appname }</a> / ${ c.ident }
             </span>

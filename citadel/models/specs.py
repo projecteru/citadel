@@ -1,8 +1,8 @@
-# coding: utf-8
-
+# -*- coding: utf-8 -*-
 import yaml
+from humanfriendly import parse_size
+
 from citadel.libs.json import Jsonized
-from citadel.libs.utils import to_number
 
 
 class Port(object):
@@ -90,7 +90,8 @@ class Combo(object):
         self.entrypoint = entrypoint
         self.envname = envname
         self.cpu = cpu
-        self.memory = to_number(memory)
+        # could be int or string (like '512Mib', '512MB', both considered binary)
+        self.memory = parse_size(memory, binary=True) if isinstance(memory, basestring) else memory
         self.memory_str = memory
         self.count = count
         self.envs = envs

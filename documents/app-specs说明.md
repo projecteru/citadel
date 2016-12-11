@@ -20,6 +20,7 @@ entrypoints:
     health_check: "tcp"
     network_mode: "bridge"
     log_config: "json-file"
+    # TODO: remove all mem_limit reference
     mem_limit: 102400000
     hosts:
       - "a.test.com:10.10.1.1"

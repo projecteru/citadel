@@ -63,10 +63,9 @@ class Node(_CoreRPC):
 
     @property
     def memory_total(self):
-        """memory total in MB"""
+        """memory total in Mib"""
         mem = self.info.get('MemTotal', 0)
-        verbose_mem = mem
-        return verbose_mem
+        return mem
 
     @property
     def total_cpu_count(self):
