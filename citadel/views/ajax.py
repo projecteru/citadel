@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+from itertools import chain
 
 from flask import Blueprint, jsonify, Response, g, request, abort
 
@@ -13,7 +14,7 @@ from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import core
-from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response
+from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback
 from citadel.views.helper import bp_get_app, bp_get_balancer
 
 
@@ -114,16 +115,12 @@ def deploy_release(release_id):
                                           sha=release.sha,
                                           envname=envname,
                                           user_id=g.user.id)
+    task_id = async_result.task_id
 
     def generate_stream_response():
         """relay grpc message, if in debug mode, stream logs as well"""
-        for msg in celery_task_stream_response(async_result.task_id):
+        for msg in chain(celery_task_stream_response(task_id), celery_task_stream_traceback(task_id)):
             yield msg
-
-        async_result.wait(timeout=40)
-        if async_result.failed():
-            logger.debug('Task %s failed, dumping traceback', async_result.task_id)
-            yield json.dumps({'success': False, 'error': async_result.traceback})
 
         if debug:
             debug_log_channel = CONTAINER_DEBUG_LOG_CHANNEL.format(release.name)
@@ -189,7 +186,9 @@ def upgrade_containers():
         abort(400, 'Do not upgrade %s through this API' % ELB_APP_NAME)
 
     async_result = upgrade_container.delay(container_ids, app.git, sha)
-    return Response(celery_task_stream_response(async_result.task_id), mimetype='application/json')
+    task_id = async_result.task_id
+    messages = chain(celery_task_stream_response(task_id), celery_task_stream_traceback(task_id))
+    return Response(messages, mimetype='application/json')
 
 
 @bp.route('/pods')
