@@ -82,7 +82,11 @@
         <div class="col-sm-10">
           <select name="release" class="form-control">
             % for release in releases:
-              <option value="${ release.sha }">${ release.short_sha }</option>
+              % if release.image:
+                <option value="${ release.sha }" >${ release.short_sha }</option>
+              % else:
+                <option value="${ release.sha }" disabled>${ release.short_sha }</option>
+              % endif
             % endfor
           </select>
         </div>
