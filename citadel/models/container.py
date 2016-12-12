@@ -152,7 +152,8 @@ class Container(BaseModelMixin, PropsMixin):
         agent2_container_path = '/agent2/{}.ricebook.link/containers/{}'.format(self.nodename, self.container_id)
         res = etcd.read(agent2_container_path)
         container_info = json.loads(res.value)
-        return container_info['Healthy']
+        # if missing 'Healthy', considered healthy
+        return container_info.get('Healthy', True)
 
     @property
     def used_mem(self):
