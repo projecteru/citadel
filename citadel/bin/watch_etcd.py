@@ -11,11 +11,12 @@ from thread import get_ident
 from threading import Thread
 
 from etcd import EtcdWatchTimedOut, EtcdConnectionFailed
+from flask import url_for
 
 from citadel.config import ETCD_URL, DEBUG
 from citadel.ext import etcd
-from citadel.libs.utils import with_appcontext
-from citadel.models import Container
+from citadel.libs.utils import notbot_sendmsg, with_appcontext
+from citadel.models import Container, Release
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
 from citadel.publish import publisher
 
@@ -58,14 +59,22 @@ def deal(key, data):
         if not container:
             return
 
+        msg = ''
         if healthy:
             logger.info('[%s, %s, %s] ADD [%s] [%s]', container.appname, container.podname, container.entrypoint, container_id, ','.join(container.get_backends()))
             publisher.add_container(container)
             update_elb_for_containers(container)
+        else:
+            msg = 'Sick container `{}`, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
 
         if not alive:
             logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
             update_elb_for_containers(container, UpdateELBAction.REMOVE)
+            msg = 'Dead container `{}`, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
+
+        release = Release.get_by_app_and_sha(container.appname, container.sha)
+        subscribers = release.specs.subscribers + ';@timfeirg'
+        notbot_sendmsg(subscribers, msg)
 
         publisher.publish_app(appname)
     finally:
