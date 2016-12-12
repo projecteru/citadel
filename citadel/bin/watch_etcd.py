@@ -73,7 +73,7 @@ def deal(key, data):
             msg = 'Dead container `{}`, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
 
         release = Release.get_by_app_and_sha(container.appname, container.sha)
-        subscribers = release.specs.subscribers + ';@timfeirg'
+        subscribers = release.specs.subscribers or '#platform'
         notbot_sendmsg(subscribers, msg)
 
         publisher.publish_app(appname)
