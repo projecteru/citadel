@@ -46,14 +46,11 @@ class Bind(object):
 
 class Entrypoint(object):
 
-    def __init__(self, command, ports, exposes, network_mode, mem_limit,
-                 restart, health_check, hosts, permdir, privileged, log_config,
-                 working_dir):
+    def __init__(self, command, ports, exposes, network_mode, restart, health_check, hosts, permdir, privileged, log_config, working_dir):
         self.command = command
         self.ports = ports
         self.exposes = exposes
         self.network_mode = network_mode
-        self.mem_limit = mem_limit
         self.restart = restart
         self.health_check = health_check
         self.hosts = hosts
@@ -68,7 +65,6 @@ class Entrypoint(object):
         ports = [Port.from_string(p) for p in data.get('ports', ())]
         exposes = [Expose.from_string(e) for e in data.get('exposes', ())]
         network_mode = data.get('network_mode')
-        mem_limit = data.get('mem_limit')
         restart = data.get('restart')
         health_check = data.get('health_check')
         hosts = data.get('hosts', ())
@@ -76,9 +72,7 @@ class Entrypoint(object):
         privileged = bool(data.get('privileged'))
         log_config = data.get('log_config', 'json-file')
         working_dir = data.get('working_dir', '')
-        return cls(command, ports, exposes, network_mode, mem_limit, restart,
-                   health_check, hosts, permdir, privileged, log_config,
-                   working_dir)
+        return cls(command, ports, exposes, network_mode, restart, health_check, hosts, permdir, privileged, log_config, working_dir)
 
 
 class Combo(object):

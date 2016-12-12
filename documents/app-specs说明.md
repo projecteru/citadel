@@ -20,8 +20,6 @@ entrypoints:
     health_check: "tcp"
     network_mode: "bridge"
     log_config: "json-file"
-    # TODO: remove all mem_limit reference
-    mem_limit: 102400000
     hosts:
       - "a.test.com:10.10.1.1"
       - "b.test.com:10.10.1.2"
@@ -90,7 +88,6 @@ combos:
 	* `health_check`: 目前可选项有 tcp, http. 其实 http 也可以用 tcp 来检查. 原理很简单, tcp 的话 agent 会去尝试连接 `{容器IP}:{容器端口}` 这个地址, 连接失败认为是挂了, 修改 etcd 里容器的健康状态, 其余工作交给 citadel 来完成. http 的话 agent 会去尝试 GET http://`{容器IP}:容器端口`/healthcheck, 你没有实现这个 url 也没有关系, [200, 500) 区间的 http status code 都认为是健康, 因为这个进程还在响应请求, 这里的超时时间是 5 秒, 5 秒还没有返回认为容器挂了, 做对应的操作.
 	* `network_mode`: 如果你不想用 calico 的 SDN, 可以在这里标记为 host, 这样会占用整个宿主机的 IP, 最好不要这样, 不作死就不会死.
 	* `log_config`: 可选 `json-file`, `none`, `syslog` 等, 可以覆盖整个 core 的日志配置, 也就是说可以上一个用 json-file 来记日志的容器, 方便实时 debug, 但是我们其实有其他的 debug 手段, 所以这个选项也可以无视掉, 不作死就不会死.
-	* `mem_limit`: 强限制, 实际上可以通过套餐来限制, 这里写内存限制意义不大.
 	* `hosts`: 可以给容器内部的 `/etc/hosts` 追加记录, 如果你有一些域名没有走 DNS 或者是需要固定 IP, 可以用这个实现, 是一个列表, 结构是 `域名:IP`, 跟 hosts 文件格式一样, 一行一个, 重复写的内容前面的会被后面的覆盖掉.
 	* `permdir`: 如果容器需要在 mfs 上共享数据, 这里设置为 true. 会把 mfs 上的 `/mnt/mfs/permdirs/{appname}` 映射到容器内部的 `/{appname}/permdir`, 这个值也可以在容器内部通过 `ERU_PERMDIR` 这个环境变量拿. 注意, 如果这里不是 true, 就没有这个映射关系, 环境变量也就不存在.
 	* `working_dir`: core 默认的工作目录是在 `/{appname}`, 如果你希望切走, 可以在这里写上工作目录的绝对路径, 如果目录不存在, 那就会挂...
