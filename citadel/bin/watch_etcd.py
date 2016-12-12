@@ -70,7 +70,8 @@ def deal(key, data):
         if not alive:
             logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
             update_elb_for_containers(container, UpdateELBAction.REMOVE)
-            msg = 'Dead container `{}`, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
+            if not container.removing:
+                msg = 'Dead container `{}`, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
 
         release = Release.get_by_app_and_sha(container.appname, container.sha)
         subscribers = release.specs.subscribers or '#platform'
