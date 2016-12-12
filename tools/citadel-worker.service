@@ -13,7 +13,7 @@ LimitNOFILE=10485760
 LimitNPROC=10485760
 LimitCORE=infinity
 MountFlags=slave
-Restart=always
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
