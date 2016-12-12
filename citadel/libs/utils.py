@@ -81,11 +81,11 @@ def parse_domain(domain):
 
 
 def notbot_sendmsg(to, content, subject='Citadel message'):
-    logger.debug('Sending notbot message to %s', to)
     to = to.strip(';')
     if not all([to, content]):
         return
     try:
+        logger.debug('Sending notbot message to %s', to)
         res = requests.post(NOTBOT_SENDMSG_URL, {'to': to, 'content': content, subject: subject})
     except:
         logger.error('Send notbot msg failed, got code %s, response %s', res.status_code, res.rext)
