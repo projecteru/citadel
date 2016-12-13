@@ -16,21 +16,28 @@ entrypoints:
     before_stop: "sh before_stop"
     ports:
       - "5000/tcp"
+  web:
+    cmd: "python run.py"
+    ports:
+      - "5000/tcp"
     restart: "always"
-    health_check: "tcp"
-    network_mode: "bridge"
-    log_config: "json-file"
-    hosts:
-      - "a.test.com:10.10.1.1"
-      - "b.test.com:10.10.1.2"
+    healthcheck_url: "/_test/a"
+    healthcheck_expected_code: 200
     permdir: true
-    working_dir: "/test-ci"
-    privileged: true
+  web-wrong-code:
+    cmd: "python run.py"
+    ports:
+      - "5000/tcp"
+    restart: "always"
+    healthcheck_url: "/_test/a"
+    healthcheck_expected_code: 201
+    permdir: true
   web-bad-health:
     cmd: "python run.py --interval 15"
     ports:
       - "5000/tcp"
-    health_check: "http"
+    healthcheck_url: "/healthcheck"
+    healthcheck_expected_code: 200
 build:
   - "curl www.baidu.com"
   - "pip install -r requirements.txt"
@@ -52,7 +59,7 @@ permitted_users:
 combos:
   test-in-c2:
     cpu: 1
-    memory: 0
+    memory: "512MB"
     podname: "intra"
     entrypoint: "web"
     networks:
@@ -85,7 +92,8 @@ combos:
 	* `before_stop`: 停止容器之前执行的命令, 也是一个 hook. 现在的用例也还是给 apollo-mq 的, 这个 mq 啊, 幺蛾子啊, 在停止容器之前得先把进程停掉, 确保不再接收任务. 所以在 stop 之前就会去 POST stop 的 API 来停掉容器, 保证先停服务, 再下容器.
 	* `ports`: 是一个端口列表, 实际上只是用来告诉 citadel 和 core, 程序用了哪些端口的. 你可以选择不告诉, 但是那样自动的 ELB 绑定, health check, 都无法使用. 因为 core 不知道你跑哪里了啊! 难道你还期待 core 去帮你一个一个的 `lsof` 然后看端口查进程名字来对应么... 乖, 把你占用的端口和协议写在这里吧. 比如你在这里列出了 `5000/tcp`, 那么上一个容器时, 会自动帮你把 `{容器IP}:5000` 这个地址发布到 etcd 里去, 并且去注册到 ELB 中, 如果你有设置健康检查, 还会定时往这个地址去测试看看进程还有没有响应. 那如果你不写... 这些就都没了, 手动再见.
 	* `restart`: 告诉 core 啥时候这个容器需要 restart. 实际上这个值是直接给 docker 的, 所以可选的有 always, on-failure, 不写就默认不需要自动重启.
-	* `health_check`: 目前可选项有 tcp, http. 其实 http 也可以用 tcp 来检查. 原理很简单, tcp 的话 agent 会去尝试连接 `{容器IP}:{容器端口}` 这个地址, 连接失败认为是挂了, 修改 etcd 里容器的健康状态, 其余工作交给 citadel 来完成. http 的话 agent 会去尝试 GET http://`{容器IP}:容器端口`/healthcheck, 你没有实现这个 url 也没有关系, [200, 500) 区间的 http status code 都认为是健康, 因为这个进程还在响应请求, 这里的超时时间是 5 秒, 5 秒还没有返回认为容器挂了, 做对应的操作.
+	* `healthcheck_url`: 只要声明了 `ports` 就会免费送你 tcp 健康检查的，但是写了这个健康检查 url 的话，应用可以做更灵活准确的健康检查。tcp 健康检查的原理很简单：agent 会去尝试连接 `{容器IP}:{容器端口}` 这个地址, 连接失败认为是挂了, 修改 etcd 里容器的健康状态, 其余工作交给 citadel 来完成. http 的话 agent 会去尝试 GET http://`{容器IP}:容器端口`/[healthcheck_url], 你还可以声明请求 `healthcheck_url` 所期待的状态码，见 `healthcheck_expected_code`。
+	* `healthcheck_expected_code`: 声明了健康检查 url 的期待返回值，如果没有声明，则认为 [200, 500) 区间的状态码都属于健康。因为这个进程还在响应请求, 这里的超时时间是 5 秒, 5 秒还没有返回认为容器不健康，会发送报警到项目 `subscribers`.
 	* `network_mode`: 如果你不想用 calico 的 SDN, 可以在这里标记为 host, 这样会占用整个宿主机的 IP, 最好不要这样, 不作死就不会死.
 	* `log_config`: 可选 `json-file`, `none`, `syslog` 等, 可以覆盖整个 core 的日志配置, 也就是说可以上一个用 json-file 来记日志的容器, 方便实时 debug, 但是我们其实有其他的 debug 手段, 所以这个选项也可以无视掉, 不作死就不会死.
 	* `hosts`: 可以给容器内部的 `/etc/hosts` 追加记录, 如果你有一些域名没有走 DNS 或者是需要固定 IP, 可以用这个实现, 是一个列表, 结构是 `域名:IP`, 跟 hosts 文件格式一样, 一行一个, 重复写的内容前面的会被后面的覆盖掉.
