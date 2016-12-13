@@ -202,7 +202,7 @@ def upgrade_container(self, ids, repo, sha, user_id=None):
 
     release = Release.get_by_app_and_sha(appname, sha)
     if not release:
-        raise ActionError(400, 'repo %s, %s does not have the right appname in app.yaml' % (repo, sha))
+        raise ActionError(400, 'repo %s, %s release not found, may not be registered?' % (repo, sha))
 
     image = release.image
     if not release.image:
