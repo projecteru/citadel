@@ -68,7 +68,7 @@ class CoreRPC(object):
     @handle_rpc_exception(default=list)
     def get_pod_nodes(self, name):
         stub = self._get_stub()
-        opts = ListNodesOptions(podname=name)
+        opts = ListNodesOptions(podname=name, all=True)
         r = stub.ListPodNodes(opts, _UNARY_TIMEOUT)
         return [Node(n) for n in r.nodes]
 
