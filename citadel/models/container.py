@@ -1,6 +1,8 @@
 # coding: utf-8
 import itertools
 import json
+from datetime import timedelta, datetime
+from time import sleep
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import ObjectDeletedError
@@ -64,6 +66,11 @@ class Container(BaseModelMixin, PropsMixin):
         if not c:
             return
         return c.inspect()
+
+    @property
+    def app(self):
+        from .app import App
+        return App.get_by_name(self.appname)
 
     @property
     def release(self):
@@ -143,6 +150,26 @@ class Container(BaseModelMixin, PropsMixin):
         return [c.inspect() for c in cs]
 
     @property
+    def deploy_options(self):
+        networks = self.info.get('NetworkSettings', {}).get('Networks', {})
+        release = self.release
+        deploy_options = {
+            'specs': release.specs_text,
+            'appname': self.appname,
+            'image': release.image,
+            'podname': self.podname,
+            'nodename': self.nodename,
+            'entrypoint': self.entrypoint,
+            'cpu_quota': float(self.cpu_quota),
+            'count': 1,
+            'memory': self.info['HostConfig']['Memory'],
+            'networks': {network_name: '' for network_name in networks},
+            'env': self.info['Config']['Env'],
+            'raw': release.raw,
+        }
+        return deploy_options
+
+    @property
     def ident(self):
         return self.name.rsplit('_', 2)[-1]
 
@@ -172,6 +199,21 @@ class Container(BaseModelMixin, PropsMixin):
         from citadel.publish import publisher
         self.removing = 1
         publisher.remove_container(self)
+
+    def wait_for_erection(self, timeout=timedelta(minutes=5), period=timedelta(seconds=5)):
+        if not isinstance(timeout, timedelta):
+            timeout = timedelta(seconds=timeout)
+
+        if not isinstance(period, timedelta):
+            period = timedelta(seconds=period)
+
+        must_end = datetime.now() + timeout
+        while datetime.now() < must_end:
+            if self.healthy:
+                return True
+            sleep(period.seconds)
+
+        return False
 
     def inspect(self):
         """must be called after get / create"""

@@ -57,11 +57,11 @@ def make_celery(app):
 
         def on_success(self, retval, task_id, args, kwargs):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
-            rds.publish(channel_name, TASK_PUBSUB_EOF)
+            rds.publish(channel_name, TASK_PUBSUB_EOF.format(task_id=task_id))
 
         def on_failure(self, exc, task_id, args, kwargs, einfo):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
-            rds.publish(channel_name, TASK_PUBSUB_EOF)
+            rds.publish(channel_name, TASK_PUBSUB_EOF.format(task_id=task_id))
             if not DEBUG:
                 msg = 'Citadel task {}:\nargs\n```\n{}\n```\nkwargs:\n```\n{}\n```\n*EXCEPTION*:\n```\n{}\n```'.format(self.name, args, kwargs, einfo.traceback)
                 notbot_sendmsg('#platform', msg)

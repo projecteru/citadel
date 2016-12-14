@@ -71,6 +71,9 @@ class App(BaseModelMixin):
         gitlab_project_name = get_project_name(self.git)
         return gitlab.projects.get(gitlab_project_name)
 
+    def get_release(self, sha):
+        return Release.get_by_app_and_sha(self.name, sha)
+
     def delete(self):
         appname = self.name
         from .loadbalance import ELBRule
