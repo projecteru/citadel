@@ -65,7 +65,8 @@ def deal(key, data):
             publisher.add_container(container)
             update_elb_for_containers(container)
         else:
-            msg = 'Sick container `{}`, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
+            msg = 'Sick container `{}` removed from ELB, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
+            update_elb_for_containers(container, UpdateELBAction.REMOVE)
 
         if not alive:
             logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
