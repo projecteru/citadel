@@ -138,6 +138,8 @@
             success = false;
             $('#upgrade-container-progress').find('.modal-header').html('<img src="http://a4.att.hudong.com/34/07/01300542856671141943075015944.png">');
             logDisplay.append(r.error + '\n');
+          } else if (r.type == 'sentence') {
+            logDisplay.append(r.message + '\n');
           } else {
             logDisplay.append(JSON.stringify(r) + '\n');
           }

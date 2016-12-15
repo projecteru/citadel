@@ -77,18 +77,13 @@ def build_image(self, repo, sha, uid='', artifact='', gitlab_build_id=''):
     task_id = self.request.id
     channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
     ms = _peek_grpc(core.build_image(repo, sha, uid, artifact))
-    res = []
     for m in ms:
         rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
-        res.append(m.to_dict())
-
         if m.status == 'finished':
             image = m.progress
 
     if release and image:
         release.update_image(image)
-
-    return res
 
 
 @current_app.task(bind=True)
@@ -221,19 +216,19 @@ def upgrade_container(self, old_container_id, sha, user_id=None):
     grpc_message = create_container(deploy_options,
                                     sha=release.sha,
                                     user_id=user_id,
-                                    envname='NOT_AVAILABLE')[0]
+                                    envname='SAME')[0]
     rds.publish(channel_name, json.dumps(grpc_message, cls=JSONEncoder) + '\n')
 
     new_container_id = grpc_message['id']
     new_container = Container.get_by_container_id(new_container_id)
-    rds.publish(channel_name, 'Wait for container {} to erect...\n'.format(new_container.short_id))
+    rds.publish(channel_name, make_sentence_json('Wait for container {} to erect...'.format(new_container.short_id)))
     healthy = new_container.wait_for_erection()
     # TODO: leave the options to users, let them choose what to do next (wait or rollback)
     if healthy:
-        rds.publish(channel_name, 'New container {} OK, remove old container {}'.format(new_container_id, old_container_id))
+        rds.publish(channel_name, make_sentence_json('New container {} OK, remove old container {}'.format(new_container_id, old_container_id)))
         remove_container(old_container_id)
     else:
-        rds.publish(channel_name, 'New container {} SO SICK, have to remove...'.format(new_container_id))
+        rds.publish(channel_name, make_sentence_json('New container {} SO SICK, have to remove...'.format(new_container_id)))
         remove_container(new_container_id)
 
 
@@ -271,3 +266,8 @@ def celery_task_stream_traceback(celery_task_ids):
         async_result.wait(timeout=120, propagate=False)
         if async_result.failed():
             yield json.dumps({'success': False, 'error': async_result.traceback})
+
+
+def make_sentence_json(message):
+    msg = json.dumps({'type': 'sentence', 'message': message}, cls=JSONEncoder)
+    return msg + '\n'
