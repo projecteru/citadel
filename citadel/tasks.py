@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
-from celery.result import AsyncResult
 import json
 
 import yaml
 from celery import current_app
+from celery.result import AsyncResult
 from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 
-from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF
+from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL
 from citadel.ext import rds
 from citadel.libs.json import JSONEncoder
 from citadel.libs.utils import logger, notbot_sendmsg
-from citadel.models.app import App, Release
+from citadel.models import Release
+from citadel.models.app import App
 from citadel.models.container import Container
 from citadel.models.gitlab import get_project_name, get_file_content, get_build_artifact
 from citadel.models.loadbalance import ELBInstance, update_elb_for_containers, UpdateELBAction
@@ -63,7 +64,7 @@ def build_image(self, repo, sha, uid='', artifact='', gitlab_build_id=''):
     release = Release.get_by_app_and_sha(appname, sha)
     if release.raw:
         release.update_image(release.specs.base)
-        return None
+        return
 
     # 尝试通过gitlab_build_id去取最近成功的一次artifact
     if not artifact:
@@ -73,15 +74,21 @@ def build_image(self, repo, sha, uid='', artifact='', gitlab_build_id=''):
     uid = str(uid or app.uid)
 
     image = ''
-    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
+    task_id = self.request.id
+    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
     ms = _peek_grpc(core.build_image(repo, sha, uid, artifact))
+    res = []
     for m in ms:
         rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
+        res.append(m.to_dict())
+
         if m.status == 'finished':
             image = m.progress
 
     if release and image:
         release.update_image(image)
+
+    return res
 
 
 @current_app.task(bind=True)
@@ -93,12 +100,16 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
     release = Release.get_by_app_and_sha(appname, sha)
 
     containers = []
-    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
+    task_id = self.request.id
+    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
     good_news = []
     bad_news = []
+    res = []
     for m in ms:
         content = json.dumps(m, cls=JSONEncoder)
         rds.publish(channel_name, content + '\n')
+        res.append(m.to_dict())
+
         if m.success:
             good_news.append(content)
             logger.debug('Creating %s:%s got grpc message %s', appname, entrypoint, m)
@@ -126,11 +137,14 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
         msg += '\n@timfeirg'
 
     notbot_sendmsg(subscribers, msg)
-    return [c.container_id for c in containers]
+    return res
 
 
 @current_app.task(bind=True)
 def create_elb_instance_upon_containers(self, container_ids, name, sha, comment=None, user_id=None):
+    if isinstance(container_ids, basestring):
+        container_ids = container_ids,
+
     release = Release.get_by_app_and_sha(ELB_APP_NAME, sha)
     for container_id in container_ids:
         container = Container.get_by_container_id(container_id)
@@ -158,10 +172,14 @@ def remove_container(self, ids, user_id=None):
 
     update_elb_for_containers(containers, UpdateELBAction.REMOVE)
 
-    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
+    task_id = self.request.id
+    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
     ms = _peek_grpc(core.remove_container(full_ids))
+    res = []
     for m in ms:
         rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
+        res.append(m.to_dict())
+
         container = Container.get_by_container_id(m.id)
         if not container:
             logger.info('Container [%s] not found when deleting', m.id)
@@ -181,69 +199,51 @@ def remove_container(self, ids, user_id=None):
 
         container.delete()
 
+    return res
+
 
 @current_app.task(bind=True)
-def upgrade_container(self, ids, repo, sha, user_id=None):
-    if len(sha) != 40:
-        raise ActionError(400, 'SHA must be in length 40')
+def upgrade_container(self, old_container_id, sha, user_id=None):
+    """this task will not be called synchronously, thus do not return anything"""
+    old_container = Container.get_by_container_id(old_container_id)
+    if sha in old_container.sha:
+        raise ActionError(400, u'没有可升级的容器！你是不是选错了版本！？')
 
-    containers = [Container.get_by_container_id(i) for i in ids]
-    containers = [c for c in containers if c and c.sha != sha]
-    if not containers:
-        raise ActionError(400, 'No containers to upgrade')
+    release = old_container.app.get_release(sha)
+    if not release or not release.image:
+        raise ActionError(400, 'Release %s not found or not built' % sha)
 
-    project_name = get_project_name(repo)
-    specs_text = get_file_content(project_name, 'app.yaml', sha)
-    if not specs_text:
-        raise ActionError(400, 'repo %s, %s does not have app.yaml in root directory' % (repo, sha))
+    deploy_options = old_container.deploy_options
+    # update image, and use random node
+    deploy_options.update({'image': release.image, 'nodename': ''})
+    task_id = self.request.id
+    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
+    grpc_message = create_container(deploy_options,
+                                    sha=release.sha,
+                                    user_id=user_id,
+                                    envname='NOT_AVAILABLE')[0]
+    rds.publish(channel_name, json.dumps(grpc_message, cls=JSONEncoder) + '\n')
 
-    specs = yaml.load(specs_text)
-    appname = specs.get('appname', '')
-
-    release = Release.get_by_app_and_sha(appname, sha)
-    if not release:
-        raise ActionError(400, 'repo %s, %s release not found, may not be registered?' % (repo, sha))
-
-    image = release.image
-    if not release.image:
-        raise ActionError(400, 'repo %s, %s has not been built yet' % (repo, sha))
-
-    # publish backends
-    for container in containers:
-        container.mark_removing()
-
-    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
-    ms = _peek_grpc(core.upgrade_container(ids, image))
-    for m in ms:
-        if m.success:
-            old = Container.get_by_container_id(m.id)
-            if not old:
-                continue
-
-            c = Container.create(old.appname, sha, m.new_id, old.entrypoint,
-                                 old.env, old.cpu_quota, old.podname,
-                                 old.nodename)
-            if not c:
-                continue
-
-            # 记录oplog
-            op_content = {'old_id': m.id, 'new_id': m.new_id, 'old_sha': old.sha, 'new_sha': c.sha}
-            OPLog.create(user_id, OPType.UPGRADE_CONTAINER, c.appname, c.sha, op_content)
-
-            # 这里只能一个一个更新 elb 了，无法批量更新
-            update_elb_for_containers(old, UpdateELBAction.REMOVE)
-            old.delete()
-            logger.debug('Container [%s] upgraded to [%s]', m.id, m.new_id)
-
-        # 这里也要注意顺序
-        # 不要让外面出现拿到了消息但是数据还没有更新.
-        rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
+    new_container_id = grpc_message['id']
+    new_container = Container.get_by_container_id(new_container_id)
+    rds.publish(channel_name, 'Wait for container {} to erect...\n'.format(new_container.short_id))
+    healthy = new_container.wait_for_erection()
+    # TODO: leave the options to users, let them choose what to do next (wait or rollback)
+    if healthy:
+        rds.publish(channel_name, 'New container {} OK, remove old container {}'.format(new_container_id, old_container_id))
+        remove_container(old_container_id)
+    else:
+        rds.publish(channel_name, 'New container {} SO SICK, have to remove...'.format(new_container_id))
+        remove_container(new_container_id)
 
 
-def celery_task_stream_response(celery_task_id):
-    task_progress_channel = TASK_PUBSUB_CHANNEL.format(task_id=celery_task_id)
+def celery_task_stream_response(celery_task_ids):
+    if isinstance(celery_task_ids, basestring):
+        celery_task_ids = celery_task_ids,
+
+    task_progress_channels = [TASK_PUBSUB_CHANNEL.format(task_id=id_) for id_ in celery_task_ids]
     pubsub = rds.pubsub()
-    pubsub.subscribe([task_progress_channel])
+    pubsub.subscribe(task_progress_channels)
     for item in pubsub.listen():
         logger.debug('Got pubsub message: %s', item)
         # each content is a single JSON encoded grpc message
@@ -252,16 +252,22 @@ def celery_task_stream_response(celery_task_id):
         if not isinstance(content, basestring):
             continue
         # task will publish TASK_PUBSUB_EOF at success or failure
-        if content == TASK_PUBSUB_EOF:
-            logger.debug('Got EOF from pubsub, break celery_task_stream_response')
-            break
+        if content.startswith('CELERY_TASK_DONE'):
+            finished_task_id = content[content.find(':') + 1:]
+            finished_task_channel = TASK_PUBSUB_CHANNEL.format(task_id=finished_task_id)
+            logger.debug('Task {} finished, break celery_task_stream_response'.format(finished_task_id))
+            pubsub.unsubscribe(finished_task_channel)
         else:
             yield content
 
 
-def celery_task_stream_traceback(celery_task_id):
-    async_result = AsyncResult(celery_task_id)
-    async_result.wait(timeout=120, propagate=False)
-    if async_result.failed():
-        logger.debug('Task %s failed, dumping traceback', async_result.task_id)
-        yield json.dumps({'success': False, 'error': async_result.traceback})
+def celery_task_stream_traceback(celery_task_ids):
+    """collect traceback for celery tasks, do not guarantee send order"""
+    if isinstance(celery_task_ids, basestring):
+        celery_task_ids = celery_task_ids,
+
+    for task_id in celery_task_ids:
+        async_result = AsyncResult(task_id)
+        async_result.wait(timeout=120, propagate=False)
+        if async_result.failed():
+            yield json.dumps({'success': False, 'error': async_result.traceback})

@@ -120,7 +120,6 @@
       var data = {};
       var container_ids = [];
       data.sha = $('select[name=release]').val();
-      data.appname = $('h4').html();
       $.each($('input[name=container-id]:checked'), function(){
         container_ids.push($(this).val());
       })
@@ -128,7 +127,6 @@
 
       $('#upgrade-container-modal').modal('hide');
       $('#upgrade-container-progress').modal('show');
-
 
       var logDisplay = $('#upgrade-container-pre');
       var success = true;

@@ -10,8 +10,8 @@ from citadel.ext import rds
 from citadel.libs.json import jsonize
 from citadel.libs.utils import logger
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
-from citadel.models.app import AppUserRelation, Release, App
-from citadel.models.container import Container
+from citadel.models import Container
+from citadel.models.app import AppUserRelation, Release
 from citadel.models.env import Environment
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import core
@@ -93,7 +93,7 @@ def deploy_release(release_id):
     env_vars.extend(extra_env)
 
     # 这里来的就都走自动分配吧
-    networks = {key: '' for key in payload['networks']}
+    networks = {network_name: '' for network_name in payload['networks']}
     debug = payload.get('debug', False)
 
     deploy_options = {
@@ -178,17 +178,14 @@ def upgrade_containers():
     payload = request.get_json()
     container_ids = payload['container_ids']
     sha = payload['sha']
-    appname = payload['appname']
-
-    app = App.get_by_name(appname)
-    if not app:
-        abort(400, 'App %s not found' % appname)
-    if app.name == ELB_APP_NAME:
+    containers = [Container.get_by_container_id(cid) for cid in container_ids]
+    appnames = set(c.appname for c in containers)
+    if ELB_APP_NAME in appnames:
         abort(400, 'Do not upgrade %s through this API' % ELB_APP_NAME)
 
-    async_result = upgrade_container.delay(container_ids, app.git, sha)
-    task_id = async_result.task_id
-    messages = chain(celery_task_stream_response(task_id), celery_task_stream_traceback(task_id))
+    async_results = [upgrade_container.delay(cid, sha) for cid in [c.container_id for c in containers]]
+    task_ids = [r.task_id for r in async_results]
+    messages = chain(celery_task_stream_response(task_ids), celery_task_stream_traceback(task_ids))
     return Response(messages, mimetype='application/json')
 
 
@@ -232,11 +229,12 @@ def create_loadbalance():
         'env': env_vars,
     }
     try:
-        # TODO: slow, async?
-        container_ids = create_container(deploy_options=deploy_options,
-                                         sha=sha, envname=envname,
-                                         user_id=user_id)
-        create_elb_instance_upon_containers(container_ids, name, sha,
+        grpc_message = create_container(deploy_options=deploy_options,
+                                        sha=sha,
+                                        envname=envname,
+                                        user_id=user_id)[0]
+        container_id = grpc_message['id']
+        create_elb_instance_upon_containers(container_id, name, sha,
                                             comment=payload['comment'],
                                             user_id=user_id)
     except ActionError as e:
