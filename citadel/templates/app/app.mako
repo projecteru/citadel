@@ -24,9 +24,6 @@
         <a href="${ url_for('app.app_permitted_users', name=app.name) }" class="btn-xs" target="_blank">
           • Permitted Users
         </a>
-        <a href="http://dashboard.ricebook.net/dashboard/db/eru-apps?var-app=${ app.name }" class="btn-xs" target="_blank">
-          • 监控
-        </a>
       </h3>
     </%def>
     <h4>${ app.name }</h4>

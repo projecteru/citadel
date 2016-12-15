@@ -37,6 +37,7 @@
               data-content="
               <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ c.nodename } -t 'sudo docker-enter ${ c.short_id }'</code></pre>
               <a href='http://kibana.ricebook.net/app/logtrail#/?q=name:${ c.appname }%20%26%26%20ident:${ c.ident }&h=All&t=Now&_g=()' target='_blank'><span class='label label-info'>日志</span></a>
+              <a href='http://dashboard.ricebook.net/dashboard/db/eru-apps?var-app=${ app.name }&var-version=${ c.short_sha }' target='_blank'><span class='label label-info'>监控</span></a>
               ">
               ${ c.short_id }
             </a>
@@ -59,7 +60,7 @@
               data-html='true'
               data-content="
               <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ c.nodename } -t 'sudo su'</code></pre>
-              <a href='http://dashboard.ricebook.net/dashboard/db/servers?var-hostname=${ c.nodename }' target='_blank'><span class='label label-info'>host监控</span></a>
+              <a href='http://dashboard.ricebook.net/dashboard/db/docker?var-hostname=${ c.nodename }' target='_blank'><span class='label label-info'>host监控</span></a>
               <a href='${ url_for('admin.node', podname=c.podname, nodename=c.nodename) }' target='_blank'><span class='label label-info'>这台机还有啥</span></a>
               ">
               ${ c.podname }: ${ c.nodename }
