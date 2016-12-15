@@ -4,6 +4,7 @@ import json
 from datetime import timedelta, datetime
 from time import sleep
 
+from etcd import EtcdKeyNotFound
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import ObjectDeletedError
 
@@ -177,7 +178,10 @@ class Container(BaseModelMixin, PropsMixin):
     def healthy(self):
         # TODO: hard code, ugly
         agent2_container_path = '/agent2/{}.ricebook.link/containers/{}'.format(self.nodename, self.container_id)
-        res = etcd.read(agent2_container_path)
+        try:
+            res = etcd.read(agent2_container_path)
+        except EtcdKeyNotFound:
+            return False
         container_info = json.loads(res.value)
         # if missing 'Healthy', considered healthy
         return container_info.get('Healthy', True)
