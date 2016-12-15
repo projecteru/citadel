@@ -179,7 +179,10 @@ def upgrade_containers():
     container_ids = payload['container_ids']
     sha = payload['sha']
     containers = [Container.get_by_container_id(cid) for cid in container_ids]
-    appnames = set(c.appname for c in containers)
+    appnames = set(c.appname for c in containers if c)
+    if not appnames:
+        abort(400, 'No containers to upgrade')
+
     if ELB_APP_NAME in appnames:
         abort(400, 'Do not upgrade %s through this API' % ELB_APP_NAME)
 
