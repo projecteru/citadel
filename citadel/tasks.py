@@ -10,7 +10,7 @@ from more_itertools import peekable
 from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL
 from citadel.ext import rds
 from citadel.libs.json import JSONEncoder
-from citadel.libs.utils import logger, notbot_sendmsg
+from citadel.libs.utils import notbot_sendmsg, logger
 from citadel.models import Release
 from citadel.models.app import App
 from citadel.models.container import Container
@@ -185,14 +185,14 @@ def remove_container(self, ids, user_id=None):
             op_content = {'container_id': m.id}
             OPLog.create(user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
             logger.debug('Container [%s] deleted', m.id)
+            container.delete()
         elif 'Container ID must be length of' in m.message:
             # TODO: this requires core doesn't change this error message,
             # maybe use error code in the future
             continue
         else:
-            logger.warn('Container [%s] error, but still deleted', m.id)
-
-        container.delete()
+            logger.warn('Remove container %s got error: %s', m.id, m.message)
+            notbot_sendmsg('#platform', 'Error removing container {}: {}'.format(m.id, m.message))
 
     return res
 
