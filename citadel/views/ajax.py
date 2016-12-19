@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import json
 from itertools import chain
 
 from flask import Blueprint, jsonify, Response, g, request, abort
@@ -15,7 +14,7 @@ from citadel.models.app import AppUserRelation, Release
 from citadel.models.env import Environment
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import core
-from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback
+from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback, make_sentence_json
 from citadel.views.helper import bp_get_app, bp_get_balancer
 
 
@@ -129,7 +128,7 @@ def deploy_release(release_id):
             debug_log_pubsub.psubscribe(debug_log_channel)
             for item in debug_log_pubsub.listen():
                 logger.debug('Stream response emit debug log: %s', item)
-                yield json.dumps(item)
+                yield make_sentence_json(item['data'])
 
     return Response(generate_stream_response(), mimetype='text/event-stream')
 
