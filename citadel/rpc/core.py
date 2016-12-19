@@ -43,7 +43,7 @@ class Network(_CoreRPC):
     def subnets_string(self):
         return ','.join(self.subnets)
 
-    def __repr__(self):
+    def __str__(self):
         return 'Network<name: %s, subnets: %s>' % (self.name, self.subnets_string)
 
 

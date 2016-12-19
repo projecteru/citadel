@@ -96,7 +96,7 @@ class User(object):
         self.token = token
         self.pubkey = pubkey
 
-    def __repr__(self):
+    def __str__(self):
         return '{class_} {u.name}'.format(
             class_=self.__class__,
             u=self,

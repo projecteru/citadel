@@ -61,12 +61,17 @@ def deal(key, data):
 
         msg = ''
         if healthy:
-            logger.info('[%s, %s, %s] ADD [%s] [%s]', container.appname, container.podname, container.entrypoint, container_id, ','.join(container.get_backends()))
+            container.mark_initialized()
             publisher.add_container(container)
             update_elb_for_containers(container)
+            logger.info('[%s, %s, %s] ADD [%s] [%s]', container.appname, container.podname, container.entrypoint, container_id, ','.join(container.get_backends()))
         else:
-            msg = 'Sick container `{}` removed from ELB, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
             update_elb_for_containers(container, UpdateELBAction.REMOVE)
+            # omit the first sick warning
+            if container.initialized and not container.removing:
+                msg = 'Sick container `{}` removed from ELB, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
+            else:
+                container.mark_initialized()
 
         if not alive:
             logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)

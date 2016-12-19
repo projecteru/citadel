@@ -31,10 +31,11 @@ class Container(BaseModelMixin, PropsMixin):
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
 
+    initialized = PropsItem('initialized', default=0, type=int)
     removing = PropsItem('removing', default=0, type=int)
     networks = PropsItem('networks', default=dict)
 
-    def __repr__(self):
+    def __str__(self):
         return 'Container(container_id=%s)' % self.container_id
 
     def get_uuid(self):
@@ -204,6 +205,9 @@ class Container(BaseModelMixin, PropsMixin):
         self.removing = 1
         publisher.remove_container(self)
 
+    def mark_initialized(self):
+        self.initialized = 1
+
     def wait_for_erection(self, timeout=timedelta(minutes=5), period=timedelta(seconds=5)):
         if not isinstance(timeout, timedelta):
             timeout = timedelta(seconds=timeout)
@@ -243,6 +247,7 @@ class Container(BaseModelMixin, PropsMixin):
         networks = self.info.get('NetworkSettings', {}).get('Networks', {})
         if networks and not self.networks:
             self.networks = networks
+
         return self
 
     def status(self):
