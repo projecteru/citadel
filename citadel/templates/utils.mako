@@ -205,20 +205,9 @@
       % for release in releases:
         <tr>
           <td><a href="${ url_for('app.release', name=release.name, sha=release.sha) }">${ release.sha[:7] }</a></td>
-          <td>${ release.created }</td>
-          <%
-            try:
-              commit = release.gitlab_commit
-              author = commit.author_name
-              message = commit.message
-            except:
-              author = 'unknown'
-              message = 'unknown'
-          %>
-          <td>
-            <span data-toggle="tooltip" data-placement="top" title="${ message }">
-              ${ author }
-            </span>
+          <td>${ naturaltime(release.created) }</td>
+          <td class="col-sm-6" style="font-size:70%">
+            ${ release.author }: ${ release.commit_message }
           </td>
           <td>
             <a href="${ url_for('app.gitlab_url', name=release.name, sha=release.sha) }" target="_blank">${ release.sha[:7] }</a>

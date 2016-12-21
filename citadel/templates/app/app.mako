@@ -11,6 +11,7 @@
 
 <%!
   from datetime import datetime
+  from citadel.libs.utils import shorten_sentence
 %>
 
 <%block name="main">
@@ -80,9 +81,9 @@
           <select name="release" class="form-control">
             % for release in releases:
               % if release.image:
-                <option value="${ release.sha }" >${ release.short_sha }</option>
+                <option value="${ release.sha }" >${ release.short_sha }: ${ shorten_sentence(release.commit_message) }...</option>
               % else:
-                <option value="${ release.sha }" disabled>${ release.short_sha }</option>
+                <option value="${ release.sha }" disabled>${ release.short_sha }: ${ shorten_sentence(release.commit_message) }...</option>
               % endif
             % endfor
           </select>

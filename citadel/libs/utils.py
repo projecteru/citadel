@@ -54,6 +54,12 @@ def make_unicode(s):
         return s
 
 
+def shorten_sentence(s, length=88):
+    if len(s) > length:
+        return s[:length]
+    return s
+
+
 def normalize_domain(domain):
     """保留第一级的path, 并且去掉最后的/"""
     if '/' not in domain:

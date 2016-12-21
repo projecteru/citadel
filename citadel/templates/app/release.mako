@@ -20,16 +20,7 @@
     </%def>
     <h4><a href="${ url_for('app.app', name=app.name) }">${ app.name }</a> @ ${ release.short_sha }</h4>
     <p>
-      <%
-        try:
-          commit = release.gitlab_commit
-          author = commit.author_name
-          message = commit.message
-        except:
-          author = 'unknown'
-          message = 'unknown'
-      %>
-      ${ author } : ${ message }
+      ${ release.author } : ${ release.commit_message }
     </p>
     <p>image: ${ release.image }</p>
     % if release.raw:
