@@ -201,9 +201,6 @@ def remove_container(self, ids, user_id=None):
 def upgrade_container(self, old_container_id, sha, user_id=None):
     """this task will not be called synchronously, thus do not return anything"""
     old_container = Container.get_by_container_id(old_container_id)
-    if sha in old_container.sha:
-        raise ActionError(400, u'没有可升级的容器！你是不是选错了版本！？')
-
     release = old_container.app.get_release(sha)
     if not release or not release.image:
         raise ActionError(400, 'Release %s not found or not built' % sha)
