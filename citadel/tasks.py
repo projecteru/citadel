@@ -20,9 +20,6 @@ from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import core
 
 
-_eof = object()
-
-
 class ActionError(Exception):
 
     def __init__(self, code, message):
@@ -186,13 +183,15 @@ def remove_container(self, ids, user_id=None):
             OPLog.create(user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
             logger.debug('Container [%s] deleted', m.id)
             container.delete()
+        elif 'Key not found' in m.message:
+            container.delete()
         elif 'Container ID must be length of' in m.message:
             # TODO: this requires core doesn't change this error message,
             # maybe use error code in the future
             continue
         else:
             logger.warn('Remove container %s got error: %s', m.id, m.message)
-            notbot_sendmsg('#platform', 'Error removing container {}: {}'.format(m.id, m.message))
+            notbot_sendmsg('#platform', 'Error removing container {}: {}\n@timfeirg'.format(m.id, m.message))
 
     return res
 
