@@ -253,6 +253,7 @@ class Release(BaseModelMixin):
     def author(self):
         return self.gitlab_commit.author_name
 
+    @cached_property
     def specs_text(self):
         specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
         return specs_text
