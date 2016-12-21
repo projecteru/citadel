@@ -63,7 +63,7 @@
     </%def>
 
     <%utils:container_list containers="${ containers }">
-      <button name="upgrade-container" class="btn btn-primary pull-left" data-toggle="modal" data-target="#upgrade-container-modal"><span class="fui-apple"></span> Upgrade Chosen</button>
+      <button name="upgrade-container" class="btn btn-primary pull-left" data-toggle="modal" data-target="#upgrade-container-modal"><span class="fui-apple"></span>升级或者换新</button>
     </%utils:container_list>
 
   </%utils:panel>
