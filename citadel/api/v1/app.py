@@ -4,9 +4,11 @@ from flask import abort, g, request
 from citadel.libs.datastructure import AbortDict
 from citadel.libs.utils import logger
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
+
 from citadel.models.app import App, Release
 from citadel.models.container import Container
 from citadel.models.env import Environment
+from citadel.models.gitlab import get_project_group, get_gitlab_groups
 
 
 bp = create_api_blueprint('app', __name__, 'app')
@@ -88,6 +90,11 @@ def register_release():
     name = data['name']
     git = data['git']
     sha = data['sha']
+
+    group = get_project_group(git)
+    all_groups = get_gitlab_groups()
+    if not group or group not in all_groups:
+        abort(400, 'only project under a group can be registered, your git repo is %s' % git)
 
     app = App.get_or_create(name, git)
     if not app:

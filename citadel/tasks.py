@@ -57,8 +57,11 @@ def build_image(self, repo, sha, uid='', artifact='', gitlab_build_id=''):
     specs = yaml.load(specs_text)
     appname = specs.get('appname', '')
     if not appname:
-        raise ActionError(400, 'repo %s does not have the right appname in app.yaml' % repo)
+        raise ActionError(400, 'repo %s does not have appname in app.yaml' % repo)
+
     release = Release.get_by_app_and_sha(appname, sha)
+    if not release:
+        raise ActionError(400, 'release %s, %s not found, maybe not registered yet?' % (repo, sha))
     if release.raw:
         release.update_image(release.specs.base)
         return
