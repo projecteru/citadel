@@ -1,5 +1,4 @@
-# coding: utf-8
-
+# -*- coding: utf-8 -*-
 from citadel.libs.view import create_api_blueprint
 from citadel.network.plugin import get_all_pools
 
