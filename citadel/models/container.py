@@ -12,7 +12,6 @@ from citadel.ext import etcd, db
 from citadel.libs.mimiron import set_mimiron_route, del_mimiron_route
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
-from citadel.network.plugin import get_ips_by_container
 from citadel.rpc import core
 
 
@@ -33,7 +32,6 @@ class Container(BaseModelMixin, PropsMixin):
 
     initialized = PropsItem('initialized', default=0, type=int)
     removing = PropsItem('removing', default=0, type=int)
-    networks = PropsItem('networks', default=dict)
 
     def __str__(self):
         return 'Container(container_id=%s)' % self.container_id
@@ -152,8 +150,11 @@ class Container(BaseModelMixin, PropsMixin):
         return [c.inspect() for c in cs]
 
     @property
+    def networks(self):
+        return self.info.get('NetworkSettings', {}).get('Networks', {})
+
+    @property
     def deploy_options(self):
-        networks = self.info.get('NetworkSettings', {}).get('Networks', {})
         release = self.release
         deploy_options = {
             'specs': release.specs_text,
@@ -165,7 +166,7 @@ class Container(BaseModelMixin, PropsMixin):
             'cpu_quota': float(self.cpu_quota),
             'count': 1,
             'memory': self.info['HostConfig']['Memory'],
-            'networks': {network_name: '' for network_name in networks},
+            'networks': {network_name: '' for network_name in self.networks},
             'env': self.info['Config']['Env'],
             'raw': release.raw,
         }
@@ -242,12 +243,6 @@ class Container(BaseModelMixin, PropsMixin):
 
         self.name = c.name
         self.info = json.loads(c.info)
-        # network settings 需要保存下来
-        # 防止 calico 挂了需要恢复的问题
-        networks = self.info.get('NetworkSettings', {}).get('Networks', {})
-        if networks and not self.networks:
-            self.networks = networks
-
         return self
 
     def status(self):
@@ -261,7 +256,19 @@ class Container(BaseModelMixin, PropsMixin):
         return status
 
     def get_ips(self):
-        return get_ips_by_container(self)
+        ips = []
+        for name, network in self.networks.iteritems():
+            # 如果是host模式要去取下node的IP
+            if name == 'host':
+                node = core.get_node(self.podname, self.nodename)
+                if not node:
+                    continue
+                ips.append(node.ip)
+            # 其他的不管是bridge还是自定义的都可以直接取
+            else:
+                ips.append(network.get('IPAddress', ''))
+
+        return [ip for ip in ips if ip]
 
     def get_backends(self):
         from .app import Release

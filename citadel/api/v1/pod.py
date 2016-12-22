@@ -1,12 +1,11 @@
-# coding: utf-8
-
+# -*- coding: utf-8 -*-
 from flask import abort, g, request
 
-from citadel.rpc import core
-from citadel.libs.view import create_api_blueprint
 from citadel.libs.datastructure import AbortDict
+from citadel.libs.view import create_api_blueprint
 from citadel.models.container import Container
 from citadel.network.plugin import get_all_networks
+from citadel.rpc import core
 
 
 bp = create_api_blueprint('pod', __name__, 'pod')

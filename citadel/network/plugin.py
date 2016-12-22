@@ -1,25 +1,9 @@
-# coding: utf-8
-
+# -*- coding: utf-8 -*-
 import json
 
 from citadel.ext import etcd
-from citadel.rpc import core
 from citadel.libs.utils import handle_etcd_exception
-
-
-def get_ips_by_container(container):
-    ips = []
-    for name, network in container.networks.iteritems():
-        # 如果是host模式要去取下node的IP
-        if name == 'host':
-            node = core.get_node(container.podname, container.nodename)
-            if not node:
-                continue
-            ips.append(node.ip)
-        # 其他的不管是bridge还是自定义的都可以直接取
-        else:
-            ips.append(network.get('IPAddress', ''))
-    return [ip for ip in ips if ip]
+from citadel.rpc import core
 
 
 @handle_etcd_exception(default=list)
