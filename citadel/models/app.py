@@ -240,7 +240,7 @@ class Release(BaseModelMixin):
         from .container import Container
         return Container.get_by(appname=self.name, sha=self.sha)
 
-    @property
+    @cached_property
     def gitlab_commit(self):
         commit = get_commit(self.app.project_name, self.sha)
         return commit

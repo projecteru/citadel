@@ -56,8 +56,8 @@ class Container(BaseModelMixin, PropsMixin):
             set_mimiron_route(c.container_id, c.get_node(), specs.permitted_users)
 
         from citadel.publish import publisher
-        publisher.add_container(c)
-        return c.inspect()
+        publisher.add_container(c.inspect())
+        return c
 
     @classmethod
     def get_by_container_id(cls, container_id):
