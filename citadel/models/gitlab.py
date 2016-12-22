@@ -25,6 +25,17 @@ def get_project_name(repo):
     return u.path[1:-4]
 
 
+def get_project_group(repo):
+    name = get_project_name(repo)
+    return name.split('/')[0]
+
+
+@cache('citadel:allgroups', ttl=ONE_DAY)
+def get_gitlab_groups():
+    groups = gitlab.groups.list()
+    return [g.name for g in groups]
+
+
 @cache('citadel:filecontent:{project_name}:{file_path}:{ref}', ttl=ONE_DAY)
 def get_file_content(project_name, file_path, ref):
 
