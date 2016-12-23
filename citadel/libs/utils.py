@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 from functools import wraps, partial
 
@@ -8,6 +9,7 @@ from flask import session
 from gitlab import GitlabError
 
 from citadel.config import NOTBOT_SENDMSG_URL, LOGGER_NAME, DEBUG
+from citadel.libs.json import JSONEncoder
 
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -122,3 +124,8 @@ def memoize(f):
             return ret
 
     return memodict().__getitem__
+
+
+def make_sentence_json(message):
+    msg = json.dumps({'type': 'sentence', 'message': message}, cls=JSONEncoder)
+    return msg + '\n'

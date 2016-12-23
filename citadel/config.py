@@ -89,6 +89,13 @@ beat_schedule = {
     'record-health': {
         'task': 'citadel.tasks.record_health_status',
         'schedule': timedelta(seconds=20),
+    },
+    'tackle-beat': {
+        'task': 'citadel.tasks.trigger_tackle_routine',
+        'schedule': timedelta(seconds=5),
+        # task message expire in 1 second to prevent flooding citadel with
+        # unnecessary eru-tackle tasks
+        'options': {'expires': 1},
     }
 }
 
@@ -106,3 +113,10 @@ SESSION_TYPE = 'redis'
 SESSION_REDIS = redis.Redis.from_url(REDIS_URL)
 SESSION_KEY_PREFIX = '{}:session:'.format(PROJECT_NAME)
 PERMANENT_SESSION_LIFETIME = timedelta(days=2)
+
+# citadel-tackle config
+CITADEL_TACKLE_EXPRESSION_KEY = 'citadel:tackle:expression:{}-{}-{}'
+GRAPHITE_QUERY_FROM = getenv('GRAPHITE_QUERY_FROM', default='-3min')
+GRAPHITE_QUERY_STRING_PATTERN = 'group(eru.{app_name}.*.*.*.*.*, eru.{app_name}.*.*.*.*.*.*.*.*)'
+GRAPHITE_TARGET_PATTERN = 'eru.{app_name}.{version}.{entrypoint}.{hostname}.{container_id}.{metric}'
+GRAPHITE_DATA_SERIES_NAME_TEMPLATE = '{app_name}-{cid}'
