@@ -77,10 +77,9 @@ class Entrypoint(object):
 
 class Combo(object):
 
-    def __init__(self, podname, entrypoint, envname='', cpu=0, memory='0',
-                 count=1, envs={}, raw=False, networks=(), permitted_users=(),
-                 elb=()):
+    def __init__(self, podname, nodename, entrypoint, envname='', cpu=0, memory='0', count=1, envs={}, raw=False, networks=(), permitted_users=(), elb=()):
         self.podname = podname
+        self.nodename = nodename
         self.entrypoint = entrypoint
         self.envname = envname
         self.cpu = cpu
@@ -97,6 +96,7 @@ class Combo(object):
     @classmethod
     def from_dict(cls, data):
         podname = data['podname']
+        nodename = data.get('nodename', '')
         entrypoint = data['entrypoint']
         envname = data.get('envname', '')
         cpu = float(data.get('cpu', 1))
@@ -117,8 +117,7 @@ class Combo(object):
                 k, v = p.split('=', 1)
                 envs[k] = v
 
-        return cls(podname, entrypoint, envname, cpu, memory, count, envs, raw,
-                   networks, permitted_users, elb)
+        return cls(podname, nodename, entrypoint, envname, cpu, memory, count, envs, raw, networks, permitted_users, elb)
 
     def allow(self, user):
         if not self.permitted_users:

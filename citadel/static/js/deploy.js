@@ -12,7 +12,7 @@ $('#add-container-form select[name=pod]').change(function(){
   var node_selection = $('select[name=node]');
   var get_nodes_url = '/ajax/pod/' + pod + '/nodes';
   $.get(get_nodes_url, {}, function(r){
-    node_selection.html('').append($('<option>').val('').text('Let Eru choose for me'));
+    node_selection.html('').append($('<option>').val('').text('随便'));
     for (var i=0; i<r.length; i++) {
       node_selection.append($('<option>').val(r[i].name).text(r[i].name + ' - ' + r[i].ip));
     }
