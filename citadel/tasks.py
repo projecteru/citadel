@@ -186,7 +186,7 @@ def remove_container(self, ids, user_id=None):
             OPLog.create(user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
             logger.debug('Container [%s] deleted', m.id)
             container.delete()
-        elif 'Key not found' in m.message:
+        elif 'Key not found' in m.message or 'No such container' in m.message:
             container.delete()
         elif 'Container ID must be length of' in m.message:
             # TODO: this requires core doesn't change this error message,
