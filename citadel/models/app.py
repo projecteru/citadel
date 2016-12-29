@@ -101,6 +101,9 @@ class App(BaseModelMixin):
         from citadel.models.loadbalance import ELBRule
         return ELBRule.get_by_app(self.name)
 
+    def get_permitted_user_ids(self):
+        return AppUserRelation.get_user_id_by_appname(self.name)
+
     def to_dict(self):
         d = super(App, self).to_dict()
         d.update({
@@ -149,16 +152,10 @@ class Release(BaseModelMixin):
 
         # after the instance is created, manage app permission through combo
         # permitted_users
-        all_permitted_users = set(new_release.get_permitted_users())
-        previous_release = new_release.get_previous()
-        if previous_release:
-            old_folks = set(previous_release.get_permitted_users())
-        else:
-            old_folks = set()
-
-        come = all_permitted_users - old_folks
-        gone = old_folks - all_permitted_users
-        logger.info('Release %s change permission: ADD %s, REMOVE %s', sha, come, gone)
+        permitted_users = set(new_release.get_permitted_users())
+        current_permitted_users = set([User.get(id_) for id_ in AppUserRelation.get_user_id_by_appname(appname)])
+        come = permitted_users - current_permitted_users
+        gone = current_permitted_users - permitted_users
         for u in come:
             if not u:
                 continue
@@ -182,11 +179,6 @@ class Release(BaseModelMixin):
                     logger.error('Auto create ELBRule failed: app %s', appname)
 
         return new_release
-
-    def get_previous(self):
-        cls = self.__class__
-        res = cls.query.filter(cls.id < self.id, cls.app_id == self.app_id)
-        return res.first()
 
     def get_permitted_users(self):
         usernames = self.specs.permitted_users
