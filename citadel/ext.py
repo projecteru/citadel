@@ -4,6 +4,7 @@ from urlparse import urlparse
 from etcd import Client
 from flask_mako import MakoTemplates
 from flask_oauthlib.client import OAuth
+from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from gitlab import Gitlab
 from redis import Redis
@@ -44,3 +45,4 @@ sso = oauth.remote_app(
 )
 
 gitlab = Gitlab(GITLAB_URL, private_token=GITLAB_PRIVATE_TOKEN)
+sess = Session()

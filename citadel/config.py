@@ -1,4 +1,5 @@
 # coding: utf-8
+import redis
 from kombu import Queue
 from smart_getenv import getenv
 
@@ -72,4 +73,9 @@ task_queues = (
 task_default_exchange = PROJECT_NAME
 task_default_routing_key = PROJECT_NAME
 task_serializer = 'pickle'
-accept_content = ['pickle', 'json']
+accept_content = ['pickle']
+
+# flask-session settings
+SESSION_USE_SIGNER = True
+SESSION_TYPE = 'redis'
+SESSION_REDIS = redis.Redis.from_url(REDIS_URL)
