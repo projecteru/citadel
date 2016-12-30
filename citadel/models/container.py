@@ -29,9 +29,9 @@ class Container(BaseModelMixin, PropsMixin):
     cpu_quota = db.Column(db.Numeric(12, 3), nullable=False, default=1)
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
+    removing = db.Column(db.Integer, nullable=False, default=0)
 
     initialized = PropsItem('initialized', default=0, type=int)
-    removing = PropsItem('removing', default=0, type=int)
 
     def __str__(self):
         return 'Container(container_id=%s)' % self.container_id
@@ -203,8 +203,10 @@ class Container(BaseModelMixin, PropsMixin):
 
     def mark_removing(self):
         from citadel.publish import publisher
-        self.removing = 1
         publisher.remove_container(self)
+        self.removing = 1
+        db.session.add(self)
+        db.session.commit()
 
     def mark_initialized(self):
         self.initialized = 1
@@ -291,10 +293,9 @@ class Container(BaseModelMixin, PropsMixin):
 
     def delete(self):
         from citadel.publish import publisher
-        publisher.remove_container(self)
         try:
+            publisher.remove_container(self)
             del_mimiron_route(self.container_id)
-            self.destroy_props()
         except ObjectDeletedError:
             logger.warn('Error during deleting: Object %s already deleted', self)
             return None
