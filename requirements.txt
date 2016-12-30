@@ -4,6 +4,7 @@ python-gitlab
 Flask
 Flask_OAuthlib
 Flask_SQLAlchemy
+Flask-Session
 redis
 smart_getenv
 SQLAlchemy
