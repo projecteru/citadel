@@ -13,8 +13,7 @@ SECRET_KEY = getenv('SECRET_KEY', default='testsecretkey')
 MAKO_DEFAULT_FILTERS = ['unicode', 'h']
 MAKO_TRANSLATE_EXCEPTIONS = False
 
-GRPC_HOST = getenv('GRPC_HOST', default='127.0.0.1')
-GRPC_PORT = getenv('GRPC_PORT', default=5001, type=int)
+GRPC_ADDRESS = 'core-grpc.test.ricebook.net:5001'
 AGENT_PORT = getenv('AGENT_PORT', default=12345, type=int)
 
 SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', default='mysql://root:@localhost:3306/citadel')

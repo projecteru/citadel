@@ -1,7 +1,7 @@
 # coding: utf-8
 from functools import partial
 
-from grpc.beta import implementations
+import grpc
 from grpc.framework.interfaces.face.face import AbortionError
 
 from citadel.libs.cache import cache, clean_cache, ONE_DAY
@@ -9,7 +9,7 @@ from citadel.libs.utils import handle_exception
 from citadel.rpc.core import (Pod, Node, Network, BuildImageMessage,
                               CreateContainerMessage, UpgradeContainerMessage,
                               RemoveContainerMessage)
-from citadel.rpc.core_pb2 import (beta_create_CoreRPC_stub, Empty,
+from citadel.rpc.core_pb2 import (CoreRPCStub, Empty,
                                   AddPodOptions, GetPodOptions,
                                   ListNodesOptions, GetNodeOptions,
                                   AddNodeOptions, BuildImageOptions,
@@ -31,14 +31,13 @@ _GET_NODE = 'citadel:getnode:{podname}:{nodename}'
 
 class CoreRPC(object):
 
-    def __init__(self, grpc_host, grpc_port):
-        self.grpc_host = grpc_host
-        self.grpc_port = grpc_port
+    def __init__(self, grpc_address):
+        self.grpc_address = grpc_address
 
     def _get_stub(self):
         try:
-            channel = implementations.insecure_channel(self.grpc_host, self.grpc_port)
-            return beta_create_CoreRPC_stub(channel)
+            channel = grpc.insecure_channel(self.grpc_address)
+            return CoreRPCStub(channel)
         except Exception as e:
             raise NoStubError(e.message)
 
