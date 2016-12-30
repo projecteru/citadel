@@ -79,3 +79,4 @@ accept_content = ['pickle']
 SESSION_USE_SIGNER = True
 SESSION_TYPE = 'redis'
 SESSION_REDIS = redis.Redis.from_url(REDIS_URL)
+SESSION_KEY_PREFIX = '{}:session:'.format(PROJECT_NAME)
