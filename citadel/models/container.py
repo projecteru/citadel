@@ -5,6 +5,7 @@ from datetime import timedelta, datetime
 from time import sleep
 
 from etcd import EtcdKeyNotFound
+from grpc._channel import _Rendezvous
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import ObjectDeletedError
 
@@ -233,7 +234,18 @@ class Container(BaseModelMixin, PropsMixin):
             self.info = {'State': {'Status': 'removing'}}
             return self
 
-        c = core.get_container(self.container_id)
+        # FUCK THIS SHIT
+        # 并发升级容器流程中，进入删除容器流程的时候，会竟然会去inspect已经删除的容器，理论上不可能啊
+        try:
+            c = core.get_container(self.container_id)
+        except _Rendezvous as e:
+            if 'not found' in e.details:
+                self.name = 'unknown'
+                self.info = {}
+                return self
+            else:
+                raise
+
         if not c:
             self.name = 'unknown'
             self.info = {}
