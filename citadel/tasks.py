@@ -8,7 +8,7 @@ from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 
 from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL
-from citadel.ext import rds
+from citadel.ext import rds, hub
 from citadel.libs.json import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg, logger
 from citadel.models import Release
@@ -229,6 +229,17 @@ def upgrade_container(self, old_container_id, sha, user_id=None):
     else:
         rds.publish(channel_name, make_sentence_json('New container {} SO SICK, have to remove...'.format(new_container_id)))
         remove_container(new_container_id)
+
+
+@current_app.task(bind=True)
+def clean_images(self):
+    hub_eru_apps = [n for n in hub.get_all_repos() if n.startswith('eruapp')]
+    for repo_name in hub_eru_apps:
+        appname = repo_name.split('/', 1)[-1]
+        for short_sha in hub.get_tags(repo_name) or []:
+            if not Release.get_by_app_and_sha(appname, short_sha):
+                logger.debug('Delete image %s:%s', appname, short_sha)
+                hub.delete_repo(repo_name, short_sha)
 
 
 def celery_task_stream_response(celery_task_ids):
