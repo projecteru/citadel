@@ -1,4 +1,4 @@
-# ln -s -f `pwd`/watch-etcd.service /etc/systemd/system/
+# cp `pwd`/watch-etcd.service /etc/systemd/system/
 [Unit]
 Description=watch-etcd
 After=network.target

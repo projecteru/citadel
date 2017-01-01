@@ -1,4 +1,4 @@
-# ln -s -f `pwd`/citadel.service /etc/systemd/system/
+# cp `pwd`/citadel.service /etc/systemd/system/
 [Unit]
 Description=Citadel
 After=network.target
