@@ -1,6 +1,7 @@
 # coding: utf-8
 from urlparse import urlparse
 
+import mapi
 from etcd import Client
 from flask_mako import MakoTemplates
 from flask_oauthlib.client import OAuth
@@ -9,17 +10,10 @@ from flask_sqlalchemy import SQLAlchemy
 from gitlab import Gitlab
 from redis import Redis
 
-from citadel.config import (
-    REDIS_URL,
-    ETCD_URL,
-    OAUTH2_BASE_URL,
-    OAUTH2_CLIENT_ID,
-    OAUTH2_CLIENT_SECRET,
-    OAUTH2_ACCESS_TOKEN_URL,
-    OAUTH2_AUTHORIZE_URL,
-    GITLAB_URL,
-    GITLAB_PRIVATE_TOKEN,
-)
+from citadel.config import (HUB_ADDRESS, REDIS_URL, ETCD_URL, OAUTH2_BASE_URL,
+                            OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET,
+                            OAUTH2_ACCESS_TOKEN_URL, OAUTH2_AUTHORIZE_URL,
+                            GITLAB_URL, GITLAB_PRIVATE_TOKEN)
 
 
 def get_etcd_client(url):
@@ -46,3 +40,4 @@ sso = oauth.remote_app(
 
 gitlab = Gitlab(GITLAB_URL, private_token=GITLAB_PRIVATE_TOKEN)
 sess = Session()
+hub = mapi.MapiClient(HUB_ADDRESS)

@@ -1,5 +1,6 @@
 # coding: utf-8
 import redis
+from celery.schedules import crontab
 from kombu import Queue
 from smart_getenv import getenv
 
@@ -38,6 +39,8 @@ ELB_APP_NAME = getenv('ELB_APP_NAME', default='erulb')
 ELB_BACKEND_NAME_DELIMITER = getenv('ELB_BACKEND_NAME_DELIMITER', default='___')
 ELB_POD_NAME = getenv('ELB_POD_NAME', default='elb')
 
+HUB_ADDRESS = getenv('HUB_ADDRESS', default='hub.ricebook.net')
+
 REDIS_POD_NAME = getenv('REDIS_POD_NAME', default='redis')
 
 NOTBOT_SENDMSG_URL = getenv('NOTBOT_SENDMSG_URL', default='http://notbot.intra.ricebook.net/api/sendmsg.peter')
@@ -73,6 +76,12 @@ task_default_exchange = PROJECT_NAME
 task_default_routing_key = PROJECT_NAME
 task_serializer = 'pickle'
 accept_content = ['pickle', 'json']
+beat_schedule = {
+    'clean-images': {
+        'task': 'citadel.tasks.clean_images',
+        'schedule': crontab(hour='4'),
+    },
+}
 
 # flask-session settings
 SESSION_USE_SIGNER = True
