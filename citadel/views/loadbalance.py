@@ -1,14 +1,13 @@
-# coding: utf-8
-from erulbpy import ELBClient
-from flask import request, abort, redirect, url_for, jsonify, flash
+# -*- coding: utf-8 -*-
+from flask import request, abort, redirect, url_for, jsonify, flash, g
 from flask_mako import render_template
 
-from citadel.config import ELB_REDIS_URL, ELB_APP_NAME, ELB_POD_NAME
+from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
 from citadel.models.env import Environment
-from citadel.models.loadbalance import ELBInstance, ELBRule
-from citadel.rpc import core
+from citadel.models.loadbalance import ELBInstance, ELBRule, get_elb_client
+from citadel.rpc import get_core
 from citadel.views.helper import need_admin
 
 
@@ -23,7 +22,7 @@ def _cleanse_domain(url):
 @bp.route('/')
 def index():
     elb_dict = {}
-    current_instances = ELBInstance.get_all()
+    current_instances = ELBInstance.get_by(zone=g.zone)
     occupied_pods = set()
     for elb in current_instances:
         if not elb.container:
@@ -39,7 +38,7 @@ def index():
 
     # elb container is deployed in host network mode, that means one elb
     # instance per node
-    nodes = [n for n in core.get_pod_nodes(ELB_POD_NAME) if n.name not in occupied_pods]
+    nodes = [n for n in get_core(g.zone).get_pod_nodes(ELB_POD_NAME) if n.name not in occupied_pods]
     envs = Environment.get_by_app(ELB_APP_NAME)
     releases = Release.get_by_app(app.name, limit=20)
     return render_template('/loadbalance/list.mako',
@@ -53,12 +52,12 @@ def index():
 
 @bp.route('/<name>', methods=['GET'])
 def elb(name):
-    rules = ELBRule.get_by_elb(name)
+    rules = ELBRule.get_by(elbname=name, zone=g.zone)
     all_apps = [a for a in App.get_all(limit=100) if a and a.name != ELB_APP_NAME]
     if not all_apps:
         abort(404, 'NO APPS AT ALL')
 
-    elbs = ELBInstance.get_by_name(name)
+    elbs = ELBInstance.get_by(name=name, zone=g.zone)
     if not elbs and not rules:
         abort(404, 'No instance found for ELB: {}'.format(name))
 
@@ -80,10 +79,15 @@ def edit_rule(name):
     if not rule_content:
         abort(400)
 
-    rule = ELBRule.get_by(elbname=name, domain=domain)
-    if not rule:
+    rules = ELBRule.get_by(zone=g.zone, elbname=name, domain=domain)
+    if not rules:
         abort(404)
 
+    if len(rules) > 1:
+        flash(u'这数据绝逼有问题，你赶紧找平台看看')
+        return redirect(url_for('loadbalance.elb', name=name))
+
+    rule = rules[0]
     if not rule.edit_rule(rule_content):
         flash(u'edit rule failed', 'error')
 
@@ -100,7 +104,7 @@ def add_rule(name):
     appname = request.form['appname']
     domain = _cleanse_domain(request.form['domain'])
     rule_content = request.form['rule']
-    rule = ELBRule.create(appname, name, domain, rule_content)
+    rule = ELBRule.create(g.zone, appname, name, domain, rule_content)
     if not rule:
         flash(u'create rule failed')
 
@@ -118,12 +122,15 @@ def add_general_rule(name):
     if not domain:
         abort(400)
 
-    r = ELBRule.create(name, domain, appname,
+    r = ELBRule.create(g.zone,
+                       name,
+                       domain,
+                       appname,
                        rule=None,
                        entrypoint=entrypoint,
                        podname=podname)
     if not r:
-        flash(u'create rule failed', 'error')
+        flash(u'Create rule failed', 'error')
 
     return redirect(url_for('loadbalance.elb', name=name))
 
@@ -132,7 +139,7 @@ def add_general_rule(name):
 @need_admin
 def rule(name):
     domain = request.args['domain']
-    elb = ELBClient(name=name, redis_url=ELB_REDIS_URL)
+    elb = get_elb_client(name, g.zone)
     rule = elb.get_rule(domain)
     return jsonify({
         'domain': domain,
@@ -144,10 +151,14 @@ def rule(name):
 @need_admin
 def delete_rule(name):
     domain = request.values['domain']
-    rule = ELBRule.get_by(elbname=name, domain=domain)
-    if not rule:
+    rules = ELBRule.get_by(zone=g.zone, elbname=name, domain=domain)
+    if not rules:
         abort(404, 'ELB rule not found: {}'.format(domain))
 
+    if len(rules) > 1:
+        abort(500, u'这数据有问题，你快找平台看看')
+
+    rule = rules[0]
     if not rule.delete():
         flash(u'error during delete elb', 'error')
 

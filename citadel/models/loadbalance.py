@@ -5,10 +5,12 @@ from collections import Iterable
 import enum
 from erulbpy import ELBClient
 from sqlalchemy.exc import IntegrityError
+from werkzeug.utils import cached_property
 
-from citadel.config import ELB_REDIS_URL, ELB_BACKEND_NAME_DELIMITER
+from citadel.config import ELB_BACKEND_NAME_DELIMITER, ZONE_CONFIG
 from citadel.ext import db, rds
-from citadel.libs.utils import logger, make_unicode
+from citadel.libs.datastructure import purge_none_val_from_dict
+from citadel.libs.utils import logger, make_unicode, memoize
 from citadel.models.base import BaseModelMixin, JsonType
 from citadel.models.container import Container
 
@@ -40,6 +42,12 @@ def get_backends(backend_name, exclude_containers=()):
     return [b for c in containers for b in c.get_backends()]
 
 
+@memoize
+def get_elb_client(name, zone):
+    elb_db = ZONE_CONFIG[zone]['ELB_DB']
+    return ELBClient(name=name, redis_url=elb_db)
+
+
 class ELBRule(BaseModelMixin):
 
     """
@@ -51,6 +59,7 @@ class ELBRule(BaseModelMixin):
         db.UniqueConstraint('elbname', 'domain'),
     )
 
+    zone = db.Column(db.String(50), nullable=False)
     elbname = db.Column(db.String(64), nullable=False)
     domain = db.Column(db.String(128), nullable=False)
     appname = db.Column(db.CHAR(64), nullable=False)
@@ -67,16 +76,16 @@ class ELBRule(BaseModelMixin):
 
     @property
     def elb(self):
-        return ELBClient(name=self.elbname, redis_url=ELB_REDIS_URL)
+        return get_elb_client(self.elbname, self.zone)
 
     @classmethod
-    def create(cls, elbname, domain, appname, rule=None, sha='', entrypoint=None, podname=None):
+    def create(cls, zone, elbname, domain, appname, rule=None, sha='', entrypoint=None, podname=None):
         rule = rule or cls.generate_simple_rule(appname, entrypoint, podname)
         if not rule:
             return None
 
         try:
-            r = cls(elbname=elbname, domain=domain, appname=appname, rule=rule, sha=sha)
+            r = cls(zone=zone, elbname=elbname, domain=domain, appname=appname, rule=rule, sha=sha)
             db.session.add(r)
             db.session.commit()
         except IntegrityError:
@@ -125,16 +134,8 @@ class ELBRule(BaseModelMixin):
         return self.write_rules()
 
     @classmethod
-    def get_by_app(cls, appname):
-        return cls.query.filter_by(appname=appname).order_by(cls.id.desc()).all()
-
-    @classmethod
-    def get_by_elb(cls, elbname):
-        return cls.query.filter_by(elbname=elbname).order_by(cls.id.desc()).all()
-
-    @classmethod
     def get_by(cls, **kwargs):
-        return cls.query.filter_by(**kwargs).order_by(cls.id.desc()).first()
+        return cls.query.filter_by(**purge_none_val_from_dict(kwargs)).order_by(cls.id.desc()).all()
 
     def delete(self):
         domain = self.domain
@@ -160,6 +161,7 @@ class ELBInstance(BaseModelMixin):
     addr = db.Column(db.String(128), nullable=False)
     container_id = db.Column(db.String(64), nullable=False, index=True)
     name = db.Column(db.String(64))
+    zone = db.Column(db.String(50), nullable=False)
 
     @property
     def comment(self):
@@ -173,7 +175,11 @@ class ELBInstance(BaseModelMixin):
 
     @classmethod
     def create(cls, addr, container_id, name, comment=''):
-        b = cls(addr=addr, container_id=container_id, name=name)
+        container = Container.get_by_container_id(container_id)
+        b = cls(addr=addr,
+                container_id=container_id,
+                zone=container.zone,
+                name=name)
         db.session.add(b)
         db.session.commit()
         b.comment = comment
@@ -182,7 +188,7 @@ class ELBInstance(BaseModelMixin):
     def is_only_instance(self):
         cls = self.__class__
         elbname = self.name
-        remaining_instances = [b for b in cls.get_by_name(elbname) if b.id != self.id]
+        remaining_instances = [b for b in cls.get_by(name=elbname) if b.id != self.id]
         return not remaining_instances
 
     def clear_rules(self):
@@ -196,16 +202,18 @@ class ELBInstance(BaseModelMixin):
         rules.delete()
 
     @classmethod
-    def get_by_name(cls, name):
-        return cls.query.filter_by(name=name).order_by(cls.id.desc()).all()
+    def get_by(cls, **kwargs):
+        container_id = kwargs.pop('container_id', None)
+        query_set = cls.query.filter_by(**purge_none_val_from_dict(kwargs))
+        if container_id:
+            query_set = query_set.filter(cls.container_id.like('{}%'.format(container_id)))
 
-    @classmethod
-    def get_by_container_id(cls, container_id):
-        return cls.query.filter(cls.container_id.like('{}%'.format(container_id))).first()
+        res = query_set.order_by(cls.id.desc()).all()
+        return res
 
-    @property
+    @cached_property
     def elb(self):
-        return ELBClient(name=self.name, redis_url=ELB_REDIS_URL)
+        return get_elb_client(self.name, self.zone)
 
     @property
     def container(self):
@@ -213,7 +221,6 @@ class ELBInstance(BaseModelMixin):
 
     @property
     def ip(self):
-        """要么是容器的IP, 要么是宿主机的IP, 反正都可以从容器那里拿到."""
         if not self.container:
             return 'Unknown'
         ips = self.container.get_ips()
@@ -242,7 +249,7 @@ def update_elb_for_containers(containers, action=UpdateELBAction.ADD):
         if action == UpdateELBAction.REMOVE:
             exclude = set(this_batch_containers)
 
-        elb_rules = ELBRule.get_by_app(this_batch_containers[0].appname)
+        elb_rules = ELBRule.get_by(appname=this_batch_containers[0].appname)
         for r in elb_rules:
             for backend_name in r.rule['backends']:
                 backends = get_backends(backend_name, exclude_containers=exclude)

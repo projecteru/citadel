@@ -7,7 +7,7 @@ from citadel.models.app import AppUserRelation, App
 from citadel.models.container import Container
 from citadel.models.oplog import OPLog
 from citadel.models.user import get_users, get_user
-from citadel.rpc import core
+from citadel.rpc import get_core
 
 
 bp = create_page_blueprint('admin', __name__, url_prefix='/admin')
@@ -20,39 +20,39 @@ def index():
 
 @bp.route('/pod')
 def pods():
-    pods = core.list_pods()
+    pods = get_core(g.zone).list_pods()
     return render_template('/admin/pods.mako', pods=pods)
 
 
 @bp.route('/pod/<name>/')
 def get_pod_nodes(name):
-    pod = core.get_pod(name)
+    pod = get_core(g.zone).get_pod(name)
     if not pod:
         abort(404)
 
-    nodes = core.get_pod_nodes(name)
+    nodes = get_core(g.zone).get_pod_nodes(name)
     return render_template('/admin/pod_nodes.mako', pod=pod, nodes=nodes)
 
 
 @bp.route('/pod/<podname>/<nodename>', methods=['GET', 'DELETE', 'POST'])
 def node(podname, nodename):
-    containers = Container.get_by_node(nodename, g.start, g.limit)
+    containers = Container.get_by(nodename=nodename, zone=g.zone)
     if request.method == 'DELETE':
         if containers:
             return jsonify({'error': 'Node not empty'}), 400
-        core.remove_node(nodename, podname)
+        get_core(g.zone).remove_node(nodename, podname)
         return jsonify({'message': 'OK'})
 
     if request.method == 'POST':
         available = (request.get_json() or request.values).get('available', True)
-        core.set_node_availability(podname, nodename, available)
+        get_core(g.zone).set_node_availability(podname, nodename, available)
         return jsonify({'message': 'OK'})
 
-    pod = core.get_pod(podname)
+    pod = get_core(g.zone).get_pod(podname)
     if not pod:
         abort(404)
 
-    node = core.get_node(podname, nodename)
+    node = get_core(g.zone).get_node(podname, nodename)
     if not node:
         abort(404)
 

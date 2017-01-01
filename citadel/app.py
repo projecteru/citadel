@@ -6,7 +6,7 @@ from flask import g, abort, session, Flask, request
 from raven.contrib.flask import Sentry
 from werkzeug.utils import import_string
 
-from citadel.config import DEBUG, SENTRY_DSN, TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF
+from citadel.config import DEBUG, SENTRY_DSN, TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF, DEFAULT_ZONE
 from citadel.ext import sess, rds, db, mako
 from citadel.libs.datastructure import DateConverter
 from citadel.libs.utils import notbot_sendmsg
@@ -32,7 +32,6 @@ api_blueprints = [
     'pod',
     'container',
     'action',
-    'network',
     'mimiron',
 ]
 
@@ -63,9 +62,8 @@ def make_celery(app):
         def on_failure(self, exc, task_id, args, kwargs, einfo):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
             rds.publish(channel_name, TASK_PUBSUB_EOF.format(task_id=task_id))
-            if not DEBUG:
-                msg = 'Citadel task {}:\nargs\n```\n{}\n```\nkwargs:\n```\n{}\n```\n*EXCEPTION*:\n```\n{}\n```'.format(self.name, args, kwargs, einfo.traceback)
-                notbot_sendmsg('#platform', msg)
+            msg = 'Citadel task {}:\nargs\n```\n{}\n```\nkwargs:\n```\n{}\n```\n*EXCEPTION*:\n```\n{}\n```'.format(self.name, args, kwargs, einfo.traceback)
+            notbot_sendmsg('#platform', msg)
 
         def __call__(self, *args, **kwargs):
             with app.app_context():
@@ -108,6 +106,7 @@ def create_app():
     def init_global_vars():
         g.start = request.args.get('start', type=int, default=0)
         g.limit = request.args.get('limit', type=int, default=20)
+        g.zone = session.get('zone') or request.values.get('zone') or DEFAULT_ZONE
 
         token = request.headers.get('X-Neptulon-Token', '') or request.values.get('X-Neptulon-Token')
         g.user = token and get_current_user_via_auth(token) or (get_current_user() if 'sso' in session or DEBUG else None)

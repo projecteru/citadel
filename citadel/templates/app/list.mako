@@ -24,10 +24,10 @@
         % for app in apps:
           <tr>
             <td><a href="${ url_for('app.app', name=app.name) }">${ app.name }</a></td>
-            <% containers = Container.get_by_app(app.name, limit=100) %>
+            <% containers = Container.get_by(appname=app.name, zone=g.zone) %>
             % if containers:
               <td>
-                <span class="label label-${ 'danger' if app.has_problematic_container else 'success' }">${ len(containers) } Containers</span>
+                <span class="label label-${ 'danger' if app.has_problematic_container(g.zone) else 'success' }">${ len(containers) } Containers</span>
               </td>
               <td>
                 <% pods = set([c.podname for c in containers])%>

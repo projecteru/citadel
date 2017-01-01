@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 import json
 
 import yaml
@@ -10,7 +10,7 @@ from citadel.libs.view import create_api_blueprint
 from citadel.models.app import Release
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_name, get_file_content
-from citadel.rpc import core
+from citadel.rpc import get_core
 from citadel.tasks import create_container, remove_container, ActionError, upgrade_container, celery_task_stream_response, build_image
 
 
@@ -66,6 +66,7 @@ def deploy():
         'specs': release.specs_text,
         'appname': appname,
         'image': release.image,
+        'zone': g.zone,
         'podname': data['podname'],
         'nodename': data.get('nodename', ''),
         'entrypoint': data['entrypoint'],
@@ -109,7 +110,7 @@ def get_log():
     podname = data['podname']
     nodename = data['nodename']
 
-    node = core.get_node(podname, nodename)
+    node = get_core(g.zone).get_node(podname, nodename)
     if not node:
         raise ActionError(400, 'Node %s not found' % nodename)
 

@@ -135,6 +135,7 @@ class CoreRPC(object):
     @handle_rpc_exception(default=list)
     def create_container(self, deploy_options):
         stub = self._get_stub()
+        deploy_options.pop('zone', None)
         opts = DeployOptions(**deploy_options)
         for m in stub.CreateContainer(opts, _STREAM_TIMEOUT):
             yield CreateContainerMessage(m)

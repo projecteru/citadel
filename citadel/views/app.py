@@ -12,7 +12,7 @@ from citadel.models.env import Environment
 from citadel.models.gitlab import make_commit_url
 from citadel.models.oplog import OPLog, OPType
 from citadel.models.user import User
-from citadel.rpc import core
+from citadel.rpc import get_core
 from citadel.views.helper import bp_get_app, bp_get_release, get_nodes_for_first_pod, get_networks_for_first_pod
 
 
@@ -43,7 +43,7 @@ def app(name):
                 return jsonify({'message': u'容器删干净之后才能删除应用'}), 400
 
     releases = Release.get_by_app(app.name, limit=8)
-    containers = Container.get_by_app(app.name, limit=None)
+    containers = Container.get_by(appname=app.name, zone=g.zone)
     return render_template('/app/app.mako', app=app, releases=releases, containers=containers)
 
 
@@ -68,11 +68,11 @@ def release(name, sha):
         release.fix_git(payload['override_git'])
         return jsonify({'message': 'OK'}), 200
 
-    containers = Container.get_by_release(app.name, sha, limit=None)
+    containers = Container.get_by(appname=app.name, sha=sha, zone=g.zone)
     appspecs = release.specs_text
     envs = Environment.get_by_app(app.name)
     # we won't be using pod redis and elb here
-    pods = [p for p in core.list_pods() if p.name not in IGNORE_PODS]
+    pods = [p for p in get_core(g.zone).list_pods() if p.name not in IGNORE_PODS]
     nodes = get_nodes_for_first_pod(pods)
     combos = release.combos
     networks = get_networks_for_first_pod(pods)

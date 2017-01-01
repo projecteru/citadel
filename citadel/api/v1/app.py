@@ -37,7 +37,7 @@ def get_app(name):
 @bp.route('/<name>/containers', methods=['GET'])
 def get_app_containers(name):
     app = _get_app(name)
-    return Container.get_by_app(app.name, g.start, g.limit)
+    return Container.get_by(appname=app.name)
 
 
 @bp.route('/<name>/releases', methods=['GET'])
@@ -80,7 +80,7 @@ def get_release(name, sha):
 @bp.route('/<name>/version/<sha>/containers', methods=['GET'])
 def get_release_containers(name, sha):
     release = _get_release(name, sha)
-    return Container.get_by_release(name, release.sha, g.start, g.limit)
+    return Container.get_by(appname=name, sha=release.sha)
 
 
 @bp.route('/register', methods=['POST'])

@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 import redis
 from celery.schedules import crontab
 from kombu import Queue
@@ -14,14 +14,26 @@ SECRET_KEY = getenv('SECRET_KEY', default='testsecretkey')
 MAKO_DEFAULT_FILTERS = ['unicode', 'h']
 MAKO_TRANSLATE_EXCEPTIONS = False
 
-GRPC_ADDRESS = 'core-grpc.test.ricebook.net:5001'
 AGENT_PORT = getenv('AGENT_PORT', default=12345, type=int)
+REDIS_URL = getenv('REDIS_URL', default='redis://127.0.0.1:6379/0')
+
+DEFAULT_ZONE = 'c2'
+BUILD_ZONE = 'c2'
+ZONE_CONFIG = {
+    'c1': {
+        'ETCD_CLUSTER': (('10.10.158.89', 2379), ('10.10.177.49', 2379), ('10.10.163.77', 2379)),
+        'GRPC_URL': 'core-grpc.test.ricebook.net:5001',
+        'ELB_DB': 'redis://10.10.176.179:6379',
+    },
+    'c2': {
+        'ETCD_CLUSTER': (('***REMOVED***', 2379), ('***REMOVED***', 2379), ('***REMOVED***', 2379)),
+        'GRPC_URL': 'core-grpc.intra.ricebook.net:5001',
+        'ELB_DB': 'redis://***REMOVED***:6379',
+    },
+}
 
 SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', default='mysql://root:@localhost:3306/citadel')
 SQLALCHEMY_TRACK_MODIFICATIONS = getenv('SQLALCHEMY_TRACK_MODIFICATIONS', default=True, type=bool)
-
-REDIS_URL = getenv('REDIS_URL', default='redis://127.0.0.1:6379/0')
-ETCD_URL = getenv('ETCD_URL', default='etcd://127.0.0.1:2379')
 
 GITLAB_URL = getenv('GITLAB_URL', default='http://gitlab.ricebook.net')
 GITLAB_API_URL = getenv('GITLAB_API_URL', default='http://gitlab.ricebook.net/api/v3')
@@ -57,8 +69,6 @@ except ImportError:
 
 # redis pod is managed by cerberus, elb pod is managed by views.loadbalance
 IGNORE_PODS = {REDIS_POD_NAME, ELB_POD_NAME}
-
-ELB_REDIS_URL = getenv('ELB_REDIS_URL', default=REDIS_URL)
 
 # celery config
 timezone = 'Asia/Shanghai'

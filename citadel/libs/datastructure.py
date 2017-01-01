@@ -1,7 +1,8 @@
-# coding: utf-8
-
-from flask import abort
+# -*- coding: utf-8 -*-
 from datetime import datetime
+
+from boltons.iterutils import remap
+from flask import abort
 from werkzeug.routing import BaseConverter, ValidationError
 
 
@@ -28,3 +29,7 @@ class AbortDict(dict):
             return dict.__getitem__(self, key)
         except KeyError:
             abort(400, '`%s` must be in dict' % key)
+
+
+def purge_none_val_from_dict(dic):
+    return remap(dic, visit=lambda path, key, val: val is not None)
