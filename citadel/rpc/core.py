@@ -49,7 +49,7 @@ class Network(_CoreRPC):
 
 class Node(_CoreRPC):
 
-    fields = ['name', 'endpoint', 'podname', 'public', 'cpu', 'info']
+    fields = ['name', 'endpoint', 'podname', 'public', 'cpu', 'info', 'available']
 
     def __init__(self, node):
         super(Node, self).__init__(node)

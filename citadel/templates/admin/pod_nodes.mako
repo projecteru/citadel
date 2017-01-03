@@ -32,6 +32,7 @@ from humanize import naturalsize
           <th>Memory(used)</th>
 
           <th>IP</th>
+          <th>Available</th>
           <th>Operations</th>
         </tr>
       </thead>
@@ -49,6 +50,13 @@ from humanize import naturalsize
             <td>${ naturalsize(node.used_mem, binary=True) }</td>
 
             <td>${ node.ip }</td>
+            <td>
+            % if node.available:
+              <span class="label label-xs label-success">Good</span>
+            % else:
+              <span class="label label-xs label-danger">Bad</span>
+            % endif
+            </td>
             <td><a name="remove-node" class="btn btn-xs btn-warning" href="#" data-delete-url="${ url_for('admin.node', nodename=node.name, podname=pod.name) }" data-nodename="${ node.name }" data-podname="${ pod.name }"><span class="fui-trash"></span></a></td>
           </tr>
         % endfor
