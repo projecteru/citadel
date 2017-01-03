@@ -18,7 +18,6 @@ from citadel.ext import etcd
 from citadel.libs.utils import notbot_sendmsg, with_appcontext
 from citadel.models import Container, Release
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
-from citadel.publish import publisher
 
 
 logging.getLogger('requests').setLevel(logging.CRITICAL)
@@ -62,7 +61,6 @@ def deal(key, data):
         msg = ''
         if healthy:
             container.mark_initialized()
-            publisher.add_container(container)
             update_elb_for_containers(container)
             logger.info('[%s, %s, %s] ADD [%s] [%s]', container.appname, container.podname, container.entrypoint, container_id, ','.join(container.get_backends()))
         else:
@@ -82,8 +80,6 @@ def deal(key, data):
         release = Release.get_by_app_and_sha(container.appname, container.sha)
         subscribers = release.specs.subscribers or '#platform'
         notbot_sendmsg(subscribers, msg)
-
-        publisher.publish_app(appname)
     finally:
         _jobs.pop(ident, None)
 
