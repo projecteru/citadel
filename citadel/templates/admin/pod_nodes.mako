@@ -26,38 +26,45 @@ from humanize import naturalsize
 
           <th>CPU(total)</th>
           <th>CPU(used)</th>
-          <th>CPU(remain)</th>
 
           <th>Memory(total)</th>
           <th>Memory(used)</th>
 
           <th>IP</th>
-          <th>Available</th>
-          <th>Operations</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
         % for node in nodes:
           <tr>
-            <td><a href="${ url_for('admin.node', podname=pod.name, nodename=node.name) }">${ node.name }</a></td>
+            <td>
+              <a href="${ url_for('admin.node', podname=pod.name, nodename=node.name) }">
+              % if node.available:
+                <span class="label label-success">
+              % else:
+                <span class="label label-danger">
+              % endif
+                ${ node.name }
+              </span>
+            </a>
+            </td>
             <td>${ node.info.get('OperatingSystem', 'unknown') }</td>
 
             <td>${ node.total_cpu_count }</td>
             <td>${ node.used_cpu_count }</td>
-            <td>${ node.cpu_count }</td>
 
             <td>${ naturalsize(node.memory_total, binary=True) }</td>
             <td>${ naturalsize(node.used_mem, binary=True) }</td>
 
             <td>${ node.ip }</td>
             <td>
-            % if node.available:
-              <span class="label label-xs label-success">Good</span>
-            % else:
-              <span class="label label-xs label-danger">Bad</span>
-            % endif
+              <a name="remove-node" class="btn btn-xs btn-warning" href="#" data-delete-url="${ url_for('admin.node', nodename=node.name, podname=pod.name) }" data-nodename="${ node.name }" data-podname="${ pod.name }"><span class="fui-trash"></span></a>
+              % if node.available:
+                <a name="disable-node" class="btn btn-xs btn-warning" href="#" data-available="${ node.available }" data-disable-url="${ url_for('admin.node', nodename=node.name, podname=pod.name) }" data-nodename="${ node.name }" data-podname="${ pod.name }">DISABLE</a>
+              % else:
+                <a name="disable-node" class="btn btn-xs btn-primary" href="#" data-available="${ node.available }" data-disable-url="${ url_for('admin.node', nodename=node.name, podname=pod.name) }" data-nodename="${ node.name }" data-podname="${ pod.name }">ENABLE</a>
+              % endif
             </td>
-            <td><a name="remove-node" class="btn btn-xs btn-warning" href="#" data-delete-url="${ url_for('admin.node', nodename=node.name, podname=pod.name) }" data-nodename="${ node.name }" data-podname="${ pod.name }"><span class="fui-trash"></span></a></td>
           </tr>
         % endfor
       </tbody>
@@ -69,6 +76,25 @@ from humanize import naturalsize
 <%def name="bottom_script()">
 
   <script>
+    // Switches
+    $('a[name=disable-node]').click(function (){
+      var self = $(this);
+      $.ajax({
+        url: self.data('disable-url'),
+        type: 'POST',
+        dataType: 'json',
+        contentType: 'application/json',
+        data: JSON.stringify({available: self.data('available') != 'True'}),
+        success: function(data, textStatus, jQxhr) {
+          console.log('Set node availability to: ', self.data('available') != 'True', ' got response:', data);
+          location.reload();
+        },
+        error: function(jqXhr, textStatus, errorThrown) {
+          console.log('Toggle node got error: ', jqXhr, textStatus, errorThrown);
+          alert(jqXhr.responseText);
+        }
+      });
+    })
     $('a[name=remove-node]').click(function (){
       var self = $(this);
       if (!confirm('确定删除' + self.data('nodename') + '?')) { return; }

@@ -24,7 +24,7 @@ def pods():
     return render_template('/admin/pods.mako', pods=pods)
 
 
-@bp.route('/pod/<name>/nodes')
+@bp.route('/pod/<name>/')
 def get_pod_nodes(name):
     pod = core.get_pod(name)
     if not pod:
@@ -34,7 +34,7 @@ def get_pod_nodes(name):
     return render_template('/admin/pod_nodes.mako', pod=pod, nodes=nodes)
 
 
-@bp.route('/pod/<podname>/node/<nodename>', methods=['GET', 'DELETE'])
+@bp.route('/pod/<podname>/<nodename>', methods=['GET', 'DELETE', 'POST'])
 def node(podname, nodename):
     containers = Container.get_by_node(nodename, g.start, g.limit)
     if request.method == 'DELETE':
@@ -43,9 +43,15 @@ def node(podname, nodename):
         core.remove_node(nodename, podname)
         return jsonify({'message': 'OK'})
 
+    if request.method == 'POST':
+        available = (request.get_json() or request.values).get('available', True)
+        core.set_node_availability(podname, nodename, available)
+        return jsonify({'message': 'OK'})
+
     pod = core.get_pod(podname)
     if not pod:
         abort(404)
+
     node = core.get_node(podname, nodename)
     if not node:
         abort(404)

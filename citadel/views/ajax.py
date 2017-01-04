@@ -203,12 +203,6 @@ def get_pod_nodes(name):
     return core.get_pod_nodes(name)
 
 
-@bp.route('/pod/<podname>/node/<nodename>/available', methods=['PUT', 'DELETE'])
-@jsonize
-def set_node_availability(podname, nodename):
-    return core.set_node_availability(podname, nodename, request.method == 'PUT')
-
-
 @bp.route('/loadbalance', methods=['POST'])
 @jsonize
 def create_loadbalance():
