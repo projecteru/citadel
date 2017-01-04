@@ -9,7 +9,7 @@ from citadel.libs.utils import handle_exception
 from citadel.rpc.core import (Pod, Node, Network, BuildImageMessage,
                               CreateContainerMessage, UpgradeContainerMessage,
                               RemoveContainerMessage)
-from citadel.rpc.core_pb2 import (CoreRPCStub, Empty,
+from citadel.rpc.core_pb2 import (CoreRPCStub, Empty, NodeAvailable,
                                   AddPodOptions, GetPodOptions,
                                   ListNodesOptions, GetNodeOptions,
                                   AddNodeOptions, BuildImageOptions,
@@ -85,6 +85,13 @@ class CoreRPC(object):
         stub = self._get_stub()
         opts = GetNodeOptions(podname=podname, nodename=nodename)
         n = stub.GetNode(opts, _UNARY_TIMEOUT)
+        return n and Node(n)
+
+    @handle_rpc_exception(default=None)
+    def set_node_availability(self, podname, nodename, is_available=True):
+        stub = self._get_stub()
+        opts = NodeAvailable(podname=podname, nodename=nodename, available=is_available)
+        n = stub.SetNodeAvailable(opts, _UNARY_TIMEOUT)
         return n and Node(n)
 
     @handle_rpc_exception(default=None)
