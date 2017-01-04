@@ -239,7 +239,7 @@ class Container(BaseModelMixin, PropsMixin):
         try:
             c = core.get_container(self.container_id)
         except _Rendezvous as e:
-            if 'not found' in e.details:
+            if 'not found' in e.details():
                 self.name = 'unknown'
                 self.info = {}
                 return self
