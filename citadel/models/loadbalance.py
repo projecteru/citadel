@@ -99,7 +99,7 @@ class ELBRule(BaseModelMixin):
             return None
         backend_name = ELB_BACKEND_NAME_DELIMITER.join([appname, entrypoint, podname])
         rule = {
-            'default': 'rule0',
+            'default': backend_name,
             'rules_name': ['rule0'],
             'init_rule': 'rule0',
             'backends': [backend_name],
