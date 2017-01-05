@@ -1,12 +1,12 @@
 # coding: utf-8
-
 import requests
-from requests.exceptions import ConnectTimeout, ReadTimeout, ConnectionError
 from flask import abort, request
+from requests.exceptions import ConnectTimeout, ReadTimeout, ConnectionError
 
 from citadel.config import DEBUG, AUTH_AUTHORIZE_URL, AUTH_GET_USER_URL
 from citadel.ext import sso
 from citadel.libs.cache import cache, ONE_DAY
+from citadel.libs.utils import logger
 
 
 _DEBUG_USER_DICT = {
@@ -23,13 +23,15 @@ _DEBUG_USER_DICT = {
 @cache(ttl=ONE_DAY)
 def get_current_user_via_auth(token):
     try:
-        resp = requests.get(AUTH_AUTHORIZE_URL, headers={'X-Neptulon-Token': token}, timeout=5)
+        headers = {'X-Neptulon-Token': token}
+        resp = requests.get(AUTH_AUTHORIZE_URL, headers=headers, timeout=5)
     except (ConnectTimeout, ConnectionError, ReadTimeout):
         abort(408, 'error when getting user from neptulon')
 
     status_code = resp.status_code
     if status_code != 200:
-        abort(status_code)
+        logger.warn('Neptulon error: headers %s, code %s, body %s', headers, status_code, resp.text)
+        return None
 
     return User.from_dict(resp.json())
 
@@ -37,16 +39,19 @@ def get_current_user_via_auth(token):
 @cache(ttl=ONE_DAY)
 def get_user_via_auth(token, identifier):
     try:
+        headers = {'X-Neptulon-Token': token}
+        params = {'identifier': identifier}
         resp = requests.get(AUTH_GET_USER_URL,
-                            headers={'X-Neptulon-Token': token},
-                            params={'identifier': identifier},
+                            headers=headers,
+                            params=params,
                             timeout=5)
     except (ConnectTimeout, ConnectionError, ReadTimeout):
         abort(408, 'error when getting user from neptulon')
 
     status_code = resp.status_code
     if status_code != 200:
-        abort(status_code)
+        logger.warn('Neptulon error: headers %s, params %s, code %s, body %s', headers, params, status_code, resp.text)
+        return None
 
     return User.from_dict(resp.json())
 

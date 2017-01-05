@@ -25,6 +25,7 @@ def _get_release(name, sha):
     release = Release.get_by_app_and_sha(name, sha)
     if not release:
         abort(404, 'release `%s, %s` not found' % (name, sha))
+
     return release
 
 
@@ -85,8 +86,6 @@ def get_release_containers(name, sha):
 @bp.route('/register', methods=['POST'])
 def register_release():
     data = AbortDict(request.get_json())
-    logger.debug('Register release, payload: %s', data)
-
     name = data['name']
     git = data['git']
     sha = data['sha']

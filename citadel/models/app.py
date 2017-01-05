@@ -159,11 +159,13 @@ class Release(BaseModelMixin):
         for u in come:
             if not u:
                 continue
+            logger.debug('Grant %s to app %s', u, appname)
             AppUserRelation.add(appname, u.id)
 
         for u in gone:
             if not u:
                 continue
+            logger.debug('Revoke %s to app %s', u, appname)
             AppUserRelation.delete(appname, u.id)
 
         # create ELB routes, if there's any
