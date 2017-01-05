@@ -1,11 +1,12 @@
 # coding: utf-8
 from functools import partial
+from operator import attrgetter
 
 import grpc
 from grpc.framework.interfaces.face.face import AbortionError
 
 from citadel.libs.cache import cache, clean_cache, ONE_DAY
-from citadel.libs.utils import handle_exception
+from citadel.libs.utils import logger, handle_exception
 from citadel.rpc.core import (Pod, Node, Network, BuildImageMessage,
                               CreateContainerMessage, UpgradeContainerMessage,
                               RemoveContainerMessage)
@@ -69,7 +70,7 @@ class CoreRPC(object):
         stub = self._get_stub()
         opts = ListNodesOptions(podname=name, all=True)
         r = stub.ListPodNodes(opts, _UNARY_TIMEOUT)
-        return [Node(n) for n in r.nodes]
+        return sorted([Node(n) for n in r.nodes], key=attrgetter('name'))
 
     @handle_rpc_exception(default=list)
     @cache(_GET_POD_NETWORKS, ttl=ONE_DAY)
@@ -90,6 +91,7 @@ class CoreRPC(object):
     @handle_rpc_exception(default=None)
     def set_node_availability(self, podname, nodename, is_available=True):
         stub = self._get_stub()
+        logger.debug('Set node %s:%s available: %s', podname, nodename, is_available)
         opts = NodeAvailable(podname=podname, nodename=nodename, available=is_available)
         n = stub.SetNodeAvailable(opts, _UNARY_TIMEOUT)
         return n and Node(n)
