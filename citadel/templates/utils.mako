@@ -1,5 +1,6 @@
 <%!
   from citadel.models.gitlab import get_project
+  from citadel.models.container import ContainerOverrideStatus
   from humanize import naturaltime, naturalsize
 %>
 
@@ -20,7 +21,7 @@
         <th>Entrypoint</th>
         <th>Env</th>
         <th>Status</th>
-        <th>Operations</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
@@ -84,12 +85,12 @@
           <td>${ c.env }</td>
           <td>
             <% status = c.status() %>
-            % if status == 'InRemoval':
-              <span class="label label-warning">删除中...</span>
+            % if status == ContainerOverrideStatus.REMOVING:
+              <span title="删不掉稍等重试，再不行才联系平台" class="label label-warning">删除中</span>
             % elif status == 'sick':
-              <span title="有可能是容器在初始化，也有可能是跑死了">
-                <span class="label label-warning">不健康</span>
-              </span>
+              <span class="label label-warning" title="有可能是容器在初始化，也有可能是跑死了">有病</span>
+            % elif status == ContainerOverrideStatus.DEBUG:
+              <span class="label label-warning" title="调试完成后请删除">调试</span>
             % else:
               <span class="label label-${ 'success' if status == 'running' else 'danger' }">
                 % if status == 'running':
@@ -104,6 +105,9 @@
           </td>
           <td>
             <a name="delete-container" class="btn btn-xs btn-warning" href="#" data-id="${ c.container_id }"><span class="fui-trash"></span></a>
+            % if status != ContainerOverrideStatus.DEBUG:
+              <a title="标记为 debug，从 ELB 上下线，不可撤销" name="debug-container" class="btn btn-xs btn-warning" href="#" data-id="${ c.container_id }">🕷</a>
+            % endif
           </td>
         </tr>
       % endfor
@@ -126,7 +130,30 @@
       $('[data-toggle="tooltip"]').tooltip();
     });
 
-    $(document).on('click', 'a[name=delete-container]', function(e){
+    $('a[name=debug-container]').click(function(e){
+      e.preventDefault();
+      var self = $(this);
+      var containerId = self.data('id');
+      var url = '/ajax/debug-container';
+      var data = {container_id: containerId}
+      $.ajax({
+        url: url,
+        dataType: 'json',
+        type: 'post',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function(data, textStatus, jQxhr){
+          console.log('Debug container got response: ', data);
+          location.reload();
+        },
+        error: function(jqXhr, textStatus, errorThrown){
+          console.log('Remove container got error: ', jqXhr, textStatus, errorThrown);
+          alert(jqXhr.responseText);
+        }
+      })
+    });
+
+    $('a[name=delete-container]').click(function(e){
       if (!confirm('确定删除?')) {
         return;
       }
@@ -134,7 +161,6 @@
       var self = $(this);
       var containerId = self.data('id');
       var url = '/ajax/rmcontainer';
-
       var data = {container_id: containerId}
       $.ajax({
         url: url,
@@ -151,7 +177,6 @@
           alert(jqXhr.responseText);
         }
       })
-
     });
 
     $('button[name=delete-all]').click(function(e){
@@ -203,7 +228,7 @@
         <th>Created</th>
         <th>Author</th>
         <th>GitLab Link</th>
-        <th>Operations</th>
+        <th></th>
       </tr>
     </thead>
     <tbody>

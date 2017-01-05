@@ -13,7 +13,7 @@ from citadel.libs.json import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg, logger
 from citadel.models import Release
 from citadel.models.app import App
-from citadel.models.container import Container
+from citadel.models.container import Container, ContainerOverrideStatus
 from citadel.models.gitlab import get_project_name, get_file_content, get_build_artifact
 from citadel.models.loadbalance import ELBInstance, update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
@@ -108,7 +108,8 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
         if m.success:
             good_news.append(content)
             logger.debug('Creating %s:%s got grpc message %s', appname, entrypoint, m)
-            container = Container.create(appname, sha, m.id, entrypoint, envname, deploy_options['cpu_quota'], m.podname, m.nodename)
+            override_status = ContainerOverrideStatus.DEBUG if deploy_options.get('debug', False) else ContainerOverrideStatus.NONE
+            container = Container.create(appname, sha, m.id, entrypoint, envname, deploy_options['cpu_quota'], m.podname, m.nodename, override_status=override_status)
             logger.debug('Container [%s] created', m.id)
             if not container:
                 # TODO: can't just continue here, must create container

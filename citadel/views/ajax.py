@@ -12,6 +12,7 @@ from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
 from citadel.models import Container
 from citadel.models.app import AppUserRelation, Release
 from citadel.models.env import Environment
+from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import core
 from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback, make_sentence_json
@@ -144,6 +145,22 @@ def get_release_entrypoints(release_id):
         abort(404, 'Release %s has no entrypoints')
 
     return release.specs.entrypoints.keys()
+
+
+@bp.route('/debug-container', methods=['POST'])
+@jsonize
+def debug_container():
+    payload = request.get_json()
+    container_ids = payload['container_id']
+    if isinstance(container_ids, basestring):
+        container_ids = [container_ids]
+
+    containers = [Container.get_by_container_id(i) for i in container_ids]
+    for c in containers:
+        c.mark_debug()
+
+    update_elb_for_containers(containers, UpdateELBAction.REMOVE)
+    return DEFAULT_RETURN_VALUE
 
 
 @bp.route('/rmcontainer', methods=['POST'])

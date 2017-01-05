@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 import json
 from collections import Iterable
 
@@ -30,12 +30,13 @@ def get_backends(backend_name, exclude_containers=()):
     else:
         appname, entrypoint, podname, short_sha = components
 
+    # 如果容器在特殊状态，一律不挂载到 ELB 上
     containers = [c for c in Container.get_by(appname=appname,
                                               entrypoint=entrypoint,
                                               podname=podname,
                                               sha=short_sha)
                   if c not in exclude_containers and
-                  not c.removing]
+                  not c.override_status]
     return [b for c in containers for b in c.get_backends()]
 
 
