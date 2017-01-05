@@ -177,8 +177,6 @@ class Release(BaseModelMixin):
                 r = ELBRule.create(elbname, domain, appname, entrypoint=combo.entrypoint, podname=combo.podname)
                 if r:
                     logger.info('Auto create ELBRule %s for app %s', r, appname)
-                else:
-                    logger.error('Auto create ELBRule failed: app %s', appname)
 
         return new_release
 
