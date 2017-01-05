@@ -66,7 +66,7 @@ def deal(key, data):
         else:
             update_elb_for_containers(container, UpdateELBAction.REMOVE)
             # omit the first sick warning
-            if container.initialized and not container.removing:
+            if container.initialized and not container.is_removing():
                 msg = 'Sick container `{}` removed from ELB, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
             else:
                 container.mark_initialized()
@@ -74,7 +74,7 @@ def deal(key, data):
         if not alive:
             logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
             update_elb_for_containers(container, UpdateELBAction.REMOVE)
-            if not container.removing:
+            if not container.is_removing():
                 msg = 'Dead container `{}`, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
 
         release = Release.get_by_app_and_sha(container.appname, container.sha)

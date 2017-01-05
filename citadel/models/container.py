@@ -16,6 +16,12 @@ from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
 from citadel.rpc import core
 
 
+class ContainerOverrideStatus(object):
+    NONE = 0
+    DEBUG = 1
+    REMOVING = 2
+
+
 class Container(BaseModelMixin, PropsMixin):
     __tablename__ = 'container'
     __table_args__ = (
@@ -30,9 +36,9 @@ class Container(BaseModelMixin, PropsMixin):
     cpu_quota = db.Column(db.Numeric(12, 3), nullable=False, default=1)
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
-    removing = db.Column(db.Integer, nullable=False, default=0)
 
-    initialized = PropsItem('initialized', default=0, type=int)
+    initialized = PropsItem('initialized', default=ContainerOverrideStatus.NONE, type=int)
+    override_status = PropsItem('override_status', default=0, type=int)
 
     def __str__(self):
         return 'Container(container_id=%s)' % self.container_id
@@ -41,7 +47,7 @@ class Container(BaseModelMixin, PropsMixin):
         return 'citadel:container:%s' % self.container_id
 
     @classmethod
-    def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, podname, nodename):
+    def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, podname, nodename, override_status=''):
         try:
             c = cls(appname=appname, sha=sha, container_id=container_id,
                     entrypoint=entrypoint, env=env, cpu_quota=cpu_quota,
@@ -55,6 +61,9 @@ class Container(BaseModelMixin, PropsMixin):
         specs = c.release and c.release.specs
         if specs:
             set_mimiron_route(c.container_id, c.get_node(), specs.permitted_users)
+
+        if override_status:
+            self.override_status = override_status
 
         return c
 
@@ -200,10 +209,17 @@ class Container(BaseModelMixin, PropsMixin):
     def short_sha(self):
         return self.sha[:7]
 
+    def is_removing(self):
+        return self.override_status == ContainerOverrideStatus.REMOVING
+
+    def is_debug(self):
+        return self.override_status == ContainerOverrideStatus.DEBUG
+
+    def mark_debug(self):
+        self.override_status = ContainerOverrideStatus.DEBUG
+
     def mark_removing(self):
-        self.removing = 1
-        db.session.add(self)
-        db.session.commit()
+        self.override_status = ContainerOverrideStatus.REMOVING
 
     def mark_initialized(self):
         self.initialized = 1
@@ -229,7 +245,7 @@ class Container(BaseModelMixin, PropsMixin):
         # docker inspect在删除容器的时候可能需要比较长的时间才有响应
         # 也可能响应过后就直接报错了
         # 所以不如正在删除的容器就不要去inspect了
-        if self.removing:
+        if self.override_status == 'removing':
             self.name = 'unknown'
             self.info = {'State': {'Status': 'removing'}}
             return self
@@ -257,10 +273,10 @@ class Container(BaseModelMixin, PropsMixin):
         return self
 
     def status(self):
-        # patch, 暂时docker不返回
-        # 我估计也没办法返回这个状态... 删除的时候好像没办法inspect的
-        if self.removing:
-            return 'InRemoval'
+        # docker 删除容器的时候无法 inspect，所以不会展示出 InRemoval 这个状态
+        override_status = self.override_status
+        if override_status:
+            return override_status
         status = self.info.get('State', {}).get('Status', 'unknown')
         if status == 'running' and not self.healthy:
             return 'sick'
@@ -303,6 +319,7 @@ class Container(BaseModelMixin, PropsMixin):
     def delete(self):
         try:
             del_mimiron_route(self.container_id)
+            self.destroy_props()
         except ObjectDeletedError:
             logger.warn('Error during deleting: Object %s already deleted', self)
             return None

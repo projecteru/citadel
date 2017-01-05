@@ -113,6 +113,7 @@ class PropsItem(object):
         r = obj.get_props_item(self.name, self.default)
         if self.type:
             r = self.type(r)
+
         return r
 
     def __set__(self, obj, value):
