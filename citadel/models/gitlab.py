@@ -1,16 +1,16 @@
 # coding: utf-8
-
 from __future__ import absolute_import
 
+import os
 import re
-from operator import attrgetter
 from base64 import b64decode
+from operator import attrgetter
 from urlparse import urlparse
 
+from citadel.config import GITLAB_URL, GITLAB_API_URL
 from citadel.ext import gitlab
-from citadel.config import GITLAB_API_URL
-from citadel.libs.utils import handle_gitlab_exception, memoize
 from citadel.libs.cache import cache, ONE_DAY
+from citadel.libs.utils import handle_gitlab_exception, memoize
 
 
 _PROJECT_NAME_REGEX = re.compile(r'^(\w+)@([^:]+):(.+)\.git$')
@@ -85,3 +85,10 @@ def get_build_artifact(project_name, ref, build_id):
         return ''
 
     return '%s/projects/%s/builds/%s/artifacts' % (GITLAB_API_URL, project.id, build.id)
+
+
+@memoize
+def make_commit_url(c):
+    project = gitlab.projects.get(c.project_id)
+    url = os.path.join(GITLAB_URL, project.path_with_namespace, 'commit', c.id)
+    return url

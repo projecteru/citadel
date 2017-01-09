@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
-import os
-
 from flask import g, request, abort, flash, jsonify, url_for, redirect
 from flask_mako import render_template
 
-from citadel.config import IGNORE_PODS, GITLAB_URL, ELB_APP_NAME
+from citadel.config import IGNORE_PODS, ELB_APP_NAME
 from citadel.libs.utils import make_unicode
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release, AppUserRelation
 from citadel.models.base import ModelDeleteError
 from citadel.models.container import Container
 from citadel.models.env import Environment
-from citadel.models.gitlab import get_file_content
+from citadel.models.gitlab import make_commit_url, get_file_content
 from citadel.models.oplog import OPLog, OPType
 from citadel.models.user import User
 from citadel.rpc import core
@@ -96,6 +94,7 @@ def release(name, sha):
 def raw_app_env(name):
     pass
 
+
 @bp.route('/<name>/env', methods=['GET', 'POST'])
 def app_env(name):
     app = bp_get_app(name)
@@ -132,7 +131,6 @@ def app_permitted_users(name):
 
 @bp.route('/<name>/version/<sha>/gitlab')
 def gitlab_url(name, sha):
-    app = bp_get_app(name)
     release = bp_get_release(name, sha)
-    url = os.path.join(GITLAB_URL, app.project_name, 'commit', release.sha)
-    return redirect(url)
+    commit = release.gitlab_commit
+    return redirect(make_commit_url(commit))
