@@ -97,3 +97,7 @@ def notbot_sendmsg(to, content, subject='Citadel message'):
         logger.error('Send notbot msg failed, got code %s, response %s', res.status_code, res.rext)
         return
     return res
+
+
+def make_shell_env(env_content):
+    return '\n'.join('export {}=\'{}\''.format(k, v) for k, v in env_content)

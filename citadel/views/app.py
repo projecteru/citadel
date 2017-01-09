@@ -85,6 +85,10 @@ def release(name, sha):
                            draw_combos=draw_combos)
 
 
+@bp.route('/<name>/raw-env', methods=['GET', 'POST'])
+def raw_app_env(name):
+    pass
+
 @bp.route('/<name>/env', methods=['GET', 'POST'])
 def app_env(name):
     app = bp_get_app(name)

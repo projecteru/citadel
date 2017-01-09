@@ -1,10 +1,15 @@
 <%inherit file="/base.mako"/>
 <%!
 from operator import itemgetter
+from citadel.libs.utils import make_shell_env
 %>
 
 <%def name="title()">
   Environment Variables
+</%def>
+
+<%def name="more_header()">
+  <script src="https://cdn.staticfile.org/clipboard.js/1.5.16/clipboard.min.js"></script>
 </%def>
 
 <%def name="more_css()">
@@ -52,6 +57,7 @@ from operator import itemgetter
             </div>
           % endfor
         </form>
+        <button class="btn btn-info pull-left" data-clipboard-text="${ make_shell_env(env_content) }">Copy Env</button>
         <a name="delete-env" class="btn btn-warning pull-right to-right" href="#" data-env="${ env.envname }"><span class="fui-trash"></span> Delete Env</a>
         <a name="submit-env" class="btn btn-info pull-right to-right" href="#"><span class="fui-check"></span> OK</a>
         <a name="add-row" class="btn btn-info pull-right to-right" href="#"><span class="fui-plus"></span> Add Row</a>
@@ -63,7 +69,7 @@ from operator import itemgetter
     <div class="col-sm-4">
       <input type="text" class="form-control" name="new_env" value="">
     </div>
-    <button class="btn btn-info">Add Env</button>
+    <button id="add-env" class="btn btn-info">Add Env</button>
   </div>
 
 </%block>
@@ -116,6 +122,8 @@ from operator import itemgetter
 
   <script>
 
+    new Clipboard('.btn')
+
     var env_tmpl = $('#env-line').val();
     var form_tmpl = $('#env-form').val();
 
@@ -167,7 +175,7 @@ from operator import itemgetter
       $(this).siblings('form').submit();
     });
 
-    $('button.btn-info').click(function(e){
+    $('#add-env').click(function(e){
       e.preventDefault();
       var env = $(this).siblings('div').find('input[name=new_env]').val();
       if (env === '') {

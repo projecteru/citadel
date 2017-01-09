@@ -5,7 +5,6 @@
     <title>${ self.title() } · citadel </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Le styles -->
     <link href="/citadel/static/img/favicon.jpg" rel="shortcut icon">
     <link href="https://staticfile.qnssl.com/flat-ui/2.3.0/css/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css">
     <link href="https://staticfile.qnssl.com/flat-ui/2.3.0/css/flat-ui.min.css" rel="stylesheet" type="text/css">
@@ -18,7 +17,6 @@
       ${ self.more_css() }
       nav.navbar {border-radius: 0!important;}
     </style>
-    <!-- COLLECTED CSS -->
   </head>
 
   <body>
