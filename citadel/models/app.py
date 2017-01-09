@@ -185,7 +185,6 @@ class Release(BaseModelMixin, PropsMixin):
 
         return new_release
 
-    @classmethod
     def fix_git(self, git):
         self.override_git = git
 
@@ -219,7 +218,7 @@ class Release(BaseModelMixin, PropsMixin):
 
         return cls.query.filter(cls.app_id == app.id, cls.sha.like('{}%'.format(sha))).first()
 
-    @cached_property
+    @property
     def raw(self):
         """if no build clause in app.yaml, this release is considered raw"""
         if not self.specs:
@@ -234,7 +233,7 @@ class Release(BaseModelMixin, PropsMixin):
     def app(self):
         return App.get(self.app_id)
 
-    @cached_property
+    @property
     def name(self):
         return self.app.name
 
@@ -243,31 +242,37 @@ class Release(BaseModelMixin, PropsMixin):
         from .container import Container
         return Container.get_by(appname=self.name, sha=self.sha)
 
-    @cached_property
+    @property
     def gitlab_commit(self):
-        return get_commit(self.app.project_name, self.sha) or get_commit(get_project_name(self.override_git), self.sha)
+        commit = get_commit(self.app.project_name, self.sha)
+        if not commit:
+            return get_commit(get_project_name(self.override_git), self.sha)
+        return commit
 
-    @cached_property
+    @property
     def commit_message(self):
         if self.gitlab_commit:
             return self.gitlab_commit.message
         return ''
 
-    @cached_property
+    @property
     def author(self):
         if self.gitlab_commit:
             return self.gitlab_commit.author_name
         return ''
 
-    @cached_property
+    @property
     def specs_text(self):
         specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
         return specs_text
 
-    @cached_property
+    @property
     def specs(self):
         """load app.yaml from GitLab"""
         specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
+        if not specs_text:
+            specs_text = get_file_content(get_project_name(self.override_git), 'app.yaml', self.sha)
+
         return specs_text and Specs.from_string(specs_text) or None
 
     @property

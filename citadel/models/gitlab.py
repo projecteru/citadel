@@ -9,7 +9,7 @@ from urlparse import urlparse
 
 from citadel.ext import gitlab
 from citadel.config import GITLAB_API_URL
-from citadel.libs.utils import handle_gitlab_exception
+from citadel.libs.utils import handle_gitlab_exception, memoize
 from citadel.libs.cache import cache, ONE_DAY
 
 
@@ -36,6 +36,7 @@ def get_gitlab_groups():
     return [g.name for g in groups]
 
 
+@memoize
 @cache('citadel:filecontent:{project_name}:{file_path}:{ref}', ttl=ONE_DAY)
 def get_file_content(project_name, file_path, ref):
 
@@ -48,12 +49,14 @@ def get_file_content(project_name, file_path, ref):
     return _get_file_content(project_name, file_path, ref)
 
 
+@memoize
 @handle_gitlab_exception(default=None)
 def get_commit(project_name, ref):
-    p = gitlab.projects.get(project_name)
+    p = get_project(project_name)
     return p.commits.get(ref)
 
 
+@memoize
 @handle_gitlab_exception(default=None)
 def get_project(project_name):
     return gitlab.projects.get(project_name)
