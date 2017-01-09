@@ -240,8 +240,8 @@
             % if release.author:
               ${ release.author }: ${ release.commit_message }
             % else:
-              <span data-toggle="tooltip" data-placement="top" title="中途切换了repo修复旧的release用的">
-                <input class="form-control fix-release-git" type="text" name="override_git" data-release-url="${ url_for('app.release', name=release.name, sha=release.sha) }">
+              <span data-toggle="tooltip" data-placement="top" title="中途切换了 repo，用这个来修复单个 release">
+                <input class="form-control fix-release-git" type="text" name="override_git" data-release-url="${ url_for('app.release', name=release.name, sha=release.sha) }" placeholder='正确的 git 地址'>
               </span>
             % endif
           </td>

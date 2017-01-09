@@ -127,7 +127,7 @@
           <label class="col-sm-2 control-label" for="">Domain</label>
           <div class="col-sm-10">
             <span data-toggle="tooltip" data-placement="top" title="带不带http://都可以的，我会帮你清理">
-              <input class="form-control" type="text" name="domain">
+              <input class="form-control" type="text" name="domain" placeholder="比如 http://ci-test.test.ricebook.net 或者 ci-test.test.ricebook.net">
             </span>
           </div>
         </div>
