@@ -213,6 +213,8 @@ class Release(BaseModelMixin):
     @cached_property
     def raw(self):
         """if no build clause in app.yaml, this release is considered raw"""
+        if not self.specs:
+            return True
         return not self.specs.build
 
     @cached_property
@@ -239,11 +241,15 @@ class Release(BaseModelMixin):
 
     @cached_property
     def commit_message(self):
-        return self.gitlab_commit.message
+        if self.gitlab_commit:
+            return self.gitlab_commit.message
+        return ''
 
     @cached_property
     def author(self):
-        return self.gitlab_commit.author_name
+        if self.gitlab_commit:
+            return self.gitlab_commit.author_name
+        return ''
 
     @cached_property
     def specs_text(self):
@@ -258,11 +264,13 @@ class Release(BaseModelMixin):
 
     @property
     def combos(self):
-        return self.specs.combos
+        return self.specs and self.specs.combos
 
     @property
     def entrypoints(self):
-        return self.specs.entrypoints
+        if self.specs:
+            return self.specs.entrypoints
+        return {}
 
     def update_image(self, image):
         self.image = image
