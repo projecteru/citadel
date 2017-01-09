@@ -45,7 +45,6 @@ def delete_app_env(name):
         env.delete()
     return DEFAULT_RETURN_VALUE
 
-
 @bp.route('/app/<name>/online-entrypoints', methods=['GET'])
 @jsonize
 def get_app_online_entrypoints(name):

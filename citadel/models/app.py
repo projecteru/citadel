@@ -5,7 +5,7 @@ from werkzeug.utils import cached_property
 
 from citadel.ext import db, gitlab
 from citadel.libs.utils import logger
-from citadel.models.base import BaseModelMixin, ModelDeleteError
+from citadel.models.base import BaseModelMixin, PropsItem, ModelDeleteError, PropsMixin
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
 from citadel.models.loadbalance import ELBRule
 from citadel.models.specs import Specs
@@ -114,7 +114,7 @@ class App(BaseModelMixin):
         return d
 
 
-class Release(BaseModelMixin):
+class Release(BaseModelMixin, PropsMixin):
     __tablename__ = 'release'
     __table_args__ = (
         db.UniqueConstraint('app_id', 'sha'),
@@ -124,8 +124,13 @@ class Release(BaseModelMixin):
     app_id = db.Column(db.Integer, nullable=False)
     image = db.Column(db.String(255), nullable=False, default='')
 
+    override_git = PropsItem('override_git', default='', type=unicode)
+
     def __str__(self):
         return '<app {r.name} release {r.sha} with image {r.image}>'.format(r=self)
+
+    def get_uuid(self):
+        return 'citadel:release:%s' % self.id
 
     @classmethod
     def create(cls, app, sha):
@@ -179,6 +184,10 @@ class Release(BaseModelMixin):
                     logger.info('Auto create ELBRule %s for app %s', r, appname)
 
         return new_release
+
+    @classmethod
+    def fix_git(self, git):
+        self.override_git = git
 
     def get_permitted_users(self):
         usernames = self.specs.permitted_users
@@ -236,8 +245,7 @@ class Release(BaseModelMixin):
 
     @cached_property
     def gitlab_commit(self):
-        commit = get_commit(self.app.project_name, self.sha)
-        return commit
+        return get_commit(self.app.project_name, self.sha) or get_commit(get_project_name(self.override_git), self.sha)
 
     @cached_property
     def commit_message(self):
