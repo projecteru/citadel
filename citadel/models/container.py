@@ -63,7 +63,7 @@ class Container(BaseModelMixin, PropsMixin):
             set_mimiron_route(c.container_id, c.get_node(), specs.permitted_users)
 
         if override_status:
-            self.override_status = override_status
+            c.override_status = override_status
 
         return c
 
