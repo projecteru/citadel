@@ -264,15 +264,15 @@ class Release(BaseModelMixin, PropsMixin):
     @property
     def specs_text(self):
         specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
+        if not specs_text:
+            specs_text = get_file_content(get_project_name(self.override_git), 'app.yaml', self.sha)
+
         return specs_text
 
     @property
     def specs(self):
         """load app.yaml from GitLab"""
-        specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
-        if not specs_text:
-            specs_text = get_file_content(get_project_name(self.override_git), 'app.yaml', self.sha)
-
+        specs_text = self.specs_text
         return specs_text and Specs.from_string(specs_text) or None
 
     @property

@@ -9,7 +9,7 @@ from citadel.models.app import App, Release, AppUserRelation
 from citadel.models.base import ModelDeleteError
 from citadel.models.container import Container
 from citadel.models.env import Environment
-from citadel.models.gitlab import make_commit_url, get_file_content
+from citadel.models.gitlab import make_commit_url
 from citadel.models.oplog import OPLog, OPType
 from citadel.models.user import User
 from citadel.rpc import core
@@ -69,7 +69,7 @@ def release(name, sha):
         return jsonify({'message': 'OK'}), 200
 
     containers = Container.get_by_release(app.name, sha, limit=None)
-    appspecs = get_file_content(app.project_name, 'app.yaml', release.sha)
+    appspecs = release.specs_text
     envs = Environment.get_by_app(app.name)
     # we won't be using pod redis and elb here
     pods = [p for p in core.list_pods() if p.name not in IGNORE_PODS]
