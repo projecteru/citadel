@@ -29,16 +29,25 @@
     </%def>
     <h4>${ app.name }</h4>
     <p>${ app.gitlab_project.as_dict()['description'] }</p>
-    <h5>Log</h5>
-    <p>Kibana 看 log 其实很好用的，如果点进去看不见 log，请在右上角修改一下时间范围。建议自己探索一下界面，实在搞不懂请找 @Dante </p>
+    <h5>日志 & 监控</h5>
     <ul class="list-group">
       % if releases:
         % for entry in releases[0].entrypoints.keys():
-          <li class="list-group-item"><a target="_blank" href="http://kibana.ricebook.net/app/logtrail#/?q=name:${ app.name }%20%26%26%20entrypoint:${ entry }&h=All&t=Now&_g=()">${ entry }</a></li>
+          <li class="list-group-item">
+            <a href='javascript://'
+              data-placement='right'
+              data-toggle="popover"
+              rel='popover'
+              data-html='true'
+              data-content="
+              <a href='http://kibana.ricebook.net/app/logtrail#/?q=name:${ app.name }%20%26%26%20entrypoint:${ entry }&h=All&t=Now&_g=()' target='_blank'><span class='label label-info'>日志</span></a>
+              <a href='http://dashboard.ricebook.net/dashboard/db/eru-apps-aggregation?var-app=${ app.name }&var-entry=${ entry }' target='_blank'><span class='label label-info'>监控</span></a>
+              ">
+              ${ entry }
+            </a>
+          </li>
         % endfor
       % endif
-      <li class="list-group-item">线上 log 也可以 terminal 看（没权限去 #sa-online 申请）：<pre>ssh c2-eru-2 -t 'tail -F /mnt/mfs/logs/eru2/[APPNAME]/[ENTRYPOINT]/[DATE]/[HOUR] -n 100'</pre></li>
-      <li class="list-group-item">Debug log 在部署以后实时显示的，但是有微小几率丢失开头的几行，可以用 terminal 看：<pre>ssh c2-eru-2 -t 'tail -F /mnt/mfs/logs/heka/debug-output.log -n 100 | ag ${ app.name }'</pre></li>
     </ul>
     <h5>域名</h5>
     <ul class="list-group">
