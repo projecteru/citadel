@@ -4,8 +4,7 @@ from itertools import chain
 from flask import Blueprint, jsonify, Response, g, request, abort
 from humanfriendly import parse_size
 
-from citadel.config import CONTAINER_DEBUG_LOG_CHANNEL, ELB_APP_NAME, ELB_POD_NAME
-from citadel.ext import rds
+from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.json import jsonize
 from citadel.libs.utils import logger
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
@@ -15,7 +14,7 @@ from citadel.models.env import Environment
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import core
-from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback, make_sentence_json
+from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback
 from citadel.views.helper import bp_get_app, bp_get_balancer
 
 
@@ -44,6 +43,7 @@ def delete_app_env(name):
         logger.info('Env [%s] for app [%s] deleted', envname, name)
         env.delete()
     return DEFAULT_RETURN_VALUE
+
 
 @bp.route('/app/<name>/online-entrypoints', methods=['GET'])
 @jsonize
@@ -121,14 +121,6 @@ def deploy_release(release_id):
         """relay grpc message, if in debug mode, stream logs as well"""
         for msg in chain(celery_task_stream_response(task_id), celery_task_stream_traceback(task_id)):
             yield msg
-
-        if debug:
-            debug_log_channel = CONTAINER_DEBUG_LOG_CHANNEL.format(release.name)
-            debug_log_pubsub = rds.pubsub()
-            debug_log_pubsub.psubscribe(debug_log_channel)
-            for item in debug_log_pubsub.listen():
-                logger.debug('Stream response emit debug log: %s', item)
-                yield make_sentence_json(item['data'])
 
     return Response(generate_stream_response(), mimetype='text/event-stream')
 

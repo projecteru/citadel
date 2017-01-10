@@ -46,7 +46,6 @@ REDIS_POD_NAME = getenv('REDIS_POD_NAME', default='redis')
 NOTBOT_SENDMSG_URL = getenv('NOTBOT_SENDMSG_URL', default='http://notbot.intra.ricebook.net/api/sendmsg.peter')
 
 TASK_PUBSUB_CHANNEL = 'citadel:task:{task_id}:pubsub'
-CONTAINER_DEBUG_LOG_CHANNEL = 'eru-debug:{}*'
 # send this to mark EOF of stream message
 # TODO: ugly
 TASK_PUBSUB_EOF = 'CELERY_TASK_DONE:{task_id}'
