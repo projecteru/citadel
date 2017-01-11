@@ -10,7 +10,7 @@ bp = create_api_blueprint('container', __name__, 'container')
 
 @bp.route('/')
 def get_all_containers():
-    cs = Container.get_all()
+    cs = Container.get_all(limit=None)
     return cs
 
 
