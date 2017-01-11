@@ -103,11 +103,7 @@
         <div class="form-group">
           <label class="col-sm-2 control-label" for="">Entrypoint</label>
           <div class="col-sm-10">
-            <% entrypoints = all_apps[0].get_online_entrypoints() %>
             <select id="" class="form-control" name="entrypoint">
-              % for e in entrypoints:
-                <option value="${ e }">${ e }</option>
-              % endfor
               <option value="_all">_all</option>
             </select>
           </div>

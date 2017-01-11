@@ -22,6 +22,7 @@ $('select[name=appname]').change(function(){
     $.each(r, function(index, data){
       ep.append($('<option>').val(data).text(data));
     })
+    ep.append($('<option>').val('_all').text('_all'));
   });
   $.get(podUrl, {}, function(r){
     var ep = $('select[name=podname]').html('');
