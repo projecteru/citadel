@@ -60,12 +60,6 @@ def get_app_online_pods(name):
     return app.get_online_pods()
 
 
-@bp.route('/app/<name>/backends')
-@jsonize
-def get_app_backends(name):
-    return {}
-
-
 @bp.route('/release/<release_id>/deploy', methods=['POST'])
 def deploy_release(release_id):
     """部署的ajax接口, oplog在对应action里记录."""
