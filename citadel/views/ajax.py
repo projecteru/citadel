@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from itertools import chain
 
-from flask import Blueprint, jsonify, Response, g, request, abort
+from flask import g, abort, session, request, Blueprint, jsonify, Response
 from humanfriendly import parse_size
 
-from citadel.config import ELB_APP_NAME, ELB_POD_NAME
+from citadel.config import ELB_APP_NAME, ELB_POD_NAME, DEFAULT_ZONE
 from citadel.libs.json import jsonize
 from citadel.libs.utils import logger
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
@@ -13,7 +13,7 @@ from citadel.models.app import AppUserRelation, Release
 from citadel.models.env import Environment
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
-from citadel.rpc import core
+from citadel.rpc import get_core
 from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback
 from citadel.views.helper import bp_get_app, bp_get_balancer
 
@@ -93,6 +93,7 @@ def deploy_release(release_id):
         'specs': release.specs_text,
         'appname': appname,
         'image': release.image,
+        'zone': g.zone,
         'podname': payload['podname'],
         'nodename': payload.get('nodename', ''),
         'entrypoint': payload['entrypoint'],
@@ -196,13 +197,13 @@ def upgrade_containers():
 @bp.route('/pods')
 @jsonize
 def get_all_pods():
-    return core.list_pods()
+    return get_core(g.zone).list_pods()
 
 
 @bp.route('/pod/<name>/nodes')
 @jsonize
 def get_pod_nodes(name):
-    return core.get_pod_nodes(name)
+    return get_core(g.zone).get_pod_nodes(name)
 
 
 @bp.route('/loadbalance', methods=['POST'])
@@ -231,6 +232,7 @@ def create_loadbalance():
         'memory': parse_size('2GiB', binary=True),
         'networks': {},
         'env': env_vars,
+        'zone': g.zone,
     }
     try:
         grpc_message = create_container(deploy_options=deploy_options,
@@ -267,6 +269,14 @@ def revoke_app():
     user_id = request.form['user_id']
     name = request.form['name']
     AppUserRelation.delete(name, user_id)
+    return DEFAULT_RETURN_VALUE
+
+
+@bp.route('/switch-zone', methods=['POST'])
+@jsonize
+def switch_zone():
+    zone = request.values.get('zone', DEFAULT_ZONE)
+    session['zone'] = zone
     return DEFAULT_RETURN_VALUE
 
 

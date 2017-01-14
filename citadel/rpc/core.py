@@ -1,10 +1,13 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 
 from __future__ import division
+
 import json
 from decimal import Decimal
 from urlparse import urlparse
+
 from citadel.libs.json import Jsonized
+
 
 """
 一些通过grpc从core那边回来的东西, 因为需要被JSON序列化, 所以额外再包一层.
@@ -74,7 +77,9 @@ class Node(_CoreRPC):
     @property
     def containers(self):
         from citadel.models import Container
-        containers = Container.get_by_node(self.name, limit=None)
+        from flask import g
+        # ... 没办法了，node 不知道自己的 zone
+        containers = Container.get_by(nodename=self.name, zone=g.zone)
         return containers
 
     @property

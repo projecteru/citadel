@@ -1,20 +1,20 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 """
 run use citadel/bin/run-etcd-watcher
 """
+import argparse
 import json
 import logging
 import time
 from Queue import Queue
-from optparse import OptionParser
 from thread import get_ident
 from threading import Thread
 
 from etcd import EtcdWatchTimedOut, EtcdConnectionFailed
 from flask import url_for
 
-from citadel.config import ETCD_URL, DEBUG
-from citadel.ext import etcd
+from citadel.config import DEBUG
+from citadel.ext import get_etcd
 from citadel.libs.utils import notbot_sendmsg, with_appcontext
 from citadel.models import Container, Release
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
@@ -84,8 +84,9 @@ def deal(key, data):
         _jobs.pop(ident, None)
 
 
-def producer(etcd_path):
-    logger.info('Start watching etcd at %s, path %s', ETCD_URL, etcd_path)
+def producer(zone, etcd_path):
+    etcd = get_etcd(zone)
+    logger.info('Start watching etcd at zone %s, path %s', zone, etcd_path)
     while not _quit:
         try:
             resp = etcd.watch(etcd_path, recursive=True, timeout=0)
@@ -115,10 +116,10 @@ def consumer():
         t.start()
 
 
-def main(etcd_path):
+def watch_etcd(zone='c2', etcd_path='/agent2'):
     global _quit, _jobs
 
-    ts = [Thread(target=producer, args=(etcd_path,)), Thread(target=consumer)]
+    ts = [Thread(target=producer, args=(zone, etcd_path)), Thread(target=consumer)]
     for t in ts:
         t.daemon = True
         t.start()
@@ -142,13 +143,14 @@ def main(etcd_path):
     logger.info('quit')
 
 
-def get_etcd_path():
-    parser = OptionParser()
-    parser.add_option('-w', '--watch', dest='etcd_path', default='/agent2', help='etcd directory to watch recursively')
-    options, _ = parser.parse_args()
-    return options.etcd_path
+def parse_args():
+    parser = argparse.ArgumentParser(description='Watch etcd service, must run in every citadel zone')
+    parser.add_argument('zone', help='zone to watch')
+    parser.add_argument('-w', '--watch', dest='etcd_path', default='/agent2', help='etcd directory to watch recursively, depend on eru-agent config')
+    args = parser.parse_args()
+    return args
 
 
 if __name__ == '__main__':
-    etcd_path = get_etcd_path()
-    main(etcd_path)
+    args = parse_args()
+    watch_etcd(zone=args.zone, etcd_path=args.etcd_path)

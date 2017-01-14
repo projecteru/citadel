@@ -1,4 +1,5 @@
 # coding: utf-8
+from citadel.libs.datastructure import purge_none_val_from_dict
 import itertools
 import json
 from datetime import timedelta, datetime
@@ -9,11 +10,11 @@ from grpc._channel import _Rendezvous
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import ObjectDeletedError
 
-from citadel.ext import etcd, db
+from citadel.ext import db, get_etcd
 from citadel.libs.mimiron import set_mimiron_route, del_mimiron_route
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
-from citadel.rpc import core
+from citadel.rpc import get_core
 
 
 class ContainerOverrideStatus(object):
@@ -34,6 +35,7 @@ class Container(BaseModelMixin, PropsMixin):
     entrypoint = db.Column(db.String(50), nullable=False)
     env = db.Column(db.String(50), nullable=False)
     cpu_quota = db.Column(db.Numeric(12, 3), nullable=False, default=1)
+    zone = db.Column(db.String(50), nullable=False)
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
 
@@ -47,11 +49,11 @@ class Container(BaseModelMixin, PropsMixin):
         return 'citadel:container:%s' % self.container_id
 
     @classmethod
-    def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, podname, nodename, override_status=''):
+    def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, zone, podname, nodename, override_status=''):
         try:
             c = cls(appname=appname, sha=sha, container_id=container_id,
                     entrypoint=entrypoint, env=env, cpu_quota=cpu_quota,
-                    podname=podname, nodename=nodename)
+                    zone=zone, podname=podname, nodename=nodename)
             db.session.add(c)
             db.session.commit()
         except IntegrityError:
@@ -93,7 +95,7 @@ class Container(BaseModelMixin, PropsMixin):
             # all means including all entrypoints
             entrypoint = None
 
-        query_set = cls.query.filter_by(**kwargs)
+        query_set = cls.query.filter_by(**purge_none_val_from_dict(kwargs))
         if entrypoint:
             query_set = query_set.filter(cls.entrypoint == entrypoint)
 
@@ -101,50 +103,6 @@ class Container(BaseModelMixin, PropsMixin):
             query_set = query_set.filter(cls.sha.like('{}%'.format(sha)))
 
         res = query_set.order_by(cls.id.desc())
-        return [c.inspect() for c in res]
-
-    @classmethod
-    def get_by_release(cls, appname, sha, start=0, limit=20):
-        """get by release appname and release sha"""
-        cs = cls.query.filter(cls.appname == appname, cls.sha.like('{}%'.format(sha))).order_by(cls.id.desc())
-        if limit:
-            res = cs[start:start + limit]
-        else:
-            res = cs.all()
-
-        return [c.inspect() for c in res]
-
-    @classmethod
-    def get_by_app(cls, appname, start=0, limit=20):
-        """get by appname"""
-        cs = cls.query.filter_by(appname=appname).order_by(cls.id.desc())
-        if limit:
-            res = cs[start:start + limit]
-        else:
-            res = cs.all()
-
-        return [c.inspect() for c in res]
-
-    @classmethod
-    def get_by_pod(cls, podname, start=0, limit=20):
-        """get by podname"""
-        cs = cls.query.filter_by(podname=podname).order_by(cls.id.desc())
-        if not limit:
-            res = cs.all()
-        else:
-            res = cs[start:start + limit]
-
-        return [c.inspect() for c in res]
-
-    @classmethod
-    def get_by_node(cls, nodename, start=0, limit=20):
-        """get by nodename"""
-        cs = cls.query.filter_by(nodename=nodename).order_by(cls.id.desc())
-        if not limit:
-            res = cs.all()
-        else:
-            res = cs[start:start + limit]
-
         return [c.inspect() for c in res]
 
     @classmethod
@@ -168,6 +126,7 @@ class Container(BaseModelMixin, PropsMixin):
             'specs': release.specs_text,
             'appname': self.appname,
             'image': release.image,
+            'zone': self.zone,
             'podname': self.podname,
             'nodename': self.nodename,
             'entrypoint': self.entrypoint,
@@ -189,6 +148,7 @@ class Container(BaseModelMixin, PropsMixin):
         # TODO: hard code, ugly
         agent2_container_path = '/agent2/{}.ricebook.link/containers/{}'.format(self.nodename, self.container_id)
         try:
+            etcd = get_etcd(self.zone)
             res = etcd.read(agent2_container_path)
         except EtcdKeyNotFound:
             return False
@@ -253,7 +213,7 @@ class Container(BaseModelMixin, PropsMixin):
         # FUCK THIS SHIT
         # 并发升级容器流程中，进入删除容器流程的时候，会竟然会去inspect已经删除的容器，理论上不可能啊
         try:
-            c = core.get_container(self.container_id)
+            c = get_core(self.zone).get_container(self.container_id)
         except _Rendezvous as e:
             msg = e.details()
             if 'not found' in msg or 'No such' in msg:
@@ -287,7 +247,7 @@ class Container(BaseModelMixin, PropsMixin):
         for name, network in self.networks.iteritems():
             # 如果是host模式要去取下node的IP
             if name == 'host':
-                node = core.get_node(self.podname, self.nodename)
+                node = get_core(self.zone).get_node(self.podname, self.nodename)
                 if not node:
                     continue
                 ips.append(node.ip)
@@ -314,7 +274,7 @@ class Container(BaseModelMixin, PropsMixin):
         return ['%s:%s' % (ip, port) for ip, port in itertools.product(ips, ports)]
 
     def get_node(self):
-        return core.get_node(self.podname, self.nodename)
+        return get_core(self.zone).get_node(self.podname, self.nodename)
 
     def delete(self):
         try:
@@ -334,6 +294,7 @@ class Container(BaseModelMixin, PropsMixin):
             'entrypoint': self.entrypoint,
             'env': self.env,
             'cpu_quota': self.cpu_quota,
+            'zone': self.zone,
             'podname': self.podname,
             'nodename': self.nodename,
             'name': self.name,

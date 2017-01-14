@@ -53,18 +53,15 @@ class App(BaseModelMixin):
     def project_name(self):
         return get_project_name(self.git)
 
-    @property
-    def container_list(self):
+    def get_container_list(self, zone=None):
         from .container import Container
-        return Container.get_by_app(self.name)
+        return Container.get_by(appname=self.name, zone=zone)
 
-    @property
-    def has_problematic_container(self):
-        containers = self.container_list
+    def has_problematic_container(self, zone=None):
+        containers = self.get_container_list(zone)
         if not containers or {c.status() for c in containers} == {'running'}:
             return False
-        else:
-            return True
+        return True
 
     @property
     def gitlab_project(self):
@@ -77,7 +74,7 @@ class App(BaseModelMixin):
     def delete(self):
         appname = self.name
         from .loadbalance import ELBRule
-        containers = self.container_list
+        containers = self.get_container_list(None)
         if containers:
             raise ModelDeleteError('App {} got containers {}, remove them before deleting app'.format(appname, containers))
         # delete all releases
@@ -85,21 +82,21 @@ class App(BaseModelMixin):
         # delete all permissions
         AppUserRelation.query.filter_by(appname=appname).delete()
         # delete all ELB rules
-        rules = ELBRule.get_by_app(appname)
+        rules = ELBRule.get_by(appname=appname)
         for rule in rules:
             rule.delete()
 
         return super(App, self).delete()
 
-    def get_online_entrypoints(self):
-        return list(set([c.entrypoint for c in self.container_list]))
+    def get_online_entrypoints(self, zone=None):
+        return list(set([c.entrypoint for c in self.get_container_list(zone)]))
 
-    def get_online_pods(self):
-        return list(set([c.podname for c in self.container_list]))
+    def get_online_pods(self, zone=None):
+        return list(set([c.podname for c in self.get_container_list(zone)]))
 
     def get_associated_elb_rules(self):
         from citadel.models.loadbalance import ELBRule
-        return ELBRule.get_by_app(self.name)
+        return ELBRule.get_by(appname=self.name)
 
     def get_permitted_user_ids(self):
         return AppUserRelation.get_user_id_by_appname(self.name)
@@ -179,7 +176,7 @@ class Release(BaseModelMixin, PropsMixin):
                 continue
             for elbname_and_domain in combo.elb:
                 elbname, domain = elbname_and_domain.split()
-                r = ELBRule.create(elbname, domain, appname, entrypoint=combo.entrypoint, podname=combo.podname)
+                r = ELBRule.create(combo.zone, elbname, domain, appname, entrypoint=combo.entrypoint, podname=combo.podname)
                 if r:
                     logger.info('Auto create ELBRule %s for app %s', r, appname)
 

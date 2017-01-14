@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>${ self.title() } · citadel </title>
+    <title>${ self.title() } · ${ g.zone } · citadel </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link href="/citadel/static/img/favicon.jpg" rel="shortcut icon">
@@ -19,6 +19,10 @@
     </style>
   </head>
 
+  <%!
+    from citadel.config import ZONE_CONFIG
+  %>
+
   <body>
 
     <%block name="nav">
@@ -29,6 +33,16 @@
       </div>
       <div class="collapse navbar-collapse">
         <ul class="nav navbar-nav">
+          <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">${ g.zone } <b class="caret"></b></a>
+          <ul class="dropdown-menu">
+            % for zone in ZONE_CONFIG:
+              % if zone != g.zone:
+                <li><a class="switch-zone" href="#" data-zone="${ zone }"><span class="fui-location"></span> ${ zone }</a></li>
+              % endif
+            % endfor
+          </ul>
+          </li>
           <li class="${ 'active' if request.path.startswith('/app') else '' }">
           <a href="${ url_for('app.index') }"><span class="fui-list-numbered"></span> App List</a>
           </li>
@@ -62,7 +76,7 @@
         </ul>
         <ul class="nav navbar-nav navbar-right">
           <li class="dropdown">
-          <a href="#" class="dropdown-toggle" data-toggle="dropdown">${  g.user and g.user.name or u'你谁啊' } <b class="caret"></b></a>
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">${ g.user and g.user.name or u'你谁啊' } <b class="caret"></b></a>
           <ul class="dropdown-menu">
             % if g.user:
               <li><a href="${ url_for('user.logout') }"><span class="fui-power"></span> 再贱</a></li>
@@ -120,6 +134,21 @@
       $('[data-toggle="popover"]').popover('hide');
     }
     });
+
+    $('a.switch-zone').click(function (){
+      var self = $(this);
+      $.ajax({
+      url: '/ajax/switch-zone?zone=' + self.data('zone'),
+        type: 'POST',
+        success: function(data, textStatus, jQxhr) {
+          location.reload();
+        },
+        error: function(jqXhr, textStatus, errorThrown) {
+          console.log('Change zone got error: ', jqXhr, textStatus, errorThrown);
+          alert(jqXhr.responseText);
+        }
+      });
+    })
   </script>
 
 </html>

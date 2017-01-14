@@ -1,7 +1,7 @@
 # coding: utf-8
 
-from citadel.libs.view import create_api_blueprint
 from citadel.libs.mimiron import get_mimiron_containers_for_user
+from citadel.libs.view import create_api_blueprint
 from citadel.models.container import Container
 
 

@@ -1,12 +1,11 @@
-# coding: utf-8
-from citadel.network.plugin import get_all_networks
+# -*- coding: utf-8 -*-
 from functools import wraps
 
 from flask import abort, g
 
 from citadel.models.app import App, Release, AppUserRelation
 from citadel.models.loadbalance import ELBInstance
-from citadel.rpc import core
+from citadel.rpc import get_core
 
 
 def bp_get_app(appname):
@@ -45,13 +44,13 @@ def get_nodes_for_first_pod(pods):
     默认的节点当然就是第一个pod的节点了..."""
     if not pods:
         return []
-    return core.get_pod_nodes(pods[0].name)
+    return get_core(g.zone).get_pod_nodes(pods[0].name)
 
 
 def get_networks_for_first_pod(pods):
     if not pods:
         return []
-    return get_all_networks(pods[0].name)
+    return get_core(g.zone).get_pod_networks(pods[0].name)
 
 
 def need_admin(f):

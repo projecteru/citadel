@@ -7,7 +7,7 @@ from etcd import EtcdException
 from flask import session
 from gitlab import GitlabError
 
-from citadel.config import NOTBOT_SENDMSG_URL, LOGGER_NAME
+from citadel.config import NOTBOT_SENDMSG_URL, LOGGER_NAME, DEBUG
 
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -90,8 +90,10 @@ def notbot_sendmsg(to, content, subject='Citadel message'):
     to = to.strip(';')
     if not all([to, content]):
         return
+    if DEBUG:
+        logger.debug('Sending notbot message to %s, content: %s', to, content)
+        return
     try:
-        logger.debug('Sending notbot message to %s', to)
         res = requests.post(NOTBOT_SENDMSG_URL, {'to': to, 'content': content, subject: subject})
     except:
         logger.error('Send notbot msg failed, got code %s, response %s', res.status_code, res.rext)

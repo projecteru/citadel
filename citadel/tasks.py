@@ -7,7 +7,7 @@ from celery.result import AsyncResult
 from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 
-from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL
+from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE
 from citadel.ext import rds, hub
 from citadel.libs.json import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg, logger
@@ -17,7 +17,7 @@ from citadel.models.container import Container, ContainerOverrideStatus
 from citadel.models.gitlab import get_project_name, get_file_content, get_build_artifact
 from citadel.models.loadbalance import ELBInstance, update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
-from citadel.rpc import core
+from citadel.rpc import get_core
 
 
 class ActionError(Exception):
@@ -76,7 +76,7 @@ def build_image(self, repo, sha, uid='', artifact='', gitlab_build_id=''):
     image = ''
     task_id = self.request.id
     channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
-    ms = _peek_grpc(core.build_image(repo, sha, uid, artifact))
+    ms = _peek_grpc(get_core(BUILD_ZONE).build_image(repo, sha, uid, artifact))
     for m in ms:
         rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
         if m.status == 'finished':
@@ -90,7 +90,8 @@ def build_image(self, repo, sha, uid='', artifact='', gitlab_build_id=''):
 def create_container(self, deploy_options=None, sha=None, user_id=None, envname=None):
     appname = deploy_options['appname']
     entrypoint = deploy_options['entrypoint']
-    ms = _peek_grpc(core.create_container(deploy_options))
+    zone = deploy_options.pop('zone')
+    ms = _peek_grpc(get_core(zone).create_container(deploy_options))
 
     release = Release.get_by_app_and_sha(appname, sha)
 
@@ -109,7 +110,7 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
             good_news.append(content)
             logger.debug('Creating %s:%s got grpc message %s', appname, entrypoint, m)
             override_status = ContainerOverrideStatus.DEBUG if deploy_options.get('debug', False) else ContainerOverrideStatus.NONE
-            container = Container.create(appname, sha, m.id, entrypoint, envname, deploy_options['cpu_quota'], m.podname, m.nodename, override_status=override_status)
+            container = Container.create(appname, sha, m.id, entrypoint, envname, deploy_options['cpu_quota'], zone, m.podname, m.nodename, override_status=override_status)
             logger.debug('Container [%s] created', m.id)
             if not container:
                 # TODO: can't just continue here, must create container
@@ -162,7 +163,14 @@ def remove_container(self, ids, user_id=None):
 
     containers = [Container.get_by_container_id(i) for i in ids]
     containers = [c for c in containers if c]
+    if not containers:
+        return
     full_ids = [c.container_id for c in containers]
+    zones = set(c.zone for c in containers)
+    if len(zones) != 1:
+        raise ActionError(400, 'Cannot remove containers across zone')
+    zone = zones.pop()
+
     for c in containers:
         c.mark_removing()
 
@@ -170,7 +178,7 @@ def remove_container(self, ids, user_id=None):
 
     task_id = self.request.id
     channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
-    ms = _peek_grpc(core.remove_container(full_ids))
+    ms = _peek_grpc(get_core(zone).remove_container(full_ids))
     res = []
     for m in ms:
         rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
@@ -194,7 +202,7 @@ def remove_container(self, ids, user_id=None):
             # maybe use error code in the future
             continue
         else:
-            logger.warn('Remove container %s got error: %s', m.id, m.message)
+            logger.error('Remove container %s got error: %s', m.id, m.message)
             notbot_sendmsg('#platform', 'Error removing container {}: {}\n@timfeirg'.format(m.id, m.message))
 
     return res

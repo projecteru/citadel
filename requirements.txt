@@ -24,3 +24,4 @@ six
 celery[redis]
 humanize
 humanfriendly
+boltons

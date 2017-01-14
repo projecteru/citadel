@@ -2,6 +2,7 @@
 import yaml
 from humanfriendly import parse_size
 
+from citadel.config import DEFAULT_ZONE
 from citadel.libs.json import Jsonized
 
 
@@ -77,7 +78,8 @@ class Entrypoint(object):
 
 class Combo(object):
 
-    def __init__(self, podname, nodename, entrypoint, envname='', cpu=0, memory='0', count=1, envs={}, raw=False, networks=(), permitted_users=(), elb=()):
+    def __init__(self, zone, podname, nodename, entrypoint, envname='', cpu=0, memory='0', count=1, envs={}, raw=False, networks=(), permitted_users=(), elb=()):
+        self.zone = zone
         self.podname = podname
         self.nodename = nodename
         self.entrypoint = entrypoint
@@ -95,6 +97,7 @@ class Combo(object):
 
     @classmethod
     def from_dict(cls, data):
+        zone = data.get('zone', DEFAULT_ZONE)
         podname = data['podname']
         nodename = data.get('nodename', '')
         entrypoint = data['entrypoint']
@@ -117,7 +120,7 @@ class Combo(object):
                 k, v = p.split('=', 1)
                 envs[k] = v
 
-        return cls(podname, nodename, entrypoint, envname, cpu, memory, count, envs, raw, networks, permitted_users, elb)
+        return cls(zone, podname, nodename, entrypoint, envname, cpu, memory, count, envs, raw, networks, permitted_users, elb)
 
     def allow(self, user):
         if not self.permitted_users:
