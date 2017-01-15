@@ -12,6 +12,7 @@
 <%!
   from datetime import datetime
   from citadel.libs.utils import shorten_sentence
+  from citadel.views.helper import make_kibana_url
 %>
 
 <%block name="main">
@@ -40,7 +41,7 @@
               rel='popover'
               data-html='true'
               data-content="
-              <a href='http://kibana.ricebook.net/app/logtrail#/?q=name:${ app.name }%20%26%26%20entrypoint:${ entry }&h=All&t=Now&_g=()' target='_blank'><span class='label label-info'>日志</span></a>
+              <a href='${ make_kibana_url(appname=app.name, entrypoint=entry) }' target='_blank'><span class='label label-info'>日志</span></a>
               <a href='http://dashboard.ricebook.net/dashboard/db/eru-apps-aggregation?var-app=${ app.name }&var-entry=${ entry }' target='_blank'><span class='label label-info'>监控</span></a>
               ">
               ${ entry }
