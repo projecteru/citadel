@@ -1,16 +1,15 @@
 # coding: utf-8
-from citadel.libs.datastructure import purge_none_val_from_dict
 import itertools
 import json
 from datetime import timedelta, datetime
 from time import sleep
 
 from etcd import EtcdKeyNotFound
-from grpc._channel import _Rendezvous
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import ObjectDeletedError
 
 from citadel.ext import db, get_etcd
+from citadel.libs.datastructure import purge_none_val_from_dict
 from citadel.libs.mimiron import set_mimiron_route, del_mimiron_route
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
@@ -210,24 +209,11 @@ class Container(BaseModelMixin, PropsMixin):
             self.info = {'State': {'Status': 'removing'}}
             return self
 
-        # FUCK THIS SHIT
-        # 并发升级容器流程中，进入删除容器流程的时候，会竟然会去inspect已经删除的容器，理论上不可能啊
-        try:
-            c = get_core(self.zone).get_container(self.container_id)
-        except _Rendezvous as e:
-            msg = e.details()
-            if 'not found' in msg or 'No such' in msg:
-                self.name = 'unknown'
-                self.info = {}
-                return self
-            else:
-                raise
-
+        c = get_core(self.zone).get_container(self.container_id)
         if not c:
             self.name = 'unknown'
             self.info = {}
             return self
-
         self.name = c.name
         self.info = json.loads(c.info)
         return self

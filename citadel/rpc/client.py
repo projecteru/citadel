@@ -3,7 +3,7 @@ from functools import partial
 from operator import attrgetter
 
 import grpc
-from grpc.framework.interfaces.face.face import AbortionError
+from grpc import RpcError
 
 from citadel.libs.cache import cache, clean_cache, ONE_DAY
 from citadel.libs.utils import logger, handle_exception
@@ -19,7 +19,7 @@ from citadel.rpc.core_pb2 import (CoreRPCStub, Empty, NodeAvailable,
 from citadel.rpc.exceptions import NoStubError
 
 
-handle_rpc_exception = partial(handle_exception, (NoStubError, AbortionError))
+handle_rpc_exception = partial(handle_exception, (NoStubError, RpcError))
 _STREAM_TIMEOUT = 3600
 _UNARY_TIMEOUT = 5
 
