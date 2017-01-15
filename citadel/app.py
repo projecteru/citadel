@@ -118,3 +118,7 @@ def create_app():
             abort(401, 'Must login')
 
     return app
+
+
+app = create_app()
+celery = make_celery(app)

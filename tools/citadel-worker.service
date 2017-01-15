@@ -8,7 +8,7 @@ Type=simple
 User=nobody
 Environment="OAUTHLIB_INSECURE_TRANSPORT=1" "GRPC_VERBOSITY=INFO"
 WorkingDirectory=/opt/citadel
-ExecStart=/usr/bin/celery -A app:celery worker --autoscale=50,8 --loglevel DEBUG -Q citadel -B
+ExecStart=/usr/bin/celery -A citadel.app:celery worker --autoscale=50,8 --loglevel DEBUG -Q citadel -B
 LimitNOFILE=10485760
 LimitNPROC=10485760
 LimitCORE=infinity
