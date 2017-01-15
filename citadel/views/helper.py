@@ -62,3 +62,12 @@ def need_admin(f):
             abort(403, 'Only for admin')
         return f(*args, **kwargs)
     return _
+
+
+def make_kibana_url(appname=None, ident=None, entrypoint=None):
+    if not appname:
+        return 'BAD_URL'
+    if ident:
+        return 'http://kibana.ricebook.net/app/logtrail#/?q=name:{}%20%26%26%20ident:{}&h=All&t=Now&_g=()'.format(appname, ident)
+    if entrypoint:
+        return 'http://kibana.ricebook.net/app/logtrail#/?q=name:{}%20%26%26%20entrypoint:{}&h=All&t=Now&_g=()'.format(appname, entrypoint)

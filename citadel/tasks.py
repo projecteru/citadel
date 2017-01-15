@@ -4,6 +4,7 @@ import json
 import yaml
 from celery import current_app
 from celery.result import AsyncResult
+from flask import url_for
 from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 
@@ -11,13 +12,14 @@ from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE
 from citadel.ext import rds, hub
 from citadel.libs.json import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg, logger
-from citadel.models import Release
+from citadel.models import Container, Release
 from citadel.models.app import App
-from citadel.models.container import Container, ContainerOverrideStatus
+from citadel.models.container import ContainerOverrideStatus
 from citadel.models.gitlab import get_project_name, get_file_content, get_build_artifact
-from citadel.models.loadbalance import ELBInstance, update_elb_for_containers, UpdateELBAction
+from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction, ELBInstance
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import get_core
+from citadel.views.helper import make_kibana_url
 
 
 class ActionError(Exception):
@@ -249,6 +251,52 @@ def clean_images(self):
             if not Release.get_by_app_and_sha(appname, short_sha):
                 logger.debug('Delete image %s:%s', appname, short_sha)
                 hub.delete_repo(repo_name, short_sha)
+
+
+@current_app.task(bind=True)
+def deal_with_agent_etcd_change(self, key, data):
+    container_id = data.get('ID')
+    healthy = data.get('Healthy')
+    alive = data.get('Alive')
+    appname = data.get('Name')
+    if None in [container_id, healthy, alive, appname]:
+        return
+    container = Container.get_by_container_id(container_id)
+    if not container:
+        return
+
+    msg = ''
+
+    release = Release.get_by_app_and_sha(container.appname, container.sha)
+    subscribers = release.specs.subscribers or '#platform'
+    if not alive or not healthy:
+        logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
+        update_elb_for_containers(container, UpdateELBAction.REMOVE)
+        if not container.is_removing():
+            msg = 'Dead container `{}` removed from ELB\ncitadel url: {}\ncontainer log: {}'.format(
+                container.short_id,
+                url_for('app.app', name=appname, _external=True),
+                make_kibana_url(appname=appname, ident=container.ident),
+            )
+
+        notbot_sendmsg(subscribers, msg)
+        return
+
+    if healthy:
+        container.mark_initialized()
+        update_elb_for_containers(container)
+        logger.debug('[%s, %s, %s] ADD [%s] [%s]', container.appname, container.podname, container.entrypoint, container_id, ','.join(container.get_backends()))
+    else:
+        update_elb_for_containers(container, UpdateELBAction.REMOVE)
+        logger.debug('[%s, %s, %s] DEL [%s] [%s]', container.appname, container.podname, container.entrypoint, container_id, ','.join(container.get_backends()))
+        if container.initialized and not container.is_removing():
+            msg = 'Sick container `{}` removed from ELB\ncitadel url: {}\ncontainer log: {}'.format(
+                container.short_id,
+                url_for('app.app', name=appname, _external=True),
+                make_kibana_url(appname=appname, ident=container.ident)
+            )
+        else:
+            container.mark_initialized()
 
 
 def celery_task_stream_response(celery_task_ids):

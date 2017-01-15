@@ -5,19 +5,13 @@ run use citadel/bin/run-etcd-watcher
 import argparse
 import json
 import logging
-import time
-from Queue import Queue
-from thread import get_ident
-from threading import Thread
 
 from etcd import EtcdWatchTimedOut, EtcdConnectionFailed
-from flask import url_for
 
 from citadel.config import DEBUG
 from citadel.ext import get_etcd
-from citadel.libs.utils import notbot_sendmsg, with_appcontext
-from citadel.models import Container, Release
-from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
+from citadel.app import celery  # must import citadel.app before importing citadel.tasks
+from citadel.tasks import deal_with_agent_etcd_change
 
 
 logging.getLogger('requests').setLevel(logging.CRITICAL)
@@ -29,118 +23,22 @@ else:
 
 logging.basicConfig(level=log_level, format='%(levelname)s - %(asctime)s: %(message)s')
 logger = logging.getLogger('etcd-watcher')
-_queue = Queue()
-_missing = object()
-_jobs = {}
-_quit = False
 
 
-@with_appcontext
-def deal(key, data):
-    logger.debug('Got etcd data: %s', data)
-    global _jobs
-
-    container_id = data.get('ID', '')
-    if not container_id:
-        return
-
-    ident = get_ident()
-    _jobs[ident] = container_id
-
-    try:
-        healthy = data.get('Healthy', _missing)
-        alive = data.get('Alive', _missing)
-        appname = data.get('Name', _missing)
-        if _missing in [healthy, alive, appname]:
-            return
-
-        container = Container.get_by_container_id(container_id)
-        if not container:
-            return
-
-        msg = ''
-        if healthy:
-            container.mark_initialized()
-            update_elb_for_containers(container)
-            logger.info('[%s, %s, %s] ADD [%s] [%s]', container.appname, container.podname, container.entrypoint, container_id, ','.join(container.get_backends()))
-        else:
-            update_elb_for_containers(container, UpdateELBAction.REMOVE)
-            # omit the first sick warning
-            if container.initialized and not container.is_removing():
-                msg = 'Sick container `{}` removed from ELB, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
-            else:
-                container.mark_initialized()
-
-        if not alive:
-            logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
-            update_elb_for_containers(container, UpdateELBAction.REMOVE)
-            if not container.is_removing():
-                msg = 'Dead container `{}`, checkout {}'.format(container.short_id, url_for('app.app', name=appname, _external=True))
-
-        release = Release.get_by_app_and_sha(container.appname, container.sha)
-        subscribers = release.specs.subscribers or '#platform'
-        notbot_sendmsg(subscribers, msg)
-    finally:
-        _jobs.pop(ident, None)
-
-
-def producer(zone, etcd_path):
+def watch_etcd(zone=None, etcd_path='/agent2'):
     etcd = get_etcd(zone)
     logger.info('Start watching etcd at zone %s, path %s', zone, etcd_path)
-    while not _quit:
+    etcd_index = None
+    while True:
         try:
             resp = etcd.watch(etcd_path, recursive=True, timeout=0)
         except (KeyError, EtcdWatchTimedOut, EtcdConnectionFailed):
             continue
-
-        if not resp:
+        etcd_index = resp.etcd_index
+        if not resp or resp.action != 'set':
             continue
-
-        if resp.action != 'set':
-            continue
-
-        try:
-            _queue.put((resp.action, resp.key, json.loads(resp.value)))
-        except ValueError:
-            continue
-
-
-def consumer():
-    logger.info('Start consuming...')
-    while not _quit:
-        action, key, data = _queue.get()
-        logger.info('%s changed', key)
-
-        t = Thread(target=deal, args=(key, data))
-        t.daemon = True
-        t.start()
-
-
-def watch_etcd(zone='c2', etcd_path='/agent2'):
-    global _quit, _jobs
-
-    ts = [Thread(target=producer, args=(zone, etcd_path)), Thread(target=consumer)]
-    for t in ts:
-        t.daemon = True
-        t.start()
-
-    while True:
-        try:
-            time.sleep(1)
-        except KeyboardInterrupt:
-            _quit = True
-            break
-
-    t = 0
-    while _jobs:
-        time.sleep(3)
-        t += 3
-        logger.info('%d jobs still running', len(_jobs))
-
-        if t >= 30:
-            logger.info('30s passed, all jobs quit')
-            break
-    logger.info('quit')
+        logger.info('Index %s, value %s', etcd_index, resp.value)
+        deal_with_agent_etcd_change.delay(resp.key, json.loads(resp.value))
 
 
 def parse_args():
