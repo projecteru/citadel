@@ -28,6 +28,12 @@ EOF
   ssh c2-eru-1 -t "sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git reset --hard $remote/$branch"
   ssh c2-eru-1 -t "sudo pip install -U git+http://gitlab.ricebook.net/platform/erulb3.git#egg=erulb-py -i https://pypi.doubanio.com/simple/"
   ssh c2-eru-1 -t 'sudo systemctl restart citadel citadel-worker watch-etcd'
+
+  # update zone c1 watch-etcd.service
+  ssh c1-eru-1 -t 'sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git fetch --all --prune'
+  ssh c1-eru-1 -t "sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git reset --hard $remote/$branch"
+  ssh c1-eru-1 -t "sudo pip install -U git+http://gitlab.ricebook.net/platform/erulb3.git#egg=erulb-py -i https://pypi.doubanio.com/simple/"
+  ssh c1-eru-1 -t 'sudo systemctl restart watch-etcd'
 else
   exit 127
 fi
