@@ -3,6 +3,7 @@ from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
 
+from citadel.config import DEFAULT_ZONE
 from citadel.ext import db, gitlab
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin, PropsItem, ModelDeleteError, PropsMixin
@@ -94,9 +95,9 @@ class App(BaseModelMixin):
     def get_online_pods(self, zone=None):
         return list(set([c.podname for c in self.get_container_list(zone)]))
 
-    def get_associated_elb_rules(self):
+    def get_associated_elb_rules(self, zone=DEFAULT_ZONE):
         from citadel.models.loadbalance import ELBRule
-        return ELBRule.get_by(appname=self.name)
+        return ELBRule.get_by(appname=self.name, zone=zone)
 
     def get_permitted_user_ids(self):
         return AppUserRelation.get_user_id_by_appname(self.name)

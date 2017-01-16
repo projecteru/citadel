@@ -52,7 +52,7 @@
     </ul>
     <h5>域名</h5>
     <ul class="list-group">
-      % for rule in app.get_associated_elb_rules():
+      % for rule in app.get_associated_elb_rules(g.zone):
         <li class="list-group-item"><a target="_blank" href="${ url_for('loadbalance.elb', name=rule.elbname) }#${ rule.domain }">${ rule.domain }</a></li>
       % endfor
     </ul>
