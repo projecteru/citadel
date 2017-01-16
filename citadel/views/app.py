@@ -75,6 +75,8 @@ def release(name, sha):
     pods = [p for p in get_core(g.zone).list_pods() if p.name not in IGNORE_PODS]
     nodes = get_nodes_for_first_pod(pods)
     combos = release.combos
+    # only display combos under current zone
+    combos = dict((combo_name, combo) for combo_name, combo in combos.items() if combo.zone == g.zone)
     networks = get_networks_for_first_pod(pods)
 
     draw_combos = bool(request.values.get('draw_combos', type=int, default=1))
