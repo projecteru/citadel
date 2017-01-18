@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 import itertools
 import json
 from datetime import timedelta, datetime
@@ -8,6 +8,7 @@ from etcd import EtcdKeyNotFound
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import ObjectDeletedError
 
+from citadel.config import FORBID_UPGRADE_CONTAINER_PASS_ENV
 from citadel.ext import db, get_etcd
 from citadel.libs.datastructure import purge_none_val_from_dict
 from citadel.libs.mimiron import set_mimiron_route, del_mimiron_route
@@ -133,7 +134,7 @@ class Container(BaseModelMixin, PropsMixin):
             'count': 1,
             'memory': self.info['HostConfig']['Memory'],
             'networks': {network_name: '' for network_name in self.networks},
-            'env': self.info['Config']['Env'],
+            'env': [e for e in self.info['Config']['Env'] if not e.split('=', 1)[0] not in FORBID_UPGRADE_CONTAINER_PASS_ENV],
             'raw': release.raw,
         }
         return deploy_options
