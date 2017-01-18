@@ -44,8 +44,10 @@ def get_backends(backend_name, exclude_containers=()):
 
 @memoize
 def get_elb_client(name, zone):
+    elb_instances = ELBInstance.get_by(name=name, zone=zone)
+    elb_urls = [e.addr for e in elb_instances]
     elb_db = ZONE_CONFIG[zone]['ELB_DB']
-    return ELBClient(name=name, redis_url=elb_db)
+    return ELBClient(name=name, redis_url=elb_db, elb_urls=elb_urls)
 
 
 class ELBRule(BaseModelMixin):
