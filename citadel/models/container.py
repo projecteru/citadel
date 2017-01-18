@@ -185,6 +185,10 @@ class Container(BaseModelMixin, PropsMixin):
         self.initialized = 1
 
     def wait_for_erection(self, timeout=timedelta(minutes=5), period=timedelta(seconds=5)):
+        """wait until this container is healthy, timeout can be timedelta or
+        seconds, if timeout is 0, don't even wait and just report healthy"""
+        if not timeout:
+            return True
         if not isinstance(timeout, timedelta):
             timeout = timedelta(seconds=timeout)
 

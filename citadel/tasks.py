@@ -232,7 +232,7 @@ def upgrade_container(self, old_container_id, sha, user_id=None):
     new_container_id = grpc_message['id']
     new_container = Container.get_by_container_id(new_container_id)
     rds.publish(channel_name, make_sentence_json('Wait for container {} to erect...'.format(new_container.short_id)))
-    healthy = new_container.wait_for_erection()
+    healthy = new_container.wait_for_erection(timeout=release.erection_timeout)
     # TODO: leave the options to users, let them choose what to do next (wait or rollback)
     if healthy:
         rds.publish(channel_name, make_sentence_json('New container {} OK, remove old container {}'.format(new_container_id, old_container_id)))

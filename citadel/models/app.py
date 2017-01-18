@@ -283,6 +283,13 @@ class Release(BaseModelMixin, PropsMixin):
             return self.specs.entrypoints
         return {}
 
+    @property
+    def erection_timeout(self):
+        """wait for container to erect in the upgrade_container process, if
+        timeout is 0, the old container will be immediately removed after the
+        new container is up"""
+        return self.specs.erection_timeout
+
     def update_image(self, image):
         self.image = image
         logger.debug('Set image %s for release %s', image, self.sha)
