@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
+
 import yaml
-from humanfriendly import parse_size
+from humanfriendly import InvalidTimespan, parse_timespan, parse_size
 
 from citadel.config import DEFAULT_ZONE
 from citadel.libs.json import Jsonized
@@ -133,7 +135,7 @@ class Combo(object):
 
 class Specs(Jsonized):
 
-    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, permitted_users, subscribers, raw):
+    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, permitted_users, subscribers, erection_timeout, raw):
         # raw to jsonize
         self.appname = appname
         self.entrypoints = entrypoints
@@ -146,6 +148,7 @@ class Specs(Jsonized):
         self.combos = combos
         self.permitted_users = permitted_users
         self.subscribers = subscribers
+        self.erection_timeout = erection_timeout
         self._raw = raw
 
     @classmethod
@@ -153,6 +156,11 @@ class Specs(Jsonized):
         appname = data['appname']
         entrypoints = {key: Entrypoint.from_dict(value) for key, value in data.get('entrypoints', {}).iteritems()}
         build = data.get('build', ())
+        try:
+            erection_timeout = parse_timespan(data.get('erection_timeout', '5m'))
+        except InvalidTimespan:
+            erection_timeout = timedelta(minutes=5)
+
         # compatibility note:
         # old apps sometimes write: build: 'echo something'
         if isinstance(build, basestring):
@@ -172,7 +180,7 @@ class Specs(Jsonized):
         app_permitted_users = tuple(data.get('permitted_users', ()))
         all_permitted_users = frozenset(combos_permitted_users + app_permitted_users)
 
-        return cls(appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, all_permitted_users, subscribers, data)
+        return cls(appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, all_permitted_users, subscribers, erection_timeout, data)
 
     @classmethod
     def from_string(cls, string):
