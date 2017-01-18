@@ -63,7 +63,7 @@ class Entrypoint(object):
     @classmethod
     def from_dict(cls, data):
         command = data['cmd']
-        ports = [Port.from_string(p) for p in data.get('ports', ())]
+        ports = [Port.from_string(p) for p in data.get('ports') or []]
         exposes = [Expose.from_string(e) for e in data.get('exposes', ())]
         network_mode = data.get('network_mode')
         restart = data.get('restart')
