@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
+
 import redis
 from celery.schedules import crontab
 from kombu import Queue
@@ -97,3 +99,4 @@ SESSION_USE_SIGNER = True
 SESSION_TYPE = 'redis'
 SESSION_REDIS = redis.Redis.from_url(REDIS_URL)
 SESSION_KEY_PREFIX = '{}:session:'.format(PROJECT_NAME)
+PERMANENT_SESSION_LIFETIME = timedelta(days=2)
