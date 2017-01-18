@@ -52,7 +52,7 @@ class Network(_CoreRPC):
 
 class Node(_CoreRPC):
 
-    fields = ['name', 'endpoint', 'podname', 'public', 'cpu', 'info', 'available']
+    fields = ['name', 'endpoint', 'podname', 'public', 'cpu', 'info', 'available', 'zone']
 
     def __init__(self, node):
         super(Node, self).__init__(node)
@@ -77,9 +77,8 @@ class Node(_CoreRPC):
     @property
     def containers(self):
         from citadel.models import Container
-        from flask import g
         # ... 没办法了，node 不知道自己的 zone
-        containers = Container.get_by(nodename=self.name, zone=g.zone)
+        containers = Container.get_by(nodename=self.name, zone=self.zone)
         return containers
 
     @property
