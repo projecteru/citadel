@@ -12,6 +12,12 @@ from citadel.config import NOTBOT_SENDMSG_URL, LOGGER_NAME, DEBUG
 
 logger = logging.getLogger(LOGGER_NAME)
 
+login_handler = logging.FileHandler('/var/tmp/citadel-login.log')
+login_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+login_logger = logging.getLogger('login')
+login_logger.addHandler(login_handler)
+login_logger.setLevel(logging.INFO)
+
 
 def with_appcontext(f):
     @wraps(f)

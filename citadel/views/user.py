@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from flask import session, Blueprint, redirect, url_for, abort
+from flask import g
 
 from citadel.ext import sso
+from citadel.libs.utils import login_logger
 
 
 bp = Blueprint('user', __name__, url_prefix='/user')
@@ -9,7 +11,9 @@ bp = Blueprint('user', __name__, url_prefix='/user')
 
 @sso.tokengetter
 def get_oauth_token():
-    return session.get('sso'), ''
+    token = session.get('sso')
+    login_logger.info('[%s] get_oauth_token get token %s', g.seed, token)
+    return token, ''
 
 
 @bp.route('/authorized')
