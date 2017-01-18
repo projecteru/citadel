@@ -53,6 +53,9 @@ ELB_APP_NAME = getenv('ELB_APP_NAME', default='erulb')
 ELB_BACKEND_NAME_DELIMITER = getenv('ELB_BACKEND_NAME_DELIMITER', default='___')
 ELB_POD_NAME = getenv('ELB_POD_NAME', default='elb')
 
+# some envs are managed by eru-core
+FORBID_UPGRADE_CONTAINER_PASS_ENV = {'ERU_NODE_IP', 'ERU_PERMDIR', 'APP_NAME', 'ERU_POD'}
+
 HUB_ADDRESS = getenv('HUB_ADDRESS', default='hub.ricebook.net')
 
 REDIS_POD_NAME = getenv('REDIS_POD_NAME', default='redis')
