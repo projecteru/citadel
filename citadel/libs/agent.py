@@ -3,8 +3,10 @@
 from __future__ import absolute_import
 
 import json
+
 import requests
 from requests.exceptions import ReadTimeout, ConnectionError, ConnectTimeout
+
 from citadel.config import AGENT_PORT
 
 
@@ -27,7 +29,7 @@ class EruAgentClient(object):
                 try:
                     yield json.loads(line)
                 except ValueError as e:
-                    raise EruAgentError(e.message)
+                    raise EruAgentError(str(e))
         except (ReadTimeout, ConnectTimeout):
             raise EruAgentError('Read Timeout')
         except ConnectionError:

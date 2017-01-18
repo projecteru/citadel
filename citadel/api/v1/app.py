@@ -1,11 +1,10 @@
-# coding: utf-8
-from flask import abort, g, request
+# -*- coding: utf-8 -*-
+from flask import abort, request
 
 from citadel.libs.datastructure import AbortDict
-from citadel.libs.utils import logger
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
-
 from citadel.models.app import App, Release
+from citadel.models.base import ModelCreateError
 from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_group, get_gitlab_groups
@@ -24,7 +23,7 @@ def _get_app(name):
 def _get_release(name, sha):
     release = Release.get_by_app_and_sha(name, sha)
     if not release:
-        abort(404, 'release `%s, %s` not found' % (name, sha))
+        abort(404, 'Release `%s, %s` not found' % (name, sha))
 
     return release
 
@@ -58,7 +57,7 @@ def app_env_action(name, envname):
     if request.method == 'GET':
         env = Environment.get_by_app_and_env(app.name, envname)
         if not env:
-            abort(404, 'app `%s` has no env `%s`' % (app.name, envname))
+            abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
         return env.to_jsonable()
     elif request.method in ('PUT', 'POST'):
         data = request.get_json()
@@ -67,7 +66,7 @@ def app_env_action(name, envname):
     elif request.method == 'DELETE':
         env = Environment.get_by_app_and_env(app.name, envname)
         if not env:
-            abort(404, 'app `%s` has no env `%s`' % (app.name, envname))
+            abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
         env.delete()
         return DEFAULT_RETURN_VALUE
 
@@ -93,15 +92,19 @@ def register_release():
     group = get_project_group(git)
     all_groups = get_gitlab_groups()
     if not group or group not in all_groups:
-        abort(400, 'only project under a group can be registered, your git repo is %s' % git)
+        abort(400, 'Only project under a group can be registered, your git repo is %s' % git)
 
     app = App.get_or_create(name, git)
     if not app:
-        abort(400, 'error during create an app (%s, %s, %s)' % (name, git, sha))
+        abort(400, 'Error during create an app (%s, %s, %s)' % (name, git, sha))
 
-    release = Release.create(app, sha)
+    try:
+        release = Release.create(app, sha)
+    except ModelCreateError as e:
+        abort(400, str(e))
+
     if not release:
-        abort(400, 'error during create a release (%s, %s, %s)' % (name, git, sha))
+        abort(400, 'Error during create a release (%s, %s, %s)' % (name, git, sha))
 
     if release.raw:
         release.update_image(release.specs.base)

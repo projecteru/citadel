@@ -6,7 +6,7 @@ from werkzeug.utils import cached_property
 from citadel.config import DEFAULT_ZONE
 from citadel.ext import db, gitlab
 from citadel.libs.utils import logger
-from citadel.models.base import BaseModelMixin, PropsItem, ModelDeleteError, PropsMixin
+from citadel.models.base import BaseModelMixin, PropsItem, ModelDeleteError, PropsMixin, ModelCreateError
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
 from citadel.models.loadbalance import ELBRule
 from citadel.models.specs import Specs
@@ -167,7 +167,8 @@ class Release(BaseModelMixin, PropsMixin):
 
         for u in gone:
             if not u:
-                continue
+                new_release.delete()
+                raise ModelCreateError('Bad username in permitted_users')
             logger.debug('Revoke %s to app %s', u, appname)
             AppUserRelation.delete(appname, u.id)
 

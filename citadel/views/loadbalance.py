@@ -5,6 +5,7 @@ from flask_mako import render_template
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
+from citadel.models.base import ModelCreateError
 from citadel.models.env import Environment
 from citadel.models.loadbalance import ELBInstance, ELBRule, get_elb_client
 from citadel.rpc import get_core
@@ -104,7 +105,11 @@ def add_rule(name):
     appname = request.form['appname']
     domain = _cleanse_domain(request.form['domain'])
     rule_content = request.form['rule']
-    rule = ELBRule.create(g.zone, appname, name, domain, rule_content)
+    try:
+        rule = ELBRule.create(g.zone, appname, name, domain, rule_content)
+    except ModelCreateError as e:
+        abort(400, str(e))
+
     if not rule:
         flash(u'create rule failed')
 
