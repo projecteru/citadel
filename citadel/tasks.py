@@ -269,7 +269,7 @@ def deal_with_agent_etcd_change(self, key, data):
 
     release = Release.get_by_app_and_sha(container.appname, container.sha)
     subscribers = release.specs.subscribers or '#platform'
-    if not alive or not healthy:
+    if not alive:
         logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
         if not container.is_removing():
