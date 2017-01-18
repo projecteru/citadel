@@ -178,7 +178,11 @@ class Release(BaseModelMixin, PropsMixin):
                 continue
             for elbname_and_domain in combo.elb:
                 elbname, domain = elbname_and_domain.split()
-                r = ELBRule.create(combo.zone, elbname, domain, appname, entrypoint=combo.entrypoint, podname=combo.podname)
+                try:
+                    r = ELBRule.create(combo.zone, elbname, domain, appname, entrypoint=combo.entrypoint, podname=combo.podname)
+                except ModelCreateError:
+                    new_release.delete()
+                    raise
                 if r:
                     logger.info('Auto create ELBRule %s for app %s', r, appname)
 
