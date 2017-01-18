@@ -11,7 +11,7 @@ from citadel.config import ELB_BACKEND_NAME_DELIMITER, ZONE_CONFIG
 from citadel.ext import db, rds
 from citadel.libs.datastructure import purge_none_val_from_dict
 from citadel.libs.utils import logger, make_unicode, memoize
-from citadel.models.base import BaseModelMixin, JsonType
+from citadel.models.base import BaseModelMixin, ModelCreateError, JsonType
 from citadel.models.container import Container
 
 
@@ -84,7 +84,9 @@ class ELBRule(BaseModelMixin):
     def create(cls, zone, elbname, domain, appname, rule=None, sha='', entrypoint=None, podname=None):
         rule = rule or cls.generate_simple_rule(appname, entrypoint, podname)
         if not rule:
-            return None
+            raise ModelCreateError('Bad rule')
+        if not ELBInstance.get_by(name=elbname, zone=zone):
+            raise ModelCreateError('No ELB instances found for zone {}, name {}'.format(zone, elbname))
 
         try:
             r = cls(zone=zone, elbname=elbname, domain=domain, appname=appname, rule=rule, sha=sha)

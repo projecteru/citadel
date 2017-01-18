@@ -40,7 +40,7 @@ class CoreRPC(object):
             channel = grpc.insecure_channel(self.grpc_address)
             return CoreRPCStub(channel)
         except Exception as e:
-            raise NoStubError(e.message)
+            raise NoStubError(str(e))
 
     @handle_rpc_exception(default=list)
     def list_pods(self):

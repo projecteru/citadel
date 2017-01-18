@@ -161,3 +161,7 @@ class Enum34(types.TypeDecorator):
 
 class ModelDeleteError(Exception):
     pass
+
+
+class ModelCreateError(Exception):
+    pass

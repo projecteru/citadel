@@ -119,7 +119,7 @@ def get_log():
     try:
         resp = client.log(appname)
     except EruAgentError as e:
-        raise ActionError(400, e.message)
+        raise ActionError(400, str(e))
 
     def log_producer():
         for data in resp:
@@ -130,4 +130,4 @@ def get_log():
 
 @bp.errorhandler(ActionError)
 def error_handler(e):
-    return jsonify({'error': e.message}), e.code
+    return jsonify({'error': str(e)}), e.code

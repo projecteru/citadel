@@ -244,7 +244,7 @@ def create_loadbalance():
                                             comment=payload['comment'],
                                             user_id=user_id)
     except ActionError as e:
-        return {'error': e.message}, 500
+        return {'error': str(e)}, 500
     return DEFAULT_RETURN_VALUE
 
 
@@ -259,7 +259,7 @@ def remove_loadbalance(id):
         remove_container(elb.container_id, user_id=g.user.id)
         elb.delete()
     except ActionError as e:
-        return {'error': e.message}, 500
+        return {'error': str(e)}, 500
     return DEFAULT_RETURN_VALUE
 
 
