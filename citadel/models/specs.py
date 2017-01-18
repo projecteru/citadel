@@ -157,7 +157,7 @@ class Specs(Jsonized):
         entrypoints = {key: Entrypoint.from_dict(value) for key, value in data.get('entrypoints', {}).iteritems()}
         build = data.get('build', ())
         try:
-            erection_timeout = parse_timespan(data.get('erection_timeout', '5m'))
+            erection_timeout = parse_timespan(str(data.get('erection_timeout', '5m')))
         except InvalidTimespan:
             erection_timeout = timedelta(minutes=5)
 
