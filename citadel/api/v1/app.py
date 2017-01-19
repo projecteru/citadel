@@ -8,6 +8,7 @@ from citadel.models.base import ModelCreateError
 from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_group, get_gitlab_groups
+from citadel.models.specs import SpecsError
 
 
 bp = create_api_blueprint('app', __name__, 'app')
@@ -100,7 +101,7 @@ def register_release():
 
     try:
         release = Release.create(app, sha)
-    except ModelCreateError as e:
+    except (ModelCreateError, SpecsError) as e:
         abort(400, str(e))
 
     if not release:

@@ -1,14 +1,12 @@
 # coding: utf-8
 import requests
-from flask import g
-from flask import abort, request
+from flask import g, abort, request
 from requests.exceptions import ConnectTimeout, ReadTimeout, ConnectionError
 
 from citadel.config import DEBUG, AUTH_AUTHORIZE_URL, AUTH_GET_USER_URL
 from citadel.ext import sso
 from citadel.libs.cache import cache, ONE_DAY
-from citadel.libs.utils import logger
-from citadel.libs.utils import login_logger
+from citadel.libs.utils import memoize, logger, login_logger
 
 
 _DEBUG_USER_DICT = {
@@ -71,6 +69,7 @@ def get_current_user():
     return User.from_dict(resp.data)
 
 
+@memoize
 def get_user(identifier):
     if DEBUG:
         return User.from_dict(_DEBUG_USER_DICT)

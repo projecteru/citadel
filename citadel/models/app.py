@@ -140,9 +140,7 @@ class Release(BaseModelMixin, PropsMixin):
             return None
 
         specs_text = get_file_content(app.project_name, 'app.yaml', sha)
-        if not specs_text:
-            logger.warn('Empty specs %s %s', appname, sha)
-            return None
+        Specs.validate_specs_yaml(specs_text)
 
         try:
             new_release = cls(sha=commit.id, app_id=app.id)

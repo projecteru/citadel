@@ -6,6 +6,11 @@ from humanfriendly import InvalidTimespan, parse_timespan, parse_size
 
 from citadel.config import DEFAULT_ZONE
 from citadel.libs.json import Jsonized
+from citadel.libs.utils import make_unicode
+
+
+class SpecsError(Exception):
+    pass
 
 
 class Port(object):
@@ -186,3 +191,13 @@ class Specs(Jsonized):
     def from_string(cls, string):
         data = yaml.load(string)
         return cls.from_dict(data)
+
+    @classmethod
+    def validate_specs_yaml(cls, s):
+        """will raise yaml.parser.parser.ParserError or SpecsError"""
+        specs = cls.from_string(s)
+        # validate permitted_users
+        from citadel.models.user import User
+        for username in specs.permitted_users:
+            if not User.get(username):
+                raise SpecsError(u'Bad username in permitted_users: {}'.format(make_unicode(username)))
