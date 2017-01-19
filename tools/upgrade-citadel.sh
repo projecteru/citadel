@@ -15,8 +15,6 @@ EOF
   ssh c1-eru-2 << EOF
   sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git fetch --all --prune
   sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git reset --hard $remote/$branch
-  sudo pip install -U git+http://gitlab.ricebook.net/platform/erulb3.git#egg=erulb-py -i https://pypi.doubanio.com/simple/
-  sudo pip install -e git+http://gitlab.ricebook.net/platform/mapi.git#egg=mapi -i https://pypi.doubanio.com/simple/
   sudo systemctl restart citadel citadel-worker watch-etcd
 EOF
 elif [ $deploy_mode == "devel" ]
@@ -37,8 +35,6 @@ EOF
   ssh c2-eru-1 << EOF
   sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git fetch --all --prune
   sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git reset --hard $remote/$branch
-  sudo pip install -U git+http://gitlab.ricebook.net/platform/erulb3.git#egg=erulb-py -i https://pypi.doubanio.com/simple/
-  sudo pip install -e git+http://gitlab.ricebook.net/platform/mapi.git#egg=mapi -i https://pypi.doubanio.com/simple/
   sudo systemctl restart citadel citadel-worker watch-etcd
 
 EOF
@@ -46,8 +42,6 @@ EOF
   ssh c1-eru-1 << EOF
   sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git fetch --all --prune
   sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git reset --hard $remote/$branch
-  sudo pip install -U git+http://gitlab.ricebook.net/platform/erulb3.git#egg=erulb-py -i https://pypi.doubanio.com/simple/
-  sudo pip install -e git+http://gitlab.ricebook.net/platform/mapi.git#egg=mapi -i https://pypi.doubanio.com/simple/
   sudo systemctl restart watch-etcd
 EOF
 else
