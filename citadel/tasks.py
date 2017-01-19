@@ -8,7 +8,7 @@ from flask import url_for
 from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 
-from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE
+from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
 from citadel.ext import rds, hub
 from citadel.libs.json import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg, logger
@@ -47,6 +47,15 @@ def _peek_grpc(call):
     except face.AbortionError as e:
         raise ActionError(500, 'gRPC remote server not available')
     return ms
+
+
+@current_app.task(bind=True)
+def record_health_status(self):
+    """health check for citadel itself:
+        if citadel web is down, sa will know
+        if citadel worker is down, the health stats in redis will expire in 20 secs, and then sa will know
+    """
+    rds.setex(CITADEL_HEALTH_CHECK_STATS_KEY, 'OK', 30)
 
 
 @current_app.task(bind=True)
