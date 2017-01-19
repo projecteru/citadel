@@ -52,6 +52,7 @@ AUTH_GET_USER_URL = getenv('AUTH_GET_USER_URL', default='http://sso.ricebook.net
 ELB_APP_NAME = getenv('ELB_APP_NAME', default='erulb')
 ELB_BACKEND_NAME_DELIMITER = getenv('ELB_BACKEND_NAME_DELIMITER', default='___')
 ELB_POD_NAME = getenv('ELB_POD_NAME', default='elb')
+CITADEL_HEALTH_CHECK_STATS_KEY = 'citadel:health'
 
 # some envs are managed by eru-core
 FORBID_UPGRADE_CONTAINER_PASS_ENV = {'ERU_NODE_IP', 'ERU_PERMDIR', 'APP_NAME', 'ERU_POD'}
@@ -95,6 +96,10 @@ beat_schedule = {
         'task': 'citadel.tasks.clean_images',
         'schedule': crontab(hour='4'),
     },
+    'record-health': {
+        'task': 'citadel.tasks.record_health_status',
+        'schedule': timedelta(seconds=20),
+    }
 }
 
 # flask-session settings
