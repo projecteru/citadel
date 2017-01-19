@@ -167,8 +167,7 @@ class Release(BaseModelMixin, PropsMixin):
 
         for u in gone:
             if not u:
-                new_release.delete()
-                raise ModelCreateError('Bad username in permitted_users')
+                continue
             logger.debug('Revoke %s to app %s', u, appname)
             AppUserRelation.delete(appname, u.id)
 
