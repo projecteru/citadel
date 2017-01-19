@@ -25,3 +25,4 @@ celery[redis]
 humanize
 humanfriendly
 boltons
+blinker
