@@ -29,7 +29,7 @@ ZONE_CONFIG = {
     },
     'c2': {
         'ETCD_CLUSTER': (('***REMOVED***', 2379), ('***REMOVED***', 2379), ('***REMOVED***', 2379)),
-        'GRPC_URL': 'core-grpc.intra.ricebook.net:5001',
+        'GRPC_URL': '***REMOVED***:5001',
         'ELB_DB': 'redis://***REMOVED***:6379',
     },
 }
