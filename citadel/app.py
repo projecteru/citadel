@@ -40,6 +40,7 @@ api_blueprints = [
 
 ANONYMOUS_PATHS = [
     '/user',
+    '/health-check',
 ]
 
 
