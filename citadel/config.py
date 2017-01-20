@@ -20,7 +20,7 @@ AGENT_PORT = getenv('AGENT_PORT', default=12345, type=int)
 REDIS_URL = getenv('REDIS_URL', default='redis://127.0.0.1:6379/0')
 
 DEFAULT_ZONE = 'c2'
-BUILD_ZONE = 'c2'
+BUILD_ZONE = 'c1'
 ZONE_CONFIG = {
     'c1': {
         'ETCD_CLUSTER': (('10.10.70.31', 2379), ('10.10.65.251', 2379), ('10.10.145.201', 2379)),
