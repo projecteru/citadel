@@ -134,7 +134,7 @@ class Container(BaseModelMixin, PropsMixin):
             'count': 1,
             'memory': self.info['HostConfig']['Memory'],
             'networks': {network_name: '' for network_name in self.networks},
-            'env': [e for e in self.info['Config']['Env'] if not e.split('=', 1)[0] not in FORBID_UPGRADE_CONTAINER_PASS_ENV],
+            'env': [e for e in self.info['Config']['Env'] if not e.split('=', 1)[0] in FORBID_UPGRADE_CONTAINER_PASS_ENV],
             'raw': release.raw,
         }
         return deploy_options
