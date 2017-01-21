@@ -258,8 +258,8 @@ def clean_images(self):
         appname = repo_name.split('/', 1)[-1]
         for short_sha in hub.get_tags(repo_name) or []:
             if not Release.get_by_app_and_sha(appname, short_sha):
-                logger.debug('Delete image %s:%s', appname, short_sha)
-                hub.delete_repo(repo_name, short_sha)
+                if hub.delete_repo(repo_name, short_sha):
+                    logger.warn('Delete image %s:%s', appname, short_sha)
 
 
 @current_app.task(bind=True)
