@@ -89,6 +89,7 @@ def register_release():
     name = data['name']
     git = data['git']
     sha = data['sha']
+    branch = data['branch']
 
     group = get_project_group(git)
     all_groups = get_gitlab_groups()
@@ -100,7 +101,7 @@ def register_release():
         abort(400, 'Error during create an app (%s, %s, %s)' % (name, git, sha))
 
     try:
-        release = Release.create(app, sha)
+        release = Release.create(app, sha, branch=branch)
     except (ModelCreateError, SpecsError) as e:
         abort(400, str(e))
 

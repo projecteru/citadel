@@ -228,14 +228,27 @@
         <th>Version</th>
         <th>Created</th>
         <th>Author</th>
-        <th>GitLab Link</th>
+        <th>Branch</th>
         <th></th>
       </tr>
     </thead>
     <tbody>
       % for release in releases:
         <tr>
-          <td><a href="${ url_for('app.release', name=release.name, sha=release.sha) }">${ release.sha[:7] }</a></td>
+          <td>
+            <a href='javascript://'
+              data-placement='right'
+              data-toggle="popover"
+              rel='popover'
+              data-html='true'
+              data-content="
+              <a href='${ url_for('app.release', name=release.name, sha=release.sha) }'>详情</a>
+              <br>
+              <a href='${ url_for('app.gitlab_url', name=release.name, sha=release.sha) }'>GitLab</a>
+              ">
+              ${ release.sha[:7] }
+            </a>
+          </td>
           <td>${ naturaltime(release.created) }</td>
           <td class="col-sm-6" style="font-size:70%">
             % if release.author:
@@ -247,7 +260,13 @@
             % endif
           </td>
           <td>
-            <a href="${ url_for('app.gitlab_url', name=release.name, sha=release.sha) }" target="_blank">${ release.sha[:7] }</a>
+            % if release.branch:
+              <span class='label label-info'>
+                ${ release.branch }
+              </span>
+            % else:
+              <a href='http://phabricator.ricebook.net/w/develop/platform/deploy-citadel-app/#faq' target='_blank'>??<a>
+            % endif
           </td>
           <td>
             % if release.raw:

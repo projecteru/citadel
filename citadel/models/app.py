@@ -122,7 +122,8 @@ class Release(BaseModelMixin, PropsMixin):
     app_id = db.Column(db.Integer, nullable=False)
     image = db.Column(db.String(255), nullable=False, default='')
 
-    override_git = PropsItem('override_git', default='', type=unicode)
+    override_git = PropsItem('override_git', default='')
+    branch = PropsItem('branch', default='')
 
     def __str__(self):
         return '<app {r.name} release {r.sha} with image {r.image}>'.format(r=self)
@@ -131,7 +132,7 @@ class Release(BaseModelMixin, PropsMixin):
         return 'citadel:release:%s' % self.id
 
     @classmethod
-    def create(cls, app, sha):
+    def create(cls, app, sha, branch=None):
         """app must be an App instance"""
         appname = app.name
         commit = get_commit(app.project_name, sha)
@@ -150,6 +151,9 @@ class Release(BaseModelMixin, PropsMixin):
             logger.warn('Fail to create Release %s %s, duplicate', appname, sha)
             db.session.rollback()
             return cls.get_by_app_and_sha(appname, sha)
+
+        if branch:
+            new_release.branch = branch
 
         # after the instance is created, manage app permission through combo
         # permitted_users
