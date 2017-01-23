@@ -89,7 +89,7 @@ def register_release():
     name = data['name']
     git = data['git']
     sha = data['sha']
-    branch = data['branch']
+    branch = data.get('branch')
 
     group = get_project_group(git)
     all_groups = get_gitlab_groups()

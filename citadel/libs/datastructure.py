@@ -28,7 +28,7 @@ class AbortDict(dict):
         try:
             return dict.__getitem__(self, key)
         except KeyError:
-            abort(400, '`%s` must be in dict' % key)
+            abort(400, 'Missing argument %s' % key)
 
 
 def purge_none_val_from_dict(dic):
