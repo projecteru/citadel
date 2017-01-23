@@ -77,7 +77,7 @@ class App(BaseModelMixin):
         from .loadbalance import ELBRule
         containers = self.get_container_list(None)
         if containers:
-            raise ModelDeleteError('App {} got containers {}, remove them before deleting app'.format(appname, containers))
+            raise ModelDeleteError('App {} is still running, containers {}, remove them before deleting app'.format(appname, containers))
         # delete all releases
         Release.query.filter_by(app_id=self.id).delete()
         # delete all permissions
@@ -188,6 +188,11 @@ class Release(BaseModelMixin, PropsMixin):
                     logger.info('Auto create ELBRule %s for app %s', r, appname)
 
         return new_release
+
+    def delete(self):
+        if self.container_list:
+            raise ModelDeleteError('Release {} is still running, delete containers {} before deleting this release'.format(self.short_sha, self.container_list))
+        return super(Release, self).delete()
 
     def fix_git(self, git):
         self.override_git = git

@@ -10,6 +10,7 @@ from citadel.libs.utils import logger
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
 from citadel.models import Container
 from citadel.models.app import AppUserRelation, Release
+from citadel.models.base import ModelDeleteError
 from citadel.models.env import Environment
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog

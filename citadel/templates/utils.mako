@@ -298,13 +298,16 @@
   <script>
     $('a#delete').click(function (){
       var self = $(this);
-      if (!confirm('确定删除' + self.data('release-id') + '?')) { return; }
       $.ajax({
         url: self.data('delete-url'),
         type: "DELETE",
         success: function(r) {
           console.log(r);
-          self.parent().parent().remove();
+          location.reload();
+        },
+        error: function(jqXhr, textStatus, errorThrown){
+        console.log('Delete release git got error:', jqXhr, textStatus, errorThrown);
+        alert(jqXhr.responseText);
         }
       });
     });
