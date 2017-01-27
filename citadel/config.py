@@ -94,7 +94,7 @@ accept_content = ['pickle', 'json']
 beat_schedule = {
     'clean-images': {
         'task': 'citadel.tasks.clean_images',
-        'schedule': crontab(hour='4'),
+        'schedule': crontab(hour='*'),
     },
     'record-health': {
         'task': 'citadel.tasks.record_health_status',
