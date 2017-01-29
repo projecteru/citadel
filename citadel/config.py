@@ -68,21 +68,11 @@ TASK_PUBSUB_CHANNEL = 'citadel:task:{task_id}:pubsub'
 # TODO: ugly
 TASK_PUBSUB_EOF = 'CELERY_TASK_DONE:{task_id}'
 
-try:
-    from .local_config import *
-except ImportError:
-    pass
-
-# redis pod is managed by cerberus, elb pod is managed by views.loadbalance
-IGNORE_PODS = {REDIS_POD_NAME, ELB_POD_NAME}
-
 # celery config
 timezone = 'Asia/Shanghai'
-broker_url = getenv('CELERY_BROKER_URL', default=REDIS_URL)
-result_backend = getenv('CELERY_RESULT_BACKEND', default=REDIS_URL)
-# if a task isn't acknownledged in 10s, redeliver to another worker
+broker_url = getenv('CELERY_BROKER_URL', default='redis://127.0.0.1:6379/0')
+result_backend = getenv('CELERY_RESULT_BACKEND', default='redis://127.0.0.1:6379/0')
 broker_transport_options = {'visibility_timeout': 10}
-# rds.nova is used by so many other services, must not interfere
 task_default_queue = PROJECT_NAME
 task_queues = (
     Queue(PROJECT_NAME, routing_key=PROJECT_NAME),
@@ -101,6 +91,14 @@ beat_schedule = {
         'schedule': timedelta(seconds=20),
     }
 }
+
+try:
+    from .local_config import *
+except ImportError:
+    pass
+
+# redis pod is managed by cerberus, elb pod is managed by views.loadbalance
+IGNORE_PODS = {REDIS_POD_NAME, ELB_POD_NAME}
 
 # flask-session settings
 SESSION_USE_SIGNER = True
