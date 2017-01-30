@@ -284,7 +284,7 @@
                 <span class="fui-plus"></span> Add Container
               </a>
             % endif
-            % if release.container_list:
+            % if release.get_container_list():
               <img style="height: 1em;" src="http://pics.sc.chinaz.com/Files/pic/faces/3709/7.gif">
             % else:
               <a id="delete" class="btn btn-xs btn-warning" data-release-id="${ release.short_sha }" data-delete-url="${ url_for('app.release', name=release.name, sha=release.sha) }" ><span class="fui-trash"></span></a>

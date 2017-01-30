@@ -58,7 +58,7 @@ def release(name, sha):
         abort(404, 'App or release not found')
 
     if request.method == 'DELETE':
-        if AppUserRelation.user_permitted_to_app(g.user.id, name) or release.container_list:
+        if AppUserRelation.user_permitted_to_app(g.user.id, name) or release.get_container_list():
             release.delete()
             return jsonify({'message': 'OK'})
         else:

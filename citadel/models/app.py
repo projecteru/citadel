@@ -190,8 +190,9 @@ class Release(BaseModelMixin, PropsMixin):
         return new_release
 
     def delete(self):
-        if self.container_list:
-            raise ModelDeleteError('Release {} is still running, delete containers {} before deleting this release'.format(self.short_sha, self.container_list))
+        container_list = self.get_container_list()
+        if container_list:
+            raise ModelDeleteError('Release {} is still running, delete containers {} before deleting this release'.format(self.short_sha, container_list))
         return super(Release, self).delete()
 
     def fix_git(self, git):
@@ -246,10 +247,9 @@ class Release(BaseModelMixin, PropsMixin):
     def name(self):
         return self.app.name
 
-    @property
-    def container_list(self):
+    def get_container_list(self, zone=None):
         from .container import Container
-        return Container.get_by(appname=self.name, sha=self.sha)
+        return Container.get_by(appname=self.name, sha=self.sha, zone=zone)
 
     @property
     def gitlab_commit(self):
