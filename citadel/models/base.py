@@ -129,13 +129,13 @@ class JsonType(types.TypeDecorator):
     def process_bind_param(self, value, engine):
         try:
             return json.dumps(value)
-        except ValueError:
+        except (ValueError, TypeError):
             return '{}'
 
     def process_result_value(self, value, engine):
         try:
             return json.loads(value)
-        except ValueError:
+        except (ValueError, TypeError):
             return {}
 
 

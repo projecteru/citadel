@@ -11,7 +11,7 @@ from more_itertools import peekable
 from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
 from citadel.ext import rds, hub
 from citadel.libs.json import JSONEncoder
-from citadel.libs.utils import notbot_sendmsg, logger
+from citadel.libs.utils import notbot_sendmsg, logger, make_sentence_json
 from citadel.models import Container, Release
 from citadel.models.app import App
 from citadel.models.container import ContainerOverrideStatus
@@ -308,6 +308,33 @@ def deal_with_agent_etcd_change(self, key, data):
             container.mark_initialized()
 
 
+@current_app.task(bind=True)
+def trigger_tackle_routine(self):
+    """
+    gather all apps that has tackle rule defined, and check each rule to
+    decide what strategy to apply (async)
+    should only run within celery worker
+    """
+    apps = App.get_apps_with_tackle_rule()
+    for app in apps:
+        tackle_single_app.delay(app.name)
+
+
+@current_app.task(bind=True)
+def tackle_single_app(self, appname):
+    app = App.get_by_name(appname)
+    rule = app.tackle_rule
+    app_status_assembler = app.app_status_assembler
+    # check container status
+    for rule in rule.get('container_tackle_rule', []):
+        for c in app_status_assembler.container_status:
+            dangers = c.eval_expressions(rule['situations'])
+            if dangers:
+                method = container_tackle_strategy_lib[rule['strategy']]
+                logger.warn('%s container %s in DANGER: %s, tackle strategy %s', appname, c, dangers, method)
+                method(c, dangers, **rule.get('kwargs', {}))
+
+
 def celery_task_stream_response(celery_task_ids):
     if isinstance(celery_task_ids, basestring):
         celery_task_ids = celery_task_ids,
@@ -344,6 +371,40 @@ def celery_task_stream_traceback(celery_task_ids):
             yield json.dumps({'success': False, 'error': async_result.traceback})
 
 
-def make_sentence_json(message):
-    msg = json.dumps({'type': 'sentence', 'message': message}, cls=JSONEncoder)
-    return msg + '\n'
+@current_app.task(bind=True)
+def respawn_container(self, container_status, dangers, **kwargs):
+    """
+    {
+        "strategy": "respawn_container",
+        "situations": ["(healthy == 0) * 2m"],
+        "kwargs": {
+            "floor": 2,
+            "celling": 8,
+            "notify": true
+        }
+    }
+    """
+    container = Container.get_by_container_id(container_status.name)
+    upgrade_container(cid, container.sha)
+
+
+@current_app.task(bind=True)
+def send_warning(self, container_status, dangers, **kwargs):
+    """
+    send notification (via notbot) to app subscribers
+    {
+        "strategy": "send_warning",
+        "situations": ["(healthy == 0) * 2m"],
+    }
+    """
+    container = Container.get_by_container_id(container_status.name)
+    subscribers = container.release.specs.subscribers or '#platform'
+    msg = "*Citadel Warning*\nDangers:\n`{}`\nContainer status:\n```\n{}\n```".format(dangers, container_status)
+    notbot_sendmsg(subscribers, msg)
+
+
+container_tackle_strategy_lib = {
+    'respawn_container': respawn_container,
+    'send_warning': send_warning,
+}
+app_tackle_strategy_lib = {}

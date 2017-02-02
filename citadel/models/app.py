@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
+import json
+from collections import defaultdict
+
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
 
 from citadel.config import DEFAULT_ZONE
 from citadel.ext import db, gitlab
+from citadel.libs.datastructure import SmartStatus
 from citadel.libs.utils import logger
-from citadel.models.base import BaseModelMixin, PropsItem, ModelDeleteError, PropsMixin, ModelCreateError
+from citadel.models.base import BaseModelMixin, PropsItem, ModelDeleteError, PropsMixin, ModelCreateError, JsonType
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
 from citadel.models.loadbalance import ELBRule
 from citadel.models.specs import Specs
@@ -16,18 +20,20 @@ from citadel.models.user import User
 class App(BaseModelMixin):
     __tablename__ = 'app'
     name = db.Column(db.CHAR(64), nullable=False, unique=True)
-    # 这货就是 git@gitlab.ricebook.net...
+    # 形如 git@gitlab.ricebook.net:platform/apollo.git
     git = db.Column(db.String(255), nullable=False)
     user_id = db.Column(db.Integer, nullable=False, default=0)
+    tackle_rule = db.Column(JsonType, default={})
 
     @classmethod
-    def get_or_create(cls, name, git):
+    def get_or_create(cls, name, git=None, tackle_rule=None):
         app = cls.get_by_name(name)
         if app:
             return app
 
+        tackle_rule = tackle_rule if tackle_rule else {}
         try:
-            app = cls(name=name, git=git)
+            app = cls(name=name, git=git, tackle_rule=tackle_rule)
             db.session.add(app)
             db.session.commit()
             return app
@@ -44,6 +50,10 @@ class App(BaseModelMixin):
         """拿这个user可以有的app, 跟app自己的user_id没关系."""
         names = AppUserRelation.get_appname_by_user_id(user_id, start, limit)
         return [cls.get_by_name(n) for n in names]
+
+    @classmethod
+    def get_apps_with_tackle_rule(cls):
+        return cls.query.filter(cls.tackle_rule != {}).all()
 
     @property
     def uid(self):
@@ -68,6 +78,32 @@ class App(BaseModelMixin):
     def gitlab_project(self):
         gitlab_project_name = get_project_name(self.git)
         return gitlab.projects.get(gitlab_project_name)
+
+    @property
+    def app_status_assembler(self):
+        return AppStatusAssembler(self.name)
+
+    def update_tackle_rule(self, rule):
+        """
+        {
+            "container_tackle_rule": [
+                {
+                    "strategy": "respawn",
+                    "situations": ["(healthy == 0) * 2m"],
+                    "kwargs": {
+                        "floor": 2,
+                        "celling": 8
+                    }
+                }
+            ]
+        }
+        """
+        if isinstance(rule, basestring):
+            rule = json.loads(rule)
+
+        self.tackle_rule = rule
+        db.session.add(self)
+        db.session.commit()
 
     def get_release(self, sha):
         return Release.get_by_app_and_sha(self.name, sha)
@@ -364,6 +400,48 @@ class AppUserRelation(BaseModelMixin):
         if user.privilege:
             return True
         return bool(cls.query.filter_by(user_id=user_id, appname=appname).first())
+
+
+class AppStatusAssembler(object):
+
+    """
+    a class that contains app status and its container status
+    """
+
+    def __init__(self, appname, consult=('citadel', )):
+        """
+        appname -- citadel app name
+        consult -- str, a tuple of data source to use, choose from ('citadel', 'graphite')
+        """
+        self.app = App.get_by_name(appname)
+        self._container_status_map = defaultdict(SmartStatus)
+        self._app_status = SmartStatus(name=appname)
+        if 'citadel' in consult:
+            self.load_citadel_data()
+
+        if 'graphite' in consult:
+            self.load_graphite_data()
+
+    @property
+    def app_status(self):
+        return self._app_status
+
+    @property
+    def container_status(self):
+        return self._container_status_map.values()
+
+    def load_graphite_data(self):
+        raise NotImplementedError
+
+    def load_citadel_data(self):
+        container_list = self.app.get_container_list()
+        for c in container_list:
+            cid = c.short_id
+            this_container_status = self._container_status_map[cid]
+            this_container_status.name = cid
+            this_container_status.status_dic.update({
+                'healthy': int(c.healthy),
+            })
 
 
 event.listen(
