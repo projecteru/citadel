@@ -9,7 +9,7 @@ from flask import session
 from gitlab import GitlabError
 
 from citadel.config import NOTBOT_SENDMSG_URL, LOGGER_NAME, DEBUG
-from citadel.libs.json import JSONEncoder
+from citadel.libs.jsonutils import JSONEncoder
 
 
 logger = logging.getLogger(LOGGER_NAME)

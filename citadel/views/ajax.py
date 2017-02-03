@@ -5,7 +5,7 @@ from flask import g, abort, session, request, Blueprint, jsonify, Response
 from humanfriendly import parse_size
 
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME, DEFAULT_ZONE
-from citadel.libs.json import jsonize
+from citadel.libs.jsonutils import jsonize
 from citadel.libs.utils import logger
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
 from citadel.models import Container

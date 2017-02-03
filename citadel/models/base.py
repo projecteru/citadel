@@ -7,7 +7,7 @@ import sqlalchemy.types as types
 from flask_sqlalchemy import sqlalchemy as sa
 
 from citadel.ext import db, rds
-from citadel.libs.json import Jsonized
+from citadel.libs.jsonutils import Jsonized
 from citadel.libs.utils import logger
 
 

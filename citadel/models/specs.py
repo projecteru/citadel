@@ -5,7 +5,7 @@ import yaml
 from humanfriendly import InvalidTimespan, parse_timespan, parse_size
 
 from citadel.config import DEFAULT_ZONE
-from citadel.libs.json import Jsonized
+from citadel.libs.jsonutils import Jsonized
 from citadel.libs.utils import make_unicode
 
 
