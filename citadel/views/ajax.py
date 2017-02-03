@@ -177,7 +177,6 @@ def remove_containers():
 
 @bp.route('/upgrade-container', methods=['POST'])
 def upgrade_containers():
-    # TODO: validation
     payload = request.get_json()
     container_ids = payload['container_ids']
     sha = payload['sha']
@@ -186,8 +185,19 @@ def upgrade_containers():
     if not appnames:
         abort(400, 'No containers to upgrade')
 
+    if len(appnames) != 1:
+        abort(400, 'Cannot upgrade containers across apps')
+
+    container_specs = set(c.release.specs_text for c in containers)
+    new_release = containers[0].app.get_release(sha)
+    if not new_release:
+        abort(400, 'Release {} not found'.format(sha))
+
+    if len(container_specs) != 1 or container_specs.pop() != new_release.specs_text:
+        abort(400, 'Cannot upgrade due to app.yaml change')
+
     if ELB_APP_NAME in appnames:
-        abort(400, 'Do not upgrade %s through this API' % ELB_APP_NAME)
+        abort(400, 'Do not upgrade {} through this API'.format(ELB_APP_NAME))
 
     async_results = [upgrade_container.delay(cid, sha) for cid in [c.container_id for c in containers if c]]
     task_ids = [r.task_id for r in async_results]
