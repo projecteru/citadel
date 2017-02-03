@@ -5,7 +5,7 @@ from functools import partial
 from flask import Blueprint, jsonify
 from flask_mako import render_template
 
-from citadel.libs.json import jsonize
+from citadel.libs.jsonutils import jsonize
 
 
 ERROR_CODES = [400, 401, 403, 404, 408]

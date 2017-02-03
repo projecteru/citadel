@@ -6,7 +6,7 @@ import json
 from decimal import Decimal
 from urlparse import urlparse
 
-from citadel.libs.json import Jsonized
+from citadel.libs.jsonutils import Jsonized
 
 
 """

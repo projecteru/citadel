@@ -2,7 +2,7 @@
 
 import json
 from citadel.ext import rds
-from citadel.libs.json import Jsonized
+from citadel.libs.jsonutils import Jsonized
 
 _KEY = 'core-api:app:%s:env'
 

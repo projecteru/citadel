@@ -10,7 +10,7 @@ from more_itertools import peekable
 
 from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
 from citadel.ext import rds, hub
-from citadel.libs.json import JSONEncoder
+from citadel.libs.jsonutils import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg, logger, make_sentence_json
 from citadel.models import Container, Release
 from citadel.models.app import App
