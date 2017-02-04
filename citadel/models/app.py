@@ -22,7 +22,6 @@ class App(BaseModelMixin):
     name = db.Column(db.CHAR(64), nullable=False, unique=True)
     # 形如 git@gitlab.ricebook.net:platform/apollo.git
     git = db.Column(db.String(255), nullable=False)
-    user_id = db.Column(db.Integer, nullable=False, default=0)
     tackle_rule = db.Column(JsonType, default={})
 
     @classmethod
@@ -54,11 +53,6 @@ class App(BaseModelMixin):
     @classmethod
     def get_apps_with_tackle_rule(cls):
         return cls.query.filter(cls.tackle_rule != {}).all()
-
-    @property
-    def uid(self):
-        """用来修正app的uid, 默认使用id"""
-        return self.user_id or self.id
 
     @property
     def project_name(self):
@@ -143,7 +137,6 @@ class App(BaseModelMixin):
         d.update({
             'name': self.name,
             'git': self.git,
-            'uid': self.uid,
         })
         return d
 

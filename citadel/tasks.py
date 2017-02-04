@@ -82,7 +82,7 @@ def build_image(self, repo, sha, uid='', artifact='', gitlab_build_id=''):
         artifact = get_build_artifact(project_name, sha, gitlab_build_id)
 
     app = App.get_by_name(appname)
-    uid = str(uid or app.uid)
+    uid = str(uid or app.id)
 
     image = ''
     task_id = self.request.id
