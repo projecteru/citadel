@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+from itertools import chain
 
 import yaml
 from flask import g, jsonify, Response, request
@@ -11,7 +12,7 @@ from citadel.models.app import Release
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_name, get_file_content
 from citadel.rpc import get_core
-from citadel.tasks import create_container, remove_container, ActionError, upgrade_container, celery_task_stream_response, build_image
+from citadel.tasks import ActionError, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback, build_image
 
 
 # 把action都挂在/api/:version/下, 不再加前缀
@@ -35,7 +36,9 @@ def build():
     gitlab_build_id = data.get('gitlab_build_id', '')
 
     async_result = build_image.delay(repo, sha, uid, artifact, gitlab_build_id)
-    return Response(celery_task_stream_response(async_result.task_id), mimetype='application/json')
+    task_id = async_result.task_id
+    messages = chain(celery_task_stream_response(task_id), celery_task_stream_traceback(task_id))
+    return Response(messages, mimetype='application/json')
 
 
 @bp.route('/deploy', methods=['POST'])
