@@ -10,9 +10,8 @@ from citadel.libs.utils import logger
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
 from citadel.models import Container
 from citadel.models.app import AppUserRelation, Release
-from citadel.models.base import ModelDeleteError
 from citadel.models.env import Environment
-from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction
+from citadel.models.loadbalance import ELBRule, update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import get_core
 from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback
@@ -271,6 +270,28 @@ def remove_loadbalance(id):
         elb.delete()
     except ActionError as e:
         return {'error': str(e)}, 500
+    return DEFAULT_RETURN_VALUE
+
+
+@bp.route('/<name>/delete', methods=['POST'])
+@jsonize
+def delete_rule(name):
+    payload = request.get_json()
+    domain = payload['domain']
+    rules = ELBRule.get_by(zone=g.zone, elbname=name, domain=domain)
+    if not rules:
+        return {'error': 'Rule not found'}, 404
+
+    if len(rules) > 1:
+        return {'error': u'这数据有问题，你快找平台看看'}, 500
+
+    rule = rules[0]
+    if not AppUserRelation.user_permitted_to_app(g.user.id, name):
+        return {'error': 'You can\'t do this'}, 400
+
+    if not rule.delete():
+        return {'error': 'Error during delete rule'}, 500
+
     return DEFAULT_RETURN_VALUE
 
 

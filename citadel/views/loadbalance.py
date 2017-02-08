@@ -150,21 +150,3 @@ def rule(name):
         'domain': domain,
         'rule': rule,
     })
-
-
-@bp.route('/<name>/delete', methods=['POST'])
-@need_admin
-def delete_rule(name):
-    domain = request.values['domain']
-    rules = ELBRule.get_by(zone=g.zone, elbname=name, domain=domain)
-    if not rules:
-        abort(404, 'ELB rule not found: {}'.format(domain))
-
-    if len(rules) > 1:
-        abort(500, u'这数据有问题，你快找平台看看')
-
-    rule = rules[0]
-    if not rule.delete():
-        flash(u'error during delete elb', 'error')
-
-    return redirect(url_for('loadbalance.elb', name=name))
