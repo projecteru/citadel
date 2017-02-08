@@ -151,6 +151,11 @@ class ELBRule(BaseModelMixin):
     def backends(self):
         return self.rule['backends']
 
+    @property
+    def app(self):
+        from .app import App
+        return App.get_by_name(self.appname)
+
     def to_dict(self):
         return {
             'elbname': self.elbname,
