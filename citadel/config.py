@@ -92,7 +92,7 @@ beat_schedule = {
     },
     'tackle-beat': {
         'task': 'citadel.tasks.trigger_tackle_routine',
-        'schedule': timedelta(seconds=5),
+        'schedule': timedelta(seconds=30),
         # task message expire in 1 second to prevent flooding citadel with
         # unnecessary eru-tackle tasks
         'options': {'expires': 1},
@@ -116,6 +116,7 @@ PERMANENT_SESSION_LIFETIME = timedelta(days=2)
 
 # citadel-tackle config
 CITADEL_TACKLE_EXPRESSION_KEY = 'citadel:tackle:expression:{}-{}-{}'
+CITADEL_TACKLE_TASK_THROTTLING_KEY = 'citadel:tackle:throttle:{id_}:{strategy}'
 GRAPHITE_QUERY_FROM = getenv('GRAPHITE_QUERY_FROM', default='-3min')
 GRAPHITE_QUERY_STRING_PATTERN = 'group(eru.{app_name}.*.*.*.*.*, eru.{app_name}.*.*.*.*.*.*.*.*)'
 GRAPHITE_TARGET_PATTERN = 'eru.{app_name}.{version}.{entrypoint}.{hostname}.{container_id}.{metric}'

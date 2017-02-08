@@ -71,7 +71,7 @@ def make_celery(app):
 
         def __call__(self, *args, **kwargs):
             with app.app_context():
-                return Task.__call__(self, *args, **kwargs)
+                return super(EruGRPCTask, self).__call__(*args, **kwargs)
 
     celery.Task = EruGRPCTask
     celery.autodiscover_tasks(['citadel'])
