@@ -7,8 +7,3 @@ $(document).on('mouseenter', '.btn-warning', function(){
 });
 
 })(jQuery);
-
-function waitForWebsocket(url, onmessage) {
-  var ws = new WebSocket(url);
-  ws.onmessage = onmessage;
-}
