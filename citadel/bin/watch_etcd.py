@@ -37,7 +37,7 @@ def watch_etcd(zone=None, etcd_path='/agent2'):
         etcd_index = resp.etcd_index
         if not resp or resp.action != 'set':
             continue
-        logger.info('Index %s, value %s', etcd_index, resp.value)
+        logger.info('Index %s, key %s, value %s', etcd_index, resp.key, resp.value)
         deal_with_agent_etcd_change.delay(resp.key, json.loads(resp.value))
 
 

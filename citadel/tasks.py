@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from citadel.config import CITADEL_TACKLE_TASK_THROTTLING_KEY
 import json
 
 import yaml
@@ -6,6 +7,7 @@ from celery import current_app
 from celery.result import AsyncResult
 from flask import url_for
 from grpc.framework.interfaces.face import face
+from humanfriendly import parse_timespan
 from more_itertools import peekable
 
 from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
@@ -221,7 +223,7 @@ def remove_container(self, ids, user_id=None):
 
 
 @current_app.task(bind=True)
-def upgrade_container(self, old_container_id, sha, user_id=None):
+def upgrade_container(self, old_container_id, sha, user_id=None, erection_timeout=None):
     """this task will not be called synchronously, thus do not return anything"""
     old_container = Container.get_by_container_id(old_container_id)
     release = old_container.app.get_release(sha)
@@ -242,8 +244,7 @@ def upgrade_container(self, old_container_id, sha, user_id=None):
     new_container_id = grpc_message['id']
     new_container = Container.get_by_container_id(new_container_id)
     rds.publish(channel_name, make_sentence_json('Wait for container {} to erect...'.format(new_container.short_id)))
-    healthy = new_container.wait_for_erection(timeout=release.erection_timeout)
-    # TODO: leave the options to users, let them choose what to do next (wait or rollback)
+    healthy = new_container.wait_for_erection(timeout=erection_timeout or release.erection_timeout)
     if healthy:
         rds.publish(channel_name, make_sentence_json('New container {} OK, remove old container {}'.format(new_container_id, old_container_id)))
         remove_container(old_container_id)
@@ -373,7 +374,23 @@ def celery_task_stream_traceback(celery_task_ids):
             yield json.dumps({'success': False, 'error': async_result.traceback})
 
 
-@current_app.task(bind=True)
+class TackleTask(current_app.Task):
+    """add custom rate limit functionality on top of EruGRPCTask
+    do not frequently execute the same task for one smart_status"""
+    def __call__(self, smart_status, dangers, **kwargs):
+        """yeah, TackleTask has fixed args, and custom kwargs"""
+        cooldown = int(parse_timespan(kwargs.get('cooldown', '1m')))
+        strategy = self.name
+        key = CITADEL_TACKLE_TASK_THROTTLING_KEY.format(id_=smart_status.name, strategy=strategy)
+        if key in rds:
+            logger.debug('Skip tackle strategy {}'.format(strategy))
+            return
+        logger.debug('Mark {} with ttl {}'.format(key, cooldown))
+        rds.setex(key, 'true', cooldown)
+        super(TackleTask, self).__call__(smart_status, dangers, **kwargs)
+
+
+@current_app.task(bind=True, base=TackleTask)
 def respawn_container(self, container_status, dangers, **kwargs):
     """
     {
@@ -387,10 +404,19 @@ def respawn_container(self, container_status, dangers, **kwargs):
     }
     """
     container = Container.get_by_container_id(container_status.name)
-    upgrade_container(cid, container.sha)
+    if container.is_removing():
+        return
+    sha = container.sha
+    cid = container_status.name
+    if kwargs.get('notify'):
+        subscribers = container.release.specs.subscribers or '#platform'
+        msg = '*Container Respawn*\n```\ncid: {}\nsha: {}\nreason: {}\n```'.format(cid, sha, dangers)
+        notbot_sendmsg(subscribers, msg)
+
+    upgrade_container(cid, sha, erection_timeout=0)
 
 
-@current_app.task(bind=True)
+@current_app.task(bind=True, base=TackleTask)
 def send_warning(self, container_status, dangers, **kwargs):
     """
     send notification (via notbot) to app subscribers
@@ -401,7 +427,7 @@ def send_warning(self, container_status, dangers, **kwargs):
     """
     container = Container.get_by_container_id(container_status.name)
     subscribers = container.release.specs.subscribers or '#platform'
-    msg = "*Citadel Warning*\nDangers:\n`{}`\nContainer status:\n```\n{}\n```".format(dangers, container_status)
+    msg = '*Citadel Warning*\nDangers:\n`{}`\nContainer status:\n```\n{}\n```'.format(dangers, container_status)
     notbot_sendmsg(subscribers, msg)
 
 
