@@ -65,6 +65,7 @@
             <td><a href="http://${ rule.domain }" target="_blank">${ rule.domain }</a></td>
             <td><a target="_blank" href="${ url_for('app.app', name=rule.appname) }">${ rule.appname }</a></td>
             <td>
+              <a class="btn btn-xs btn-info" href="${ url_for('loadbalance.rule', name=name, domain=rule.domain) }" name="get-rule" target="_blank">View</a>
               <a class="btn btn-xs btn-info" href="${ url_for('loadbalance.edit_rule', name=name, domain=rule.domain) }", name="edit-rule">Edit</a>
               <a name="delete-rule" class="btn btn-xs btn-warning" data-rule-domain="${ rule.domain }" data-elbname="${ name }"><span class="fui-trash"></span></a>
             </td>
