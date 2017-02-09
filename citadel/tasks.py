@@ -18,6 +18,7 @@ from citadel.models.container import ContainerOverrideStatus
 from citadel.models.gitlab import get_project_name, get_file_content, get_build_artifact
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction, ELBInstance
 from citadel.models.oplog import OPType, OPLog
+from citadel.publisher import Publisher
 from citadel.rpc import get_core
 from citadel.views.helper import make_kibana_url
 
@@ -292,6 +293,7 @@ def deal_with_agent_etcd_change(self, key, data):
         return
 
     if healthy:
+        Publisher.add_container(container)
         container.mark_initialized()
         update_elb_for_containers(container)
         logger.debug('[%s, %s, %s] ADD [%s] [%s]', container.appname, container.podname, container.entrypoint, container_id, ','.join(container.get_backends()))

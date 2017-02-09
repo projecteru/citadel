@@ -14,6 +14,7 @@ from citadel.libs.datastructure import purge_none_val_from_dict
 from citadel.libs.mimiron import set_mimiron_route, del_mimiron_route
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
+from citadel.publisher import Publisher
 from citadel.rpc import get_core
 
 
@@ -179,6 +180,7 @@ class Container(BaseModelMixin, PropsMixin):
         self.override_status = ContainerOverrideStatus.DEBUG
 
     def mark_removing(self):
+        Publisher.remove_container(self)
         self.override_status = ContainerOverrideStatus.REMOVING
 
     def mark_initialized(self):
