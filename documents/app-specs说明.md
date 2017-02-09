@@ -97,6 +97,7 @@ combos:
 	* `healthcheck_expected_code`: 声明了健康检查 url 的期待返回值，如果没有声明，则认为 [200, 500) 区间的状态码都属于健康。因为这个进程还在响应请求, 这里的超时时间是 5 秒, 5 秒还没有返回认为容器不健康，会发送报警到项目 `subscribers`.
 	* `network_mode`: 如果你不想用 calico 的 SDN, 可以在这里标记为 host, 这样会占用整个宿主机的 IP, 最好不要这样, 不作死就不会死.
 	* `log_config`: 可选 `json-file`, `none`, `syslog` 等, 可以覆盖整个 core 的日志配置, 也就是说可以上一个用 json-file 来记日志的容器, 方便实时 debug, 但是我们其实有其他的 debug 手段, 所以这个选项也可以无视掉, 不作死就不会死.
+	* `publish_path`: 如果定义了的话，会把容器 ip 写到这个 etcd 路径下边。
 	* `hosts`: 可以给容器内部的 `/etc/hosts` 追加记录, 如果你有一些域名没有走 DNS 或者是需要固定 IP, 可以用这个实现, 是一个列表, 结构是 `域名:IP`, 跟 hosts 文件格式一样, 一行一个, 重复写的内容前面的会被后面的覆盖掉.
 	* `permdir`: 如果容器需要在 mfs 上共享数据, 这里设置为 true. 会把 mfs 上的 `/mnt/mfs/permdirs/{appname}` 映射到容器内部的 `/{appname}/permdir`, 这个值也可以在容器内部通过 `ERU_PERMDIR` 这个环境变量拿. 注意, 如果这里不是 true, 就没有这个映射关系, 环境变量也就不存在.
 	* `working_dir`: core 默认的工作目录是在 `/{appname}`, 如果你希望切走, 可以在这里写上工作目录的绝对路径, 如果目录不存在, 那就会挂...

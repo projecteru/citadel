@@ -54,7 +54,7 @@ class Bind(object):
 
 class Entrypoint(object):
 
-    def __init__(self, command, ports, exposes, network_mode, restart, health_check, hosts, permdir, privileged, log_config, working_dir):
+    def __init__(self, command, ports, exposes, network_mode, restart, health_check, hosts, permdir, privileged, log_config, working_dir, publish_path):
         self.command = command
         self.ports = ports
         self.exposes = exposes
@@ -66,6 +66,7 @@ class Entrypoint(object):
         self.privileged = privileged
         self.log_config = log_config
         self.working_dir = working_dir
+        self.publish_path = publish_path
 
     @classmethod
     def from_dict(cls, data):
@@ -80,7 +81,8 @@ class Entrypoint(object):
         privileged = bool(data.get('privileged'))
         log_config = data.get('log_config', 'json-file')
         working_dir = data.get('working_dir', '')
-        return cls(command, ports, exposes, network_mode, restart, health_check, hosts, permdir, privileged, log_config, working_dir)
+        publish_path = data.get('publish_path', '')
+        return cls(command, ports, exposes, network_mode, restart, health_check, hosts, permdir, privileged, log_config, working_dir, publish_path)
 
 
 class Combo(object):
