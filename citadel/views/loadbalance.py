@@ -131,7 +131,6 @@ def add_general_rule(name):
                        name,
                        domain,
                        appname,
-                       rule=None,
                        entrypoint=entrypoint,
                        podname=podname)
     if not r:
