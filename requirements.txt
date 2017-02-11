@@ -28,3 +28,4 @@ boltons
 blinker
 wrapt
 pyparsing
+py2-ipaddress
