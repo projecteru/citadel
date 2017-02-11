@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-from flask import request, abort, Response
+from flask import request, abort
 from requests.exceptions import HTTPError
 
-from citadel.libs.view import create_api_blueprint
 from citadel.libs.agent import EruAgentClient, list_vip_from_redis, generate_vip
-from citadel.libs.jsonutils import jsonize
-from citadel.libs.view import DEFAULT_RETURN_VALUE
+from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
 
 
 bp = create_api_blueprint('virtualip', __name__, 'virtualip')
