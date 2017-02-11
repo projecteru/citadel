@@ -1,14 +1,15 @@
-# coding: utf-8
-
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
 import json
-import requests
+
 import ipaddress
+import requests
 from requests.exceptions import ReadTimeout, ConnectionError, ConnectTimeout
 
 from citadel.config import AGENT_PORT
 from citadel.ext import rds
+
 
 VIP_NETWORK = u'10.215.247.0/24'
 VIP_RECORD = 'citadel:vip:record'
