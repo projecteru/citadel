@@ -33,6 +33,7 @@ class Publisher(object):
             return
         for addr in container.get_backends():
             path = os.path.join(publish_path, addr)
+            cls.write(container.zone, path, 'true')
 
     @classmethod
     def remove_container(cls, container):
