@@ -29,7 +29,7 @@ def set_vip():
     except HTTPError as e:
         return {'error': str(e)}, e.response.status_code
 
-    return DEFAULT_RETURN_VALUE
+    return {'vip': vip}
 
 
 @bp.route('/del', methods=['POST'])
