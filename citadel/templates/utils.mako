@@ -275,7 +275,7 @@
               </a>
             % elif not release.image:
               <span title="去gitlab pipelines上盯着看，它好我也好，不行的话先重试">
-                <a class="btn btn-xs btn-default" href="${ url_for('app.gitlab_url', name=release.name, sha=release.sha) }/builds" data-toggle="tooltip" data-html="true" data-placement="top" title="<p>去gitlab pipelines上盯着看，它好我也好</p><p>不行的话先重试</p>" >
+                <a class="btn btn-xs btn-default" href="${ url_for('app.gitlab_url', name=release.name, sha=release.sha) }" data-toggle="tooltip" data-html="true" data-placement="top" title="<p>去gitlab pipelines上盯着看，它好我也好</p><p>不行的话先重试</p>" >
                   <span class="fui-time" ></span> Building...
                 </a>
               </span>
