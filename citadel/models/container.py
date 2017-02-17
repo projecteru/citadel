@@ -39,9 +39,9 @@ class Container(BaseModelMixin, PropsMixin):
     zone = db.Column(db.String(50), nullable=False)
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
+    override_status = db.Column(db.Integer, default=ContainerOverrideStatus.NONE, nullable=False)
 
-    initialized = PropsItem('initialized', default=ContainerOverrideStatus.NONE, type=int)
-    override_status = PropsItem('override_status', default=0, type=int)
+    initialized = PropsItem('initialized', default=0, type=int)
 
     def __str__(self):
         return 'Container(container_id=%s)' % self.container_id
@@ -50,11 +50,12 @@ class Container(BaseModelMixin, PropsMixin):
         return 'citadel:container:%s' % self.container_id
 
     @classmethod
-    def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, zone, podname, nodename, override_status=''):
+    def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, zone, podname, nodename, override_status=ContainerOverrideStatus.NONE):
         try:
             c = cls(appname=appname, sha=sha, container_id=container_id,
                     entrypoint=entrypoint, env=env, cpu_quota=cpu_quota,
-                    zone=zone, podname=podname, nodename=nodename)
+                    zone=zone, podname=podname, nodename=nodename,
+                    override_status=override_status)
             db.session.add(c)
             db.session.commit()
         except IntegrityError:
@@ -64,9 +65,6 @@ class Container(BaseModelMixin, PropsMixin):
         specs = c.release and c.release.specs
         if specs:
             set_mimiron_route(c.container_id, c.get_node(), specs.permitted_users)
-
-        if override_status:
-            c.override_status = override_status
 
         return c
 
@@ -178,10 +176,12 @@ class Container(BaseModelMixin, PropsMixin):
 
     def mark_debug(self):
         self.override_status = ContainerOverrideStatus.DEBUG
+        db.session.commit()
 
     def mark_removing(self):
         Publisher.remove_container(self)
         self.override_status = ContainerOverrideStatus.REMOVING
+        db.session.commit()
 
     def mark_initialized(self):
         self.initialized = 1
@@ -211,7 +211,7 @@ class Container(BaseModelMixin, PropsMixin):
         # docker inspect在删除容器的时候可能需要比较长的时间才有响应
         # 也可能响应过后就直接报错了
         # 所以不如正在删除的容器就不要去inspect了
-        if self.override_status == 'removing':
+        if self.override_status == ContainerOverrideStatus.REMOVING:
             self.name = 'unknown'
             self.info = {'State': {'Status': 'removing'}}
             return self
@@ -227,9 +227,10 @@ class Container(BaseModelMixin, PropsMixin):
 
     def status(self):
         # docker 删除容器的时候无法 inspect，所以不会展示出 InRemoval 这个状态
-        override_status = self.override_status
-        if override_status:
-            return override_status
+        if self.is_removing():
+            return 'removing'
+        if self.is_debug():
+            return 'debug'
         status = self.info.get('State', {}).get('Status', 'unknown')
         if status == 'running' and not self.healthy:
             return 'sick'
