@@ -1,6 +1,5 @@
 <%!
   from citadel.models.gitlab import get_project
-  from citadel.models.container import ContainerOverrideStatus
   from humanize import naturaltime, naturalsize
   from citadel.views.helper import make_kibana_url
 %>
@@ -86,11 +85,11 @@
           <td>${ c.env }</td>
           <td>
             <% status = c.status() %>
-            % if status == ContainerOverrideStatus.REMOVING:
+            % if status == 'removing':
               <span title="删不掉稍等重试，再不行才联系平台" class="label label-warning">删除中</span>
             % elif status == 'sick':
               <span class="label label-warning" title="有可能是容器在初始化，也有可能是跑死了">有病</span>
-            % elif status == ContainerOverrideStatus.DEBUG:
+            % elif status == 'debug':
               <span class="label label-warning" title="调试完成后请删除">调试</span>
             % else:
               <span class="label label-${ 'success' if status == 'running' else 'danger' }">
@@ -106,7 +105,7 @@
           </td>
           <td>
             <a name="delete-container" class="btn btn-xs btn-warning" href="#" data-id="${ c.container_id }"><span class="fui-trash"></span></a>
-            % if status != ContainerOverrideStatus.DEBUG:
+            % if status != 'debug':
               <a title="标记为 debug，从 ELB 上下线，不可撤销" name="debug-container" class="btn btn-xs btn-warning" href="#" data-id="${ c.container_id }">🕷</a>
             % endif
           </td>
