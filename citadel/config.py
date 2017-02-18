@@ -54,8 +54,9 @@ ELB_BACKEND_NAME_DELIMITER = getenv('ELB_BACKEND_NAME_DELIMITER', default='___')
 ELB_POD_NAME = getenv('ELB_POD_NAME', default='elb')
 CITADEL_HEALTH_CHECK_STATS_KEY = 'citadel:health'
 
-# some envs are managed by eru-core
-FORBID_UPGRADE_CONTAINER_PASS_ENV = {'ERU_NODE_IP', 'ERU_PERMDIR', 'APP_NAME', 'ERU_POD'}
+# some envs are managed by eru-core, should copy from
+# http://gitlab.ricebook.net/platform/core/blob/master/cluster/calcium/create_container.go#L541
+UPGRADE_CONTAINER_IGNORE_ENV = {'ERU_NODE_IP', 'ERU_PERMDIR', 'APP_NAME', 'ERU_POD', 'ERU_ZONE', 'ERU_PERMDIR'}
 
 HUB_ADDRESS = getenv('HUB_ADDRESS', default='hub.ricebook.net')
 
