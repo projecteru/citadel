@@ -56,7 +56,14 @@ CITADEL_HEALTH_CHECK_STATS_KEY = 'citadel:health'
 
 # some envs are managed by eru-core, should copy from
 # http://gitlab.ricebook.net/platform/core/blob/master/cluster/calcium/create_container.go#L541
-UPGRADE_CONTAINER_IGNORE_ENV = {'ERU_NODE_IP', 'ERU_PERMDIR', 'APP_NAME', 'ERU_POD', 'ERU_ZONE', 'ERU_PERMDIR'}
+UPGRADE_CONTAINER_IGNORE_ENV = {
+    'ERU_NODE_IP',
+    'ERU_NODE_NAME',
+    'ERU_PERMDIR',
+    'APP_NAME',
+    'ERU_POD',
+    'ERU_ZONE',
+}
 
 HUB_ADDRESS = getenv('HUB_ADDRESS', default='hub.ricebook.net')
 
