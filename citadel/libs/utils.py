@@ -120,8 +120,11 @@ def memoize(f):
             return dict.__getitem__(self, key)
 
         def __missing__(self, key):
-            ret = self[key] = f(*key)
-            return ret
+            res = f(*key)
+            if res:
+                self[key] = res
+
+            return res
 
     return memodict().__getitem__
 
