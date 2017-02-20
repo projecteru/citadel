@@ -36,7 +36,6 @@ api_blueprints = [
     'container',
     'action',
     'mimiron',
-    'virtualip',
 ]
 
 ANONYMOUS_PATHS = [
