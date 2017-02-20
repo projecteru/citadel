@@ -37,7 +37,10 @@ class Publisher(object):
 
     @classmethod
     def remove_container(cls, container):
-        publish_path = container.release.entrypoints[container.entrypoint].publish_path
+        try:
+            publish_path = container.release.entrypoints[container.entrypoint].publish_path
+        except KeyError:
+            return
         for addr in container.get_backends():
             path = os.path.join(publish_path, addr)
             cls.delete(container.zone, path)
