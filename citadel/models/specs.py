@@ -87,7 +87,7 @@ class Entrypoint(object):
 
 class Combo(object):
 
-    def __init__(self, zone, podname, nodename, entrypoint, envname='', cpu=0, memory='0', count=1, envs={}, raw=False, networks=(), permitted_users=(), elb=()):
+    def __init__(self, zone, podname, nodename, entrypoint, envname='', cpu=0, memory='0', count=1, extra_env={}, networks=(), permitted_users=(), elb=()):
         self.zone = zone
         self.podname = podname
         self.nodename = nodename
@@ -98,8 +98,7 @@ class Combo(object):
         self.memory = parse_size(memory, binary=True) if isinstance(memory, basestring) else memory
         self.memory_str = memory
         self.count = count
-        self.envs = envs
-        self.raw = raw
+        self.extra_env = extra_env
         self.networks = tuple(networks)
         self.permitted_users = tuple(permitted_users)
         self.elb = tuple(elb)
@@ -114,22 +113,21 @@ class Combo(object):
         cpu = float(data.get('cpu', 1))
         memory = data.get('memory', '0')
         count = int(data.get('count', 1))
-        raw = bool(data.get('raw', False))
         networks = data.get('networks', ())
         permitted_users = data.get('permitted_users', ())
         elb = data.get('elb', ())
 
-        envs = data.get('envs', {})
-        if isinstance(envs, basestring):
-            parts = envs.split(';')
-            envs = {}
+        extra_env_text = data.get('extra_env', '')
+        if isinstance(extra_env_text, basestring):
+            parts = extra_env_text.split(';')
+            extra_env = {}
             for p in parts:
                 if not p:
                     continue
                 k, v = p.split('=', 1)
-                envs[k] = v
+                extra_env[k] = v
 
-        return cls(zone, podname, nodename, entrypoint, envname, cpu, memory, count, envs, raw, networks, permitted_users, elb)
+        return cls(zone, podname, nodename, entrypoint, envname, cpu, memory, count, extra_env, networks, permitted_users, elb)
 
     def allow(self, user):
         if not self.permitted_users:
@@ -137,7 +135,7 @@ class Combo(object):
         return user in self.permitted_users
 
     def env_string(self):
-        return ';'.join('%s=%s' % (k, v) for k, v in self.envs.iteritems())
+        return ';'.join('%s=%s' % (k, v) for k, v in self.extra_env.iteritems())
 
 
 class Specs(Jsonized):

@@ -15,7 +15,7 @@ from citadel.models.loadbalance import ELBRule, update_elb_for_containers, Updat
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import get_core
 from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback
-from citadel.views.helper import bp_get_app, bp_get_balancer
+from citadel.views.helper import bp_get_app, bp_get_balancer, make_deploy_options
 
 
 bp = Blueprint('ajax', __name__, url_prefix='/ajax')
@@ -74,38 +74,23 @@ def deploy_release(release_id):
     if not (specs and specs.entrypoints):
         abort(404, 'Release %s has no entrypoints')
 
-    # TODO: args validation
     payload = request.get_json()
-    appname = release.name
-
-    envname = payload.get('envname', '')
-    env = Environment.get_by_app_and_env(appname, envname)
-    env_vars = env and env.to_env_vars() or []
-    extra_env = [s.strip() for s in payload.get('extra_env', '').split(';')]
-    extra_env = [s for s in extra_env if s]
-    env_vars.extend(extra_env)
-
-    # 这里来的就都走自动分配吧
-    networks = {network_name: '' for network_name in payload['networks']}
-    debug = payload.get('debug', False)
-
-    deploy_options = {
-        'specs': release.specs_text,
-        'appname': appname,
-        'image': release.image,
-        'zone': g.zone,
-        'podname': payload['podname'],
-        'nodename': payload.get('nodename', ''),
-        'entrypoint': payload['entrypoint'],
-        'cpu_quota': float(payload.get('cpu', 1)),
-        'count': int(payload.get('count', 1)),
-        'memory': parse_size(payload.get('memory', '512MiB'), binary=True),
-        'networks': networks,
-        'env': env_vars,
-        'raw': release.raw,
-        'debug': debug,
-    }
-
+    envname = payload.get('envname')
+    deploy_options = make_deploy_options(
+        release,
+        combo_name=payload.get('combo'),
+        podname=payload.get('podname'),
+        nodename=payload.get('nodename'),
+        entrypoint=payload.get('entrypoint'),
+        cpu_quota=payload.get('cpu'),
+        count=payload.get('count'),
+        memory=payload.get('memory'),
+        network_names=payload.get('networks'),
+        envname=envname,
+        extra_env=payload.get('extra_env'),
+        debug=payload.get('debug'),
+        extra_args=payload.get('extra_args'),
+    )
     async_result = create_container.delay(deploy_options=deploy_options,
                                           sha=release.sha,
                                           envname=envname,

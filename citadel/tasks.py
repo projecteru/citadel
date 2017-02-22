@@ -105,6 +105,7 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
     appname = deploy_options['appname']
     entrypoint = deploy_options['entrypoint']
     zone = deploy_options.pop('zone')
+    logger.debug('Call grpc create_container with argument: %s', deploy_options)
     ms = _peek_grpc(get_core(zone).create_container(deploy_options))
 
     release = Release.get_by_app_and_sha(appname, sha)

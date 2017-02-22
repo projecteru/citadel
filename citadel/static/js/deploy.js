@@ -35,25 +35,25 @@ $('#add-container-button').click(function(e){
   var networks = [];
 
   if ($('div.active #add-container-form').length) {
+    data.combo = $('div.active').prop('id');
     var form = $('div.active #add-container-form');
   } else {
     var form = $('#add-container-form');
+    data.podname = form.find('select[name=pod]').val();
+    data.nodename = form.find('select[name=node]').val();
+    data.entrypoint = form.find('select[name=entrypoint]').val();
+    data.envname = form.find('select[name=envname]').val() || '';
+    data.count = form.find('input[name=count]').val() || '1';
+    data.cpu = form.find('select[name=cpu]').val() || '0.5';
+    data.memory = form.find('select[name=memory]').val() || '512MiB';
+    data.extra_env = form.find('input[name=extra_env]').val();
+    var ns = form.find('input[name=network]:checked');
+    for (var i=0; i<ns.length; i++) {
+      networks.push($(ns[i]).val());
+    }
+    data.networks = networks;
   }
-  data.podname = form.find('select[name=pod]').val();
-  data.nodename = form.find('select[name=node]').val();
-  data.entrypoint = form.find('select[name=entrypoint]').val();
-  data.envname = form.find('select[name=envname]').val() || '';
-  data.count = form.find('input[name=count]').val() || '1';
-  data.cpu = form.find('select[name=cpu]').val() || '0.5';
-  data.memory = form.find('select[name=memory]').val() || '512MiB';
-  data.extra_env = form.find('input[name=extra_env]').val();
-  var ns = form.find('input[name=network]:checked');
-  for (var i=0; i<ns.length; i++) {
-    networks.push($(ns[i]).val());
-  }
-  data.networks = networks;
   data.debug = form.find('input[name=debug]').prop('checked');
-
   console.log('Deploy arguments:', data);
 
   $('#add-container-modal').modal('hide');
