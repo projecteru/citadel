@@ -58,6 +58,25 @@ class App(BaseModelMixin):
     def project_name(self):
         return get_project_name(self.git)
 
+    @property
+    def latest_release(self):
+        return Release.query.filter_by(app_id=self.id).order_by(Release.id.desc()).limit(1).first()
+
+    @property
+    def specs(self):
+        r = self.latest_release
+        return r and r.specs
+
+    @property
+    def subscribers(self):
+        specs = self.specs
+        return specs.subscribers
+
+    @property
+    def cronjob_entrypoints(self):
+        specs = self.specs
+        return tuple(t[1] for t in specs.crontab)
+
     def get_container_list(self, zone=None):
         from .container import Container
         return Container.get_by(appname=self.name, zone=zone)
