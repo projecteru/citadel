@@ -58,10 +58,11 @@ def deploy():
     if not release:
         raise ActionError(400, 'repo %s, %s does not have the right appname in app.yaml' % (repo, sha))
 
-    envname = payload.get('envname')
+    combo_name = payload.get('combo')
+    envname = specs.combos[combo_name].envname if combo_name else payload.get('envname', '')
     deploy_options = make_deploy_options(
         release,
-        combo_name=payload.get('combo'),
+        combo_name=combo_name,
         podname=payload.get('podname'),
         nodename=payload.get('nodename'),
         entrypoint=payload.get('entrypoint'),

@@ -32,7 +32,7 @@ def bp_get_release(appname, sha):
     return release
 
 
-def make_deploy_options(release, combo_name=None, podname=None, nodename='', entrypoint=None, cpu_quota=1, count=1, memory='512MB', network_names=(), envname=None, extra_env='', extra_args='', debug=False):
+def make_deploy_options(release, combo_name=None, podname=None, nodename='', entrypoint=None, cpu_quota=1, count=1, memory='512MB', network_names=(), envname='', extra_env='', extra_args='', debug=False):
     appname = release.name
     if combo_name:
         combo = release.specs.combos[combo_name]

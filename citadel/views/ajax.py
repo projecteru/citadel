@@ -75,10 +75,12 @@ def deploy_release(release_id):
         abort(404, 'Release %s has no entrypoints')
 
     payload = request.get_json()
-    envname = payload.get('envname')
+    combo_name = payload.get('combo')
+    envname = specs.combos[combo_name].envname if combo_name else payload.get('envname', '')
+
     deploy_options = make_deploy_options(
         release,
-        combo_name=payload.get('combo'),
+        combo_name=combo_name,
         podname=payload.get('podname'),
         nodename=payload.get('nodename'),
         entrypoint=payload.get('entrypoint'),
