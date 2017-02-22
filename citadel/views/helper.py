@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from functools import wraps
 
-from flask import abort, g
+from flask import g, abort
+from humanfriendly import parse_size
 
-from citadel.models.app import App, Release, AppUserRelation
+from citadel.models.app import AppUserRelation, Release, App
+from citadel.models.env import Environment
 from citadel.models.loadbalance import ELBInstance
 from citadel.rpc import get_core
 
@@ -28,6 +30,55 @@ def bp_get_release(appname, sha):
         abort(403, 'You are not permitted to view this app, declare permitted_users in app.yaml')
 
     return release
+
+
+def make_deploy_options(release, combo_name=None, podname=None, nodename='', entrypoint=None, cpu_quota=1, count=1, memory='512MB', network_names=(), envname=None, extra_env='', extra_args='', debug=False):
+    appname = release.name
+    if combo_name:
+        combo = release.specs.combos[combo_name]
+        podname = combo.podname
+        nodename = combo.nodename
+        entrypoint = combo.entrypoint
+        envname = combo.envname
+        env = Environment.get_by_app_and_env(appname, envname)
+        # combo.extra_env is dict, sorry...
+        extra_env = combo.extra_env
+        env_vars = env and env.to_env_vars() or []
+        env_vars.extend(['='.join([k, v]) for k, v in extra_env.iteritems()])
+        cpu_quota = combo.cpu
+        memory = combo.memory_str
+        count = combo.count
+        network_names = combo.networks
+    else:
+        env = Environment.get_by_app_and_env(appname, envname)
+        env_vars = env and env.to_env_vars() or []
+        if isinstance(extra_env, basestring):
+            env_vars.extend(extra_env.strip().split(';'))
+        elif isinstance(extra_env, list):
+            env_vars.extend(extra_env)
+
+    networks = {network_name: '' for network_name in network_names}
+    if isinstance(memory, basestring):
+        memory = parse_size(memory, binary=True)
+
+    deploy_options = {
+        'specs': release.specs_text,
+        'appname': appname,
+        'image': release.image,
+        'zone': g.zone,
+        'podname': podname,
+        'nodename': nodename,
+        'entrypoint': entrypoint,
+        'cpu_quota': float(cpu_quota),
+        'count': int(count),
+        'memory': memory,
+        'networks': networks,
+        'env': env_vars,
+        'raw': release.raw,
+        'extra_args': extra_args,
+        'debug': debug,
+    }
+    return deploy_options
 
 
 def bp_get_balancer(id):
