@@ -1,6 +1,4 @@
 # coding: utf-8
-
-import random
 import logging
 
 from celery import Celery, Task
@@ -13,7 +11,6 @@ from citadel.ext import sess, rds, db, mako
 from citadel.libs.datastructure import DateConverter
 from citadel.libs.utils import notbot_sendmsg
 from citadel.models.user import get_current_user, get_current_user_via_auth
-from citadel.libs.utils import login_logger
 
 
 logging.getLogger('requests').setLevel(logging.CRITICAL)
@@ -111,24 +108,15 @@ def create_app():
         g.start = request.args.get('start', type=int, default=0)
         g.limit = request.args.get('limit', type=int, default=20)
         g.zone = session.get('zone') or request.values.get('zone') or DEFAULT_ZONE
-        g.seed = random.randint(0, 1000000000)
 
         token = request.headers.get('X-Neptulon-Token', '') or request.values.get('X-Neptulon-Token')
         g.user = token and get_current_user_via_auth(token) or (get_current_user() if 'sso' in session or DEBUG else None)
-
-        login_logger.info('[%s] before_request get user %s', g.seed, g.user)
 
         if not g.user:
             session.pop('sso', None)
 
         if not g.user and not anonymous_path(request.path):
             abort(401, 'Must login')
-
-    @app.after_request
-    def check_user(resp):
-        login_logger.info('[%s] after_request get user %s', g.seed, g.user)
-        resp.headers['FUCK_ACCOUNT'] = str(g.user)
-        return resp
 
     return app
 
