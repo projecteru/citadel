@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from citadel.config import CITADEL_TACKLE_TASK_THROTTLING_KEY
 import json
 
 import yaml
@@ -10,7 +9,7 @@ from grpc.framework.interfaces.face import face
 from humanfriendly import parse_timespan
 from more_itertools import peekable
 
-from citadel.config import ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
+from citadel.config import CITADEL_TACKLE_TASK_THROTTLING_KEY, ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
 from citadel.ext import rds, hub
 from citadel.libs.jsonutils import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg, logger, make_sentence_json
@@ -22,7 +21,7 @@ from citadel.models.loadbalance import update_elb_for_containers, UpdateELBActio
 from citadel.models.oplog import OPType, OPLog
 from citadel.publisher import Publisher
 from citadel.rpc import get_core
-from citadel.views.helper import make_kibana_url
+from citadel.views.helper import make_deploy_options, make_kibana_url
 
 
 class ActionError(Exception):
@@ -284,9 +283,14 @@ def deal_with_agent_etcd_change(self, key, data):
     if not alive:
         logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
-        if not container.is_removing():
-            msg = 'Dead container `{}` removed from ELB\ncitadel url: {}\ncontainer log: {}'.format(
+        exitcode = container.info.get('State', {}).get('ExitCode', None)
+        if exitcode == 0 and container.is_cronjob():
+            remove_container(container_id)
+
+        if not container.is_removing() and exitcode != 0:
+            msg = 'Dead container `{}`\nexit code: {}\ncitadel url: {}\ncontainer log: {}'.format(
                 container.short_id,
+                exitcode,
                 url_for('app.app', name=appname, _external=True),
                 make_kibana_url(appname=appname, ident=container.ident),
             )
@@ -322,6 +326,33 @@ def trigger_tackle_routine(self):
     apps = App.get_apps_with_tackle_rule()
     for app in apps:
         tackle_single_app.delay(app.name)
+
+
+def schedule_task(app):
+    release = app.latest_release
+    for crontab, cmd in app.specs.crontab:
+        if not crontab.next() < 60:
+            continue
+        combo = release.combos[cmd]
+        if Container.get_by(entrypoint=combo.entrypoint):
+            notbot_sendmsg(app.subscribers, 'Cronjob {} skipped because last cronjob did not exit 0'.format(cmd))
+            continue
+        deploy_options = make_deploy_options(
+            release, combo_name=cmd,
+        )
+        create_container.delay(deploy_options=deploy_options,
+                               sha=release.sha,
+                               envname=combo.envname)
+
+
+@current_app.task()
+def trigger_scheduled_task():
+    for app in App.get_all():
+        specs = app.specs
+        cron_settings = specs and specs.crontab
+        if not cron_settings:
+            continue
+        schedule_task(app)
 
 
 @current_app.task(bind=True)

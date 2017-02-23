@@ -5,6 +5,7 @@ from functools import wraps
 from flask import g, abort
 from humanfriendly import parse_size
 
+from citadel.config import DEFAULT_ZONE
 from citadel.models.app import AppUserRelation, Release, App
 from citadel.models.env import Environment
 from citadel.models.loadbalance import ELBInstance
@@ -81,11 +82,16 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
     if isinstance(memory, basestring):
         memory = parse_size(memory, binary=True)
 
+    try:
+        zone = g.zone
+    except AttributeError:
+        zone = DEFAULT_ZONE
+
     deploy_options = {
         'specs': release.specs_text,
         'appname': appname,
         'image': release.image,
-        'zone': g.zone,
+        'zone': zone,
         'podname': podname,
         'nodename': nodename,
         'entrypoint': entrypoint,

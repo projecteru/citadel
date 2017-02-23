@@ -4,6 +4,7 @@ import logging
 from functools import wraps, partial
 
 import requests
+from crontab import CronTab
 from etcd import EtcdException
 from flask import session
 from gitlab import GitlabError
@@ -132,3 +133,10 @@ def memoize(f):
 def make_sentence_json(message):
     msg = json.dumps({'type': 'sentence', 'message': message}, cls=JSONEncoder)
     return msg + '\n'
+
+
+def parse_cron_line(s):
+    l = s.split()
+    crontab = CronTab(' '.join(l[:5]))
+    cmd = ' '.join(l[5:])
+    return crontab, cmd

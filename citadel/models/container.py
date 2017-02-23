@@ -171,6 +171,9 @@ class Container(BaseModelMixin, PropsMixin):
     def is_removing(self):
         return self.override_status == ContainerOverrideStatus.REMOVING
 
+    def is_cronjob(self):
+        return self.entrypoint in self.app.cronjob_entrypoints
+
     def is_debug(self):
         return self.override_status == ContainerOverrideStatus.DEBUG
 

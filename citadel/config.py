@@ -104,7 +104,12 @@ beat_schedule = {
         # task message expire in 1 second to prevent flooding citadel with
         # unnecessary eru-tackle tasks
         'options': {'expires': 1},
-    }
+    },
+    'crontab': {
+        'task': 'citadel.tasks.trigger_scheduled_task',
+        'schedule': crontab(minute='*'),
+        'options': {'expires': 60},
+    },
 }
 
 try:

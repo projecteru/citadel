@@ -6,7 +6,7 @@ from humanfriendly import InvalidTimespan, parse_timespan, parse_size
 
 from citadel.config import DEFAULT_ZONE
 from citadel.libs.jsonutils import Jsonized
-from citadel.libs.utils import make_unicode
+from citadel.libs.utils import make_unicode, parse_cron_line
 
 
 class SpecsError(Exception):
@@ -140,7 +140,7 @@ class Combo(object):
 
 class Specs(Jsonized):
 
-    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, permitted_users, subscribers, erection_timeout, raw):
+    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, permitted_users, subscribers, erection_timeout, crontab, raw):
         # raw to jsonize
         self.appname = appname
         self.entrypoints = entrypoints
@@ -154,6 +154,7 @@ class Specs(Jsonized):
         self.permitted_users = permitted_users
         self.subscribers = subscribers
         self.erection_timeout = erection_timeout
+        self.crontab = crontab
         self._raw = raw
 
     @classmethod
@@ -185,7 +186,11 @@ class Specs(Jsonized):
         app_permitted_users = tuple(data.get('permitted_users', ()))
         all_permitted_users = frozenset(combos_permitted_users + app_permitted_users)
 
-        return cls(appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, all_permitted_users, subscribers, erection_timeout, data)
+        try:
+            crontab = [parse_cron_line(l) for l in data.get('crontab', [])]
+        except Exception as e:
+            raise SpecsError(u'Bad crontab: {}'.format(str(e)))
+        return cls(appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, all_permitted_users, subscribers, erection_timeout, crontab, data)
 
     @classmethod
     def from_string(cls, string):
@@ -201,3 +206,9 @@ class Specs(Jsonized):
         for username in specs.permitted_users:
             if not User.get(username):
                 raise SpecsError(u'Bad username in permitted_users: {}'.format(make_unicode(username)))
+
+        cron_settings = specs.crontab
+        if cron_settings:
+            for _, combo_name in cron_settings:
+                if combo_name not in specs.combos:
+                    raise SpecsError(u'Bad crontab: crontab command must be combo name')
