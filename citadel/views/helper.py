@@ -62,7 +62,8 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
         env_vars.extend(['='.join([k, v]) for k, v in extra_env.iteritems()])
         cpu_quota = combo.cpu
         memory = combo.memory_str
-        count = combo.count
+        # user can override count in combo
+        count = max(combo.count, count or 1)
         networks = combo.networks
     else:
         env = Environment.get_by_app_and_env(appname, envname)

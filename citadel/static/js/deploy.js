@@ -54,6 +54,7 @@ $('#add-container-button').click(function(e){
     data.networks = networks;
   }
   data.debug = form.find('input[name=debug]').prop('checked');
+  data.count = form.find('input[name=count]').val() || '1';
   console.log('Deploy arguments:', data);
 
   $('#add-container-modal').modal('hide');
