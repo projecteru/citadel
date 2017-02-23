@@ -52,6 +52,7 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
     appname = release.name
     if combo_name:
         combo = release.specs.combos[combo_name]
+        zone = combo.zone
         podname = combo.podname
         nodename = combo.nodename
         entrypoint = combo.entrypoint
@@ -67,6 +68,11 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
         count = max(combo.count, count or 1)
         networks = combo.networks
     else:
+        try:
+            zone = g.zone
+        except AttributeError:
+            zone = DEFAULT_ZONE
+
         env = Environment.get_by_app_and_env(appname, envname)
         env_vars = env and env.to_env_vars() or []
         if isinstance(extra_env, basestring):
@@ -81,11 +87,6 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
 
     if isinstance(memory, basestring):
         memory = parse_size(memory, binary=True)
-
-    try:
-        zone = g.zone
-    except AttributeError:
-        zone = DEFAULT_ZONE
 
     deploy_options = {
         'specs': release.specs_text,
