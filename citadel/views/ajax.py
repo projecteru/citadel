@@ -87,7 +87,7 @@ def deploy_release(release_id):
         cpu_quota=payload.get('cpu'),
         count=payload.get('count'),
         memory=payload.get('memory'),
-        network_names=payload.get('networks'),
+        networks=payload.get('networks'),
         envname=envname,
         extra_env=payload.get('extra_env'),
         debug=payload.get('debug'),

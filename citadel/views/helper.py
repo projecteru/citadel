@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import collections
 from functools import wraps
 
 from flask import g, abort
@@ -32,7 +33,21 @@ def bp_get_release(appname, sha):
     return release
 
 
-def make_deploy_options(release, combo_name=None, podname=None, nodename='', entrypoint=None, cpu_quota=1, count=1, memory='512MB', network_names=(), envname='', extra_env='', extra_args='', debug=False):
+def make_deploy_options(release, combo_name=None, podname=None, nodename='', entrypoint=None, cpu_quota=1, count=1, memory='512MB', networks=(), envname='', extra_env='', extra_args='', debug=False):
+    """
+    :param release: citadel.models.app.Release instance
+    :param combo_name: str, should appear in release.specs.combos
+    :param nodename: str, if empty string, eru-core will choose node for ya
+    :param entrypoint: str, should appear in release.specs.entrypoints
+    :param cpu_quota: Number
+    :param count: int, number of containers to deploy, default to 1
+    :param memory: str or Number, string will be converted to Number using parse_size
+    :param networks: str, tuple of str, dict, this could be a single network name, or a tuple/list of network names
+    :param envname: str, Environment name
+    :param extra_env: str or list of str, if str, should be 'FOO=1;BAR=2;', if list, should be ['FOO=1', 'BAR=2']
+    :param extra_args: what the fuck is this?
+    :param debug: bool, cheers
+    """
     appname = release.name
     if combo_name:
         combo = release.specs.combos[combo_name]
@@ -48,7 +63,7 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
         cpu_quota = combo.cpu
         memory = combo.memory_str
         count = combo.count
-        network_names = combo.networks
+        networks = combo.networks
     else:
         env = Environment.get_by_app_and_env(appname, envname)
         env_vars = env and env.to_env_vars() or []
@@ -57,7 +72,11 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
         elif isinstance(extra_env, list):
             env_vars.extend(extra_env)
 
-    networks = {network_name: '' for network_name in network_names}
+    if isinstance(networks, basestring):
+        networks ={networks: ''}
+    elif isinstance(networks, collections.Sequence):
+        networks = {network_name: '' for network_name in networks}
+
     if isinstance(memory, basestring):
         memory = parse_size(memory, binary=True)
 
