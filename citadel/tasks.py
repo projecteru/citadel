@@ -332,6 +332,7 @@ def schedule_task(app):
     release = app.latest_release
     for crontab, cmd in app.specs.crontab:
         if not crontab.next() < 60:
+            logger.debug('Crontab not due: %s:%s', app.name, cmd)
             continue
         combo = release.combos[cmd]
         if Container.get_by(entrypoint=combo.entrypoint):

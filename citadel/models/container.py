@@ -6,7 +6,7 @@ from time import sleep
 
 from etcd import EtcdKeyNotFound
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import ObjectDeletedError
+from sqlalchemy.orm.exc import StaleDataError, ObjectDeletedError
 
 from citadel.config import UPGRADE_CONTAINER_IGNORE_ENV
 from citadel.ext import db, get_etcd
@@ -184,7 +184,10 @@ class Container(BaseModelMixin, PropsMixin):
     def mark_removing(self):
         Publisher.remove_container(self)
         self.override_status = ContainerOverrideStatus.REMOVING
-        db.session.commit()
+        try:
+            db.session.commit()
+        except StaleDataError:
+            pass
 
     def mark_initialized(self):
         self.initialized = 1
