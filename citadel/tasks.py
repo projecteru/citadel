@@ -329,13 +329,15 @@ def trigger_tackle_routine(self):
 
 
 def schedule_task(app):
+    appname = app.name
     release = app.latest_release
-    for crontab, cmd in app.specs.crontab:
+    specs = app.specs
+    for crontab, cmd in specs.crontab:
         if not crontab.next() < 60:
-            logger.debug('Crontab not due: %s:%s', app.name, cmd)
+            logger.debug('Crontab not due: %s:%s', appname, cmd)
             continue
-        combo = release.combos[cmd]
-        if Container.get_by(entrypoint=combo.entrypoint):
+        combo = specs.combos[cmd]
+        if Container.get_by(entrypoint=combo.entrypoint, appname=appname):
             notbot_sendmsg(app.subscribers, 'Cronjob {} skipped because last cronjob did not exit 0'.format(cmd))
             continue
         deploy_options = make_deploy_options(
