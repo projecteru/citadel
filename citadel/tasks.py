@@ -350,11 +350,12 @@ def schedule_task(app):
 
 @current_app.task()
 def trigger_scheduled_task():
-    for app in App.get_all():
+    for app in App.get_all(limit=None):
         specs = app.specs
         cron_settings = specs and specs.crontab
         if not cron_settings:
             continue
+        logger.debug('Scheduling task for app %s', app.name)
         schedule_task(app)
 
 

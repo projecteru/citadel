@@ -179,7 +179,11 @@ class Container(BaseModelMixin, PropsMixin):
 
     def mark_debug(self):
         self.override_status = ContainerOverrideStatus.DEBUG
-        db.session.commit()
+        try:
+            db.session.commit()
+        except StaleDataError:
+            db.session.rollback()
+            pass
 
     def mark_removing(self):
         Publisher.remove_container(self)
@@ -187,6 +191,7 @@ class Container(BaseModelMixin, PropsMixin):
         try:
             db.session.commit()
         except StaleDataError:
+            db.session.rollback()
             pass
 
     def mark_initialized(self):
