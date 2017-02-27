@@ -333,7 +333,7 @@ def schedule_task(app):
     release = app.latest_release
     specs = app.specs
     for crontab, cmd in specs.crontab:
-        if not crontab.next() < 60:
+        if not crontab.next(default_utc=False) < 60:
             logger.debug('Crontab not due: %s:%s', appname, cmd)
             continue
         combo = specs.combos[cmd]
