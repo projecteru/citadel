@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import StaleDataError
 from werkzeug.utils import cached_property
 
 from citadel.config import DEFAULT_ZONE
@@ -350,10 +351,14 @@ class Release(BaseModelMixin, PropsMixin):
         return self.specs.erection_timeout
 
     def update_image(self, image):
-        self.image = image
-        logger.debug('Set image %s for release %s', image, self.sha)
-        db.session.add(self)
-        db.session.commit()
+        try:
+            self.image = image
+            logger.debug('Set image %s for release %s', image, self.sha)
+            db.session.add(self)
+            db.session.commit()
+        except StaleDataError:
+            # release may already gone
+            return
 
     def to_dict(self):
         d = super(Release, self).to_dict()
