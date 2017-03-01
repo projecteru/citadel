@@ -144,7 +144,6 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
     msg = 'Deploy {}\n*GOOD NEWS*:\n```{}```'.format(release.name, good_news)
     if bad_news:
         msg += '\n*BAD NEWS*:\n```{}```'.format(bad_news)
-        subscribers += ';#platform'
         msg += '\n@timfeirg'
 
     notbot_sendmsg(subscribers, msg)
@@ -284,6 +283,7 @@ def deal_with_agent_etcd_change(self, key, data):
         logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
         exitcode = container.info.get('State', {}).get('ExitCode', None)
+        logger.debug('Container %s exit %s', container.short_id, exitcode)
         if exitcode == 0 and container.is_cronjob():
             remove_container(container_id)
 

@@ -41,6 +41,8 @@ class Publisher(object):
             publish_path = container.release.entrypoints[container.entrypoint].publish_path
         except KeyError:
             return
+        if not publish_path:
+            return
         for addr in container.get_backends():
             path = os.path.join(publish_path, addr)
             cls.delete(container.zone, path)

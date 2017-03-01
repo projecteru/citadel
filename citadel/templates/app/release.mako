@@ -157,7 +157,7 @@
                   <div class="form-group collapse advance-form-group">
                     <label class="col-sm-2 control-label" for="">Extra Env</label>
                     <div class="col-sm-10">
-                      <input class="form-control" type="text" name="extra_env" value="${ combo.env_string() }" disabled>
+                      <input class="form-control" type="text" name="extra_env" value="${ combo.env_string }" disabled>
                     </div>
                   </div>
                   <div class="form-group">
