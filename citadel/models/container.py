@@ -71,9 +71,11 @@ class Container(BaseModelMixin, PropsMixin):
     @classmethod
     def get_by_container_id(cls, container_id):
         """get by container_id, prefix can be used in container_id"""
+        if len(container_id or '') < 7:
+            return None
         c = cls.query.filter(cls.container_id.like('{}%'.format(container_id))).first()
         if not c:
-            return
+            return None
         return c.inspect()
 
     @property

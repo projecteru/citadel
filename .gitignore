@@ -8,3 +8,4 @@ tests/__pycache__/*
 migrations
 *.json
 src
+.cache
