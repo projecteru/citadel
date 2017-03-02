@@ -15,10 +15,10 @@ def app(request):
     ctx = app.app_context()
     ctx.push()
 
-    def clean_context():
+    def tear_down():
         ctx.pop()
 
-    request.addfinalizer(clean_context)
+    request.addfinalizer(tear_down)
     return app
 
 

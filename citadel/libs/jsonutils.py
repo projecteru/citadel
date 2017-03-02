@@ -1,17 +1,25 @@
-# coding:utf-8
-
+# -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
 import json
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
 from functools import wraps
+
 from flask import Response
 
 
 class Jsonized(object):
 
     _raw = {}
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        return False
+
+    def __str__(self):
+        return str(self.__dict__)
 
     def to_dict(self):
         return self._raw

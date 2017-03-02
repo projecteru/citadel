@@ -1,66 +1,212 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta
+from numbers import Number
 
 import yaml
+from crontab import CronTab
 from humanfriendly import InvalidTimespan, parse_timespan, parse_size
+from humanize import naturalsize
+from marshmallow import Schema, fields, ValidationError
 
-from citadel.config import DEFAULT_ZONE
+from citadel.config import ZONE_CONFIG, DEFAULT_ZONE
 from citadel.libs.jsonutils import Jsonized
-from citadel.libs.utils import make_unicode, parse_cron_line
+from citadel.libs.utils import memoize, make_unicode
 
 
-class SpecsError(Exception):
-    pass
+FIVE_MINUTES = parse_timespan('5m')
 
 
-class Port(object):
+def validate_protocol(s):
+    if s not in {'http', 'tcp'}:
+        raise ValidationError('ELB port should talk tcp or http')
 
-    def __init__(self, protocol, port):
+
+def validate_port(n):
+    if not 0 < n <= 65535:
+        raise ValidationError('Port must be 0-65,535')
+
+
+def validate_network_mode(s):
+    if s not in {'host', 'bridge'}:
+        raise ValidationError('Network mode must be host or bridge')
+
+
+def validate_restart(s):
+    if s not in {'no', 'unless-stopped', 'always', 'on-failure'}:
+        raise ValidationError('Bad restart policy: {}'.format(s))
+
+
+def validate_http_code(n):
+    if not 100 <= n <= 599:
+        raise ValidationError('HTTP code should be 100-599')
+
+
+def validate_log_config(s):
+    if s not in {'json-file', 'none', 'syslog'}:
+        raise ValidationError('Log config should choose from json-file, none, syslog')
+
+
+def validate_zone(s):
+    if s not in ZONE_CONFIG:
+        raise ValidationError('Bad zone: {}'.format(s))
+
+
+def validate_entrypoint(s):
+    if '_' in s:
+        raise ValidationError('Entrypoints must not contain underscore')
+
+
+def validate_cpu(n):
+    if n <= 0:
+        raise ValidationError('CPU must >0')
+
+
+def validate_user(username):
+    from citadel.models.user import User
+    try:
+        if not User.get(username):
+            raise ValidationError(u'Bad username in permitted_users: {}'.format(make_unicode(username)))
+    except RuntimeError:
+        pass
+
+
+def validate_elb_domain(s):
+    if not len(s.split()) == 2:
+        raise ValidationError('Bad ELB domain record, should be \'$ELB_NAME $DOMAIN\'')
+
+
+def parse_single_port(port_string):
+    parts = port_string.split('/')
+    try:
+        port = int(parts[0])
+    except ValueError:
+        raise ValidationError('Bad port: {}'.format(port_string))
+    if len(parts) == 2:
+        protocol = parts[1]
+    elif len(parts) == 1:
+        protocol = 'tcp'
+    else:
+        raise ValidationError('Multiple slashes in port: {}'.format(port_string))
+    unmarshal_result = PortSchema().load({'port': port, 'protocol': protocol})
+    errors = unmarshal_result.errors
+    if errors:
+        raise ValidationError(str(errors))
+    return unmarshal_result.data
+
+
+def parse_port_list(port_list):
+    return [parse_single_port(s) for s in port_list]
+
+
+def parse_memory(s):
+    return parse_size(s, binary=True) if isinstance(s, basestring) else s
+
+
+def parse_extra_env(s):
+    extra_env = {}
+    if isinstance(s, basestring):
+        parts = s.split(';')
+        for p in parts:
+            if not p:
+                continue
+            k, v = p.split('=', 1)
+            extra_env[k] = v
+
+    return extra_env
+
+
+def parse_combos(dic):
+    """
+    should re-write once marshmallow supports nested schema
+    http://stackoverflow.com/questions/38048775/marshmallow-dict-of-nested-schema
+    """
+    for combo_name, combo_dic in dic.iteritems():
+        unmarshal_result = combo_schema.load(combo_dic)
+        errors = unmarshal_result.errors
+        if errors:
+            raise ValidationError(str(errors))
+        dic[combo_name] = unmarshal_result.data
+
+    return dic
+
+
+def parse_entrypoints(dic):
+    for entrypoint_name, entrypoint_dic in dic.iteritems():
+        unmarshal_result = entrypoint_schema.load(entrypoint_dic)
+        errors = unmarshal_result.errors
+        if errors:
+            raise ValidationError(str(errors))
+        dic[entrypoint_name] = unmarshal_result.data
+
+    return dic
+
+
+def better_parse_timespan(s):
+    if isinstance(s, basestring):
+        try:
+            seconds = parse_timespan(s)
+        except InvalidTimespan as e:
+            raise ValidationError(str(e))
+    elif isinstance(s, Number):
+        seconds = float(s)
+    else:
+        raise ValidationError('erection_timeout should be int or str')
+    return seconds
+
+
+def parse_cron_line(s):
+    try:
+        l = s.split()
+        cron_part = ' '.join(l[:5])
+        crontab = CronTab(cron_part)
+        cmd = s.replace(cron_part, '').strip()
+    except IndexError as e:
+        raise ValidationError(str(e))
+    return crontab, cmd
+
+
+def parse_crontab(cron_list):
+    cron_settings = [parse_cron_line(s) for s in cron_list]
+    return cron_settings
+
+
+class PortSchema(Schema):
+    protocol = fields.Str(validate=validate_protocol, missing='tcp')
+    port = fields.Int(validate=validate_port, required=True)
+
+
+class Port(Jsonized):
+    def __init__(self, protocol=None, port=None, _raw=None):
         self.protocol = protocol
         self.port = port
-
-    @classmethod
-    def from_string(cls, data):
-        ps = data.split('/', 1)
-        protocol = 'tcp' if len(ps) == 1 else ps[1]
-        port = int(ps[0])
-        return cls(protocol, port)
+        self._raw = _raw
 
 
-class Expose(object):
-
-    def __init__(self, container_port, host_port):
-        self.container_port = container_port
-        self.host_port = host_port
-
-    @classmethod
-    def from_string(cls, data):
-        ps = data.split(':')
-        container_port = Port.from_string(ps[0])
-        host_port = Port.from_string(ps[1])
-        return cls(container_port, host_port)
-
-
-class Bind(object):
-
-    def __init__(self, path, ro):
-        self.path = path
-        self.ro = ro
-
-    @classmethod
-    def from_dict(cls, data):
-        return cls(data['bind'], data.get('ro', True))
+class EntrypointSchema(Schema):
+    cmd = fields.Str(attribute='command', required=True)
+    ports = fields.Function(deserialize=parse_port_list, missing=[])
+    network_mode = fields.Str(validate=validate_network_mode)
+    restart = fields.Str(validate=validate_restart)
+    healthcheck_url = fields.Str()
+    healthcheck_port = fields.Int(validate=validate_port)
+    healthcheck_expected_code = fields.Int(validate=validate_http_code)
+    hosts = fields.List(fields.Str())
+    permdir = fields.Bool(missing=False)
+    privileged = fields.Bool(missing=False)
+    log_config = fields.Str(validate=validate_log_config)
+    working_dir = fields.Str()
+    publish_path = fields.Str()
 
 
-class Entrypoint(object):
-
-    def __init__(self, command, ports, exposes, network_mode, restart, health_check, hosts, permdir, privileged, log_config, working_dir, publish_path):
+class Entrypoint(Jsonized):
+    def __init__(self, command=None, ports=None, network_mode=None,
+                 restart=None, healthcheck_url=None, healthcheck_port=None,
+                 healthcheck_expected_code=None, hosts=None, permdir=None,
+                 privileged=None, log_config=None, working_dir=None,
+                 publish_path=None, _raw=None):
         self.command = command
-        self.ports = ports
-        self.exposes = exposes
+        self.ports = [Port(_raw=_raw, **data) for data in ports]
         self.network_mode = network_mode
         self.restart = restart
-        self.health_check = health_check
         self.hosts = hosts
         self.permdir = permdir
         self.privileged = privileged
@@ -68,147 +214,117 @@ class Entrypoint(object):
         self.working_dir = working_dir
         self.publish_path = publish_path
 
-    @classmethod
-    def from_dict(cls, data):
-        command = data['cmd']
-        ports = [Port.from_string(p) for p in data.get('ports') or []]
-        exposes = [Expose.from_string(e) for e in data.get('exposes', ())]
-        network_mode = data.get('network_mode')
-        restart = data.get('restart')
-        health_check = data.get('health_check')
-        hosts = data.get('hosts', ())
-        permdir = bool(data.get('permdir'))
-        privileged = bool(data.get('privileged'))
-        log_config = data.get('log_config', 'json-file')
-        working_dir = data.get('working_dir', '')
-        publish_path = data.get('publish_path', '')
-        return cls(command, ports, exposes, network_mode, restart, health_check, hosts, permdir, privileged, log_config, working_dir, publish_path)
+
+entrypoint_schema = EntrypointSchema()
 
 
-class Combo(object):
+class ComboSchema(Schema):
+    zone = fields.Str(validate=validate_zone, missing=DEFAULT_ZONE)
+    podname = fields.Str(required=True)
+    nodename = fields.Str()
+    entrypoint = fields.Str(validate=validate_entrypoint, required=True)
+    envname = fields.Str(missing='')
+    cpu = fields.Int(required=True)
+    memory = fields.Function(deserialize=parse_memory, required=True)
+    count = fields.Int(missing=1)
+    extra_env = fields.Function(deserialize=parse_extra_env, missing={})
+    networks = fields.List(fields.Str())
+    permitted_users = fields.List(fields.Str(validate=validate_user), missing=[])
+    elb = fields.List(fields.Str())
 
-    def __init__(self, zone, podname, nodename, entrypoint, envname='', cpu=0, memory='0', count=1, extra_env={}, networks=(), permitted_users=(), elb=()):
+
+class Combo(Jsonized):
+    def __init__(self, zone=None, podname=None, nodename=None, entrypoint=None,
+                 envname=None, cpu=None, memory=None, count=None,
+                 extra_env=None, networks=None, permitted_users=None, elb=None,
+                 _raw=None):
         self.zone = zone
         self.podname = podname
         self.nodename = nodename
         self.entrypoint = entrypoint
         self.envname = envname
         self.cpu = cpu
-        # could be int or string (like '512Mib', '512MB', both considered binary)
-        self.memory = parse_size(memory, binary=True) if isinstance(memory, basestring) else memory
-        self.memory_str = memory
+        self.memory = memory
         self.count = count
         self.extra_env = extra_env
-        self.networks = tuple(networks)
-        self.permitted_users = tuple(permitted_users)
-        self.elb = tuple(elb)
+        self.networks = networks
+        self.permitted_users = set(permitted_users)
+        self.elb = elb
 
-    @classmethod
-    def from_dict(cls, data):
-        zone = data.get('zone', DEFAULT_ZONE)
-        podname = data['podname']
-        nodename = data.get('nodename', '')
-        entrypoint = data['entrypoint']
-        envname = data.get('envname', '')
-        cpu = float(data.get('cpu', 1))
-        memory = data.get('memory', '0')
-        count = int(data.get('count', 1))
-        networks = data.get('networks', ())
-        permitted_users = data.get('permitted_users', ())
-        elb = data.get('elb', ())
+    @property
+    def memory_str(self):
+        return naturalsize(self.memory, binary=True)
 
-        extra_env_text = data.get('extra_env', '')
-        if isinstance(extra_env_text, basestring):
-            parts = extra_env_text.split(';')
-            extra_env = {}
-            for p in parts:
-                if not p:
-                    continue
-                k, v = p.split('=', 1)
-                extra_env[k] = v
-
-        return cls(zone, podname, nodename, entrypoint, envname, cpu, memory, count, extra_env, networks, permitted_users, elb)
+    @property
+    def env_string(self):
+        return ';'.join('%s=%s' % (k, v) for k, v in self.extra_env.iteritems())
 
     def allow(self, user):
         if not self.permitted_users:
             return True
         return user in self.permitted_users
 
-    def env_string(self):
-        return ';'.join('%s=%s' % (k, v) for k, v in self.extra_env.iteritems())
+
+combo_schema = ComboSchema()
+
+
+class SpecsSchema(Schema):
+    appname = fields.Str(required=True)
+    entrypoints = fields.Function(deserialize=parse_entrypoints, required=True)
+    build = fields.List(fields.Str())
+    volumes = fields.List(fields.Str())
+    base = fields.Str(required=True)
+    mount_paths = fields.List(fields.Str())
+    combos = fields.Function(deserialize=parse_combos, missing={})
+    permitted_users = fields.List(fields.Str(validate=validate_user), missing=[])
+    subscribers = fields.Str(required=True)
+    erection_timeout = fields.Function(deserialize=better_parse_timespan, missing=FIVE_MINUTES)
+    crontab = fields.Function(deserialize=parse_crontab, missing=[])
 
 
 class Specs(Jsonized):
 
-    def __init__(self, appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, permitted_users, subscribers, erection_timeout, crontab, raw):
-        # raw to jsonize
+    """Encapsule details regarding object creation, and backward compatibility.
+    Note that all the default arguments here should be None, and implement the
+    actual default arguments in marshmallow, except the ones with backward
+    compatibility issues"""
+
+    exclude_from_dump = ['crontab']
+
+    def __init__(self, appname=None, entrypoints=None, build=None, volumes=None,
+                 base=None, mount_paths=None, combos={}, permitted_users=None,
+                 subscribers=None, erection_timeout=None, crontab=None,
+                 _raw=None):
         self.appname = appname
-        self.entrypoints = entrypoints
+        self.entrypoints = {entrypoint_name: Entrypoint(_raw=data, **data) for entrypoint_name, data in entrypoints.iteritems()}
         self.build = build
         self.volumes = volumes
-        self.binds = binds
-        self.meta = meta
         self.base = base
         self.mount_paths = mount_paths
-        self.combos = combos
-        self.permitted_users = permitted_users
+        self.combos = {combo_name: Combo(_raw=data, **data) for combo_name, data in combos.iteritems()}
+        self.permitted_users = set(permitted_users)
+        for combo in self.combos.itervalues():
+            self.permitted_users.update(combo.permitted_users)
+
         self.subscribers = subscribers
         self.erection_timeout = erection_timeout
         self.crontab = crontab
-        self._raw = raw
+        self._raw = _raw
+        for field_name in self.exclude_from_dump:
+            del _raw[field_name]
 
     @classmethod
-    def from_dict(cls, data):
-        appname = data['appname']
-        entrypoints = {key: Entrypoint.from_dict(value) for key, value in data.get('entrypoints', {}).iteritems()}
-        build = data.get('build', ())
-        try:
-            erection_timeout = parse_timespan(str(data.get('erection_timeout', '5m')))
-        except InvalidTimespan:
-            erection_timeout = timedelta(minutes=5)
-
-        # compatibility note:
-        # old apps sometimes write: build: 'echo something'
-        if isinstance(build, basestring):
-            build = build,
-
-        volumes = data.get('volumes', ())
-        binds = {key: Bind.from_dict(value) for key, value in data.get('binds', {}).iteritems()}
-        meta = data.get('meta', {})
-        base = data.get('base')
-        mount_paths = data.get('mount_paths', ())
-        subscribers = data.get('subscribers', '')
-        combos = {key: Combo.from_dict(value) for key, value in data.get('combos', {}).iteritems()}
-
-        # permitted_users could be defined in both combos and specs
-        permitted_user_list = [combo.permitted_users for combo in combos.values()]
-        combos_permitted_users = tuple(u for g in permitted_user_list for u in g)
-        app_permitted_users = tuple(data.get('permitted_users', ()))
-        all_permitted_users = frozenset(combos_permitted_users + app_permitted_users)
-
-        try:
-            crontab = [parse_cron_line(l) for l in data.get('crontab', [])]
-        except Exception as e:
-            raise SpecsError(u'Bad crontab: {}'.format(str(e)))
-        return cls(appname, entrypoints, build, volumes, binds, meta, base, mount_paths, combos, all_permitted_users, subscribers, erection_timeout, crontab, data)
+    def validate(cls, s):
+        dic = yaml.load(s)
+        unmarshal_result = SpecsSchema().load(dic)
+        errors = unmarshal_result.errors
+        if errors:
+            raise ValidationError(str(errors))
 
     @classmethod
-    def from_string(cls, string):
-        data = yaml.load(string)
-        return cls.from_dict(data)
-
-    @classmethod
-    def validate_specs_yaml(cls, s):
-        """will raise yaml.parser.parser.ParserError or SpecsError"""
-        specs = cls.from_string(s)
-        # validate permitted_users
-        from citadel.models.user import User
-        for username in specs.permitted_users:
-            if not User.get(username):
-                raise SpecsError(u'Bad username in permitted_users: {}'.format(make_unicode(username)))
-
-        cron_settings = specs.crontab
-        if cron_settings:
-            for _, combo_name in cron_settings:
-                if combo_name not in specs.combos:
-                    raise SpecsError(u'Bad crontab: crontab command must be combo name')
+    @memoize
+    def from_string(cls, s):
+        dic = yaml.load(s)
+        unmarshal_result = SpecsSchema().load(dic)
+        data = unmarshal_result.data
+        return cls(_raw=data, **data)

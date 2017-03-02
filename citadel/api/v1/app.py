@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import abort, request
+from marshmallow import ValidationError
 
 from citadel.libs.datastructure import AbortDict
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
@@ -8,7 +9,6 @@ from citadel.models.base import ModelCreateError
 from citadel.models.container import Container
 from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_group, get_gitlab_groups
-from citadel.models.specs import SpecsError
 
 
 bp = create_api_blueprint('app', __name__, 'app')
@@ -102,7 +102,7 @@ def register_release():
 
     try:
         release = Release.create(app, sha, branch=branch)
-    except (ModelCreateError, SpecsError) as e:
+    except (ModelCreateError, ValidationError) as e:
         abort(400, str(e))
 
     if not release:

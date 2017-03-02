@@ -29,3 +29,4 @@ blinker
 wrapt
 pyparsing
 crontab
+marshmallow
