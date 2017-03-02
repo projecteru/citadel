@@ -10,18 +10,17 @@ from citadel.libs.jsonutils import Jsonized
 
 
 """
-一些通过grpc从core那边回来的东西, 因为需要被JSON序列化, 所以额外再包一层.
-令人伤心, 我还以为可以用 obj.ListFields() 来获取哪些域呢, 结果似乎有些就是不给返回...
-先不看这个问题了 = =
-TODO: 如果上面的问题解决了, 就可以抛弃这个文件了.
+The reason for this package:
+    * GRPC messages needs to be Jsonized
+    * Some entities like Node needs some helper methods
 """
 
 
-class _CoreRPC(Jsonized):
-
-    fields = []
+class JSONMessage(Jsonized):
 
     def __init__(self, obj):
+        descriptor_fields = obj.DESCRIPTOR.fields
+        self.fields = [f.name for f in descriptor_fields]
         for f in self.fields:
             setattr(self, f, getattr(obj, f, None))
 
@@ -29,14 +28,7 @@ class _CoreRPC(Jsonized):
         return {f: getattr(self, f) for f in self.fields}
 
 
-class Pod(_CoreRPC):
-
-    fields = ['name', 'desc']
-
-
-class Network(_CoreRPC):
-
-    fields = ['name', 'subnets']
+class Network(JSONMessage):
 
     def __init__(self, network):
         super(Network, self).__init__(network)
@@ -50,9 +42,7 @@ class Network(_CoreRPC):
         return 'Network<name: %s, subnets: %s>' % (self.name, self.subnets_string)
 
 
-class Node(_CoreRPC):
-
-    fields = ['name', 'endpoint', 'podname', 'public', 'cpu', 'info', 'available', 'zone']
+class Node(JSONMessage):
 
     def __init__(self, node):
         super(Node, self).__init__(node)
@@ -77,7 +67,6 @@ class Node(_CoreRPC):
     @property
     def containers(self):
         from citadel.models import Container
-        # ... 没办法了，node 不知道自己的 zone
         containers = Container.get_by(nodename=self.name, zone=self.zone)
         return containers
 
@@ -102,39 +91,15 @@ class Node(_CoreRPC):
         return d
 
 
-class ErrorDetail(_CoreRPC):
-
-    fields = ['code', 'message']
-
-
-class BuildImageMessage(_CoreRPC):
-
-    fields = ['status', 'progress', 'error', 'stream', 'error_detail']
+class BuildImageMessage(JSONMessage):
 
     def __init__(self, m):
         super(BuildImageMessage, self).__init__(m)
-        self.error_detail = ErrorDetail(self.error_detail)
+        self.error_detail = JSONMessage(self.error_detail)
 
 
-class CreateContainerMessage(_CoreRPC):
-
-    fields = ['podname', 'nodename', 'id', 'name', 'error', 'success', 'cpu']
+class CreateContainerMessage(JSONMessage):
 
     def __init__(self, m):
         super(CreateContainerMessage, self).__init__(m)
         self.cpu = dict(m.cpu)
-
-
-class RemoveImageMessage(_CoreRPC):
-
-    fields = ['image', 'success', 'messages']
-
-
-class RemoveContainerMessage(_CoreRPC):
-
-    fields = ['id', 'success', 'message']
-
-
-class UpgradeContainerMessage(_CoreRPC):
-
-    fields = ['id', 'new_id', 'new_name', 'error', 'success']
