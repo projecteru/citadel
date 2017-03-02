@@ -348,7 +348,7 @@ def schedule_task(app):
                                envname=combo.envname)
 
 
-@current_app.task()
+@current_app.task
 def trigger_scheduled_task():
     for app in App.get_all(limit=None):
         specs = app.specs
@@ -359,8 +359,8 @@ def trigger_scheduled_task():
         schedule_task(app)
 
 
-@current_app.task(bind=True)
-def tackle_single_app(self, appname):
+@current_app.task
+def tackle_single_app(appname):
     app = App.get_by_name(appname)
     rule = app.tackle_rule
     app_status_assembler = app.app_status_assembler
@@ -372,6 +372,26 @@ def tackle_single_app(self, appname):
                 method = container_tackle_strategy_lib[rule['strategy']]
                 logger.warn('%s container %s in DANGER: %s, tackle strategy %s', appname, c, dangers, method)
                 method(c, dangers, **rule.get('kwargs', {}))
+
+
+@current_app.task
+def trigger_backup():
+    for container in Container.get_all(limit=None):
+        backup_path = container.backup_path
+        if not container.backup_path:
+            continue
+        for path in backup_path:
+            backup.delay(container.container_id, path)
+
+
+@current_app.task
+def backup(container_id, src_path):
+    container = Container.get_by_container_id(container_id)
+    result = get_core(container.zone).backup(container.container_id, src_path)
+    error = result.error
+    if error:
+        raise ActionError(error)
+    return result
 
 
 def celery_task_stream_response(celery_task_ids):

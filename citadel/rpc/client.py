@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 from functools import partial
 from operator import attrgetter
 
@@ -14,7 +14,8 @@ from citadel.rpc.core_pb2 import (CoreRPCStub, Empty, NodeAvailable,
                                   ListNodesOptions, GetNodeOptions,
                                   AddNodeOptions, BuildImageOptions,
                                   RemoveNodeOptions, DeployOptions,
-                                  UpgradeOptions, ContainerID, ContainerIDs)
+                                  UpgradeOptions, ContainerID, ContainerIDs,
+                                  BackupOptions)
 from citadel.rpc.exceptions import NoStubError
 
 
@@ -146,6 +147,13 @@ class CoreRPC(object):
 
         for m in stub.RemoveContainer(ids, _STREAM_TIMEOUT):
             yield JSONMessage(m)
+
+    @handle_rpc_exception(default=None)
+    def backup(self, id_, src_path):
+        stub = self._get_stub()
+        opts = BackupOptions(id=id_, src_path=src_path)
+        msg = stub.Backup(opts, _STREAM_TIMEOUT)
+        return msg and JSONMessage(msg)
 
     @handle_rpc_exception(default=list)
     def upgrade_container(self, ids, image):

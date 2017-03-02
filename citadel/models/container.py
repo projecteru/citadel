@@ -117,6 +117,14 @@ class Container(BaseModelMixin, PropsMixin):
         return [c.inspect() for c in cs]
 
     @property
+    def specs_entrypoint(self):
+        return self.release.specs.entrypoints[self.entrypoint]
+
+    @property
+    def backup_path(self):
+        return self.specs_entrypoint.backup_path
+
+    @property
     def networks(self):
         return self.info.get('NetworkSettings', {}).get('Networks', {})
 
