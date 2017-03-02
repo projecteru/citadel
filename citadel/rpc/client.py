@@ -7,9 +7,8 @@ from grpc import RpcError
 
 from citadel.libs.cache import cache, clean_cache, ONE_DAY
 from citadel.libs.utils import logger, handle_exception
-from citadel.rpc.core import (Pod, Node, Network, BuildImageMessage,
-                              CreateContainerMessage, UpgradeContainerMessage,
-                              RemoveContainerMessage)
+from citadel.rpc.core import (Node, Network, BuildImageMessage,
+                              CreateContainerMessage, JSONMessage)
 from citadel.rpc.core_pb2 import (CoreRPCStub, Empty, NodeAvailable,
                                   AddPodOptions, GetPodOptions,
                                   ListNodesOptions, GetNodeOptions,
@@ -46,7 +45,7 @@ class CoreRPC(object):
     def list_pods(self):
         stub = self._get_stub()
         r = stub.ListPods(Empty(), _UNARY_TIMEOUT)
-        return [Pod(p) for p in r.pods]
+        return [JSONMessage(p) for p in r.pods]
 
     @handle_rpc_exception(default=None)
     def create_pod(self, name, desc):
@@ -56,14 +55,14 @@ class CoreRPC(object):
 
         clean_cache(_LIST_PODS_KEY)
         clean_cache(_GET_POD.format(name=name))
-        return p and Pod(p)
+        return p and JSONMessage(p)
 
     @handle_rpc_exception(default=None)
     def get_pod(self, name):
         stub = self._get_stub()
         opts = GetPodOptions(name=name)
         p = stub.GetPod(opts, _UNARY_TIMEOUT)
-        return p and Pod(p)
+        return p and JSONMessage(p)
 
     @handle_rpc_exception(default=list)
     def get_pod_nodes(self, name):
@@ -122,7 +121,7 @@ class CoreRPC(object):
 
         clean_cache(_GET_POD_NODES.format(name=podname))
         clean_cache(_GET_NODE.format(podname=podname, nodename=nodename))
-        return p and Pod(p)
+        return p and JSONMessage(p)
 
     @handle_rpc_exception(default=list)
     def build_image(self, repo, version, uid, artifact=''):
@@ -146,7 +145,7 @@ class CoreRPC(object):
         ids = ContainerIDs(ids=[ContainerID(id=i) for i in ids])
 
         for m in stub.RemoveContainer(ids, _STREAM_TIMEOUT):
-            yield RemoveContainerMessage(m)
+            yield JSONMessage(m)
 
     @handle_rpc_exception(default=list)
     def upgrade_container(self, ids, image):
@@ -154,7 +153,7 @@ class CoreRPC(object):
         opts = UpgradeOptions(ids=[ContainerID(id=i) for i in ids], image=image)
 
         for m in stub.UpgradeContainer(opts, _STREAM_TIMEOUT):
-            yield UpgradeContainerMessage(m)
+            yield JSONMessage(m)
 
     @handle_rpc_exception(default=list)
     def get_containers(self, ids):
