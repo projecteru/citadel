@@ -391,7 +391,6 @@ def backup(container_id, src_path):
     error = result.error
     if error:
         raise ActionError(error)
-    return result
 
 
 def celery_task_stream_response(celery_task_ids):
