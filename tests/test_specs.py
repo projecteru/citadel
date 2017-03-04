@@ -28,6 +28,8 @@ entrypoints:
     healthcheck_expected_code: 200
     permdir: true
     publish_path: "/rhllor/service/com.platform.test"
+    backup_path:
+        - "/home/test-ci"
   web-bad-health-no-check:
     cmd: "python run.py --interval 15"
     ports:
@@ -86,6 +88,7 @@ crontab:
 
 
 def test_specs():
+    Specs.validate(specs_text)
     specs = Specs.from_string(specs_text)
     assert specs.appname == 'test-ci'
 
@@ -94,6 +97,7 @@ def test_specs():
         'command': 'python rsyslog_test.py',
         'ports': [{'protocol': u'tcp', 'port': 5000}],
         'restart': 'always',
+        'backup_path': [],
         'healthcheck_url': '/healthcheck',
         'healthcheck_expected_code': 200,
         'permdir': False,
@@ -122,3 +126,6 @@ def test_specs():
     assert specs.erection_timeout == FIVE_MINUTES
     # TODO: test crontab, wait for
     # https://github.com/josiahcarlson/parse-crontab/pull/23
+
+    web_entrypoint = entrypoints['web']
+    assert web_entrypoint.backup_path == ['/home/test-ci']

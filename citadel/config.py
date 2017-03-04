@@ -110,6 +110,10 @@ beat_schedule = {
         'schedule': crontab(minute='*'),
         'options': {'expires': 60},
     },
+    'backup': {
+        'task': 'citadel.tasks.trigger_backup',
+        'schedule': crontab(minute=0, hour=6),
+    },
 }
 
 try:
