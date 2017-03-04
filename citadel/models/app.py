@@ -184,10 +184,10 @@ class Release(BaseModelMixin, PropsMixin):
     def create(cls, app, sha, branch=None):
         """app must be an App instance"""
         appname = app.name
-        commit = get_commit(app.project_name, sha)
+        gitlab_project_name = app.project_name
+        commit = get_commit(gitlab_project_name, sha)
         if not commit:
-            logger.warn('Error getting commit %s %s', app, sha)
-            return None
+            raise ModelCreateError('Cannot find gitlab commit for {}:{}'.format(gitlab_project_name, sha))
 
         specs_text = get_file_content(app.project_name, 'app.yaml', sha)
         Specs.validate(specs_text)
