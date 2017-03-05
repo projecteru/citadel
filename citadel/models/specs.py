@@ -50,7 +50,7 @@ def validate_zone(s):
         raise ValidationError('Bad zone: {}'.format(s))
 
 
-def validate_entrypoint(s):
+def validate_entrypoint_name(s):
     if '_' in s:
         raise ValidationError('Entrypoints must not contain underscore')
 
@@ -131,6 +131,7 @@ def parse_combos(dic):
 
 def parse_entrypoints(dic):
     for entrypoint_name, entrypoint_dic in dic.iteritems():
+        validate_entrypoint_name(entrypoint_name)
         unmarshal_result = entrypoint_schema.load(entrypoint_dic)
         errors = unmarshal_result.errors
         if errors:
@@ -224,7 +225,7 @@ class ComboSchema(Schema):
     zone = fields.Str(validate=validate_zone, missing=DEFAULT_ZONE)
     podname = fields.Str(required=True)
     nodename = fields.Str()
-    entrypoint = fields.Str(validate=validate_entrypoint, required=True)
+    entrypoint = fields.Str(validate=validate_entrypoint_name, required=True)
     envname = fields.Str(missing='')
     cpu = fields.Int(required=True)
     memory = fields.Function(deserialize=parse_memory, required=True)
