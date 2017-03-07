@@ -56,8 +56,8 @@ def validate_entrypoint_name(s):
 
 
 def validate_cpu(n):
-    if n <= 0:
-        raise ValidationError('CPU must >0')
+    if n < 0:
+        raise ValidationError('CPU must >=0')
 
 
 def validate_user(username):
@@ -227,7 +227,7 @@ class ComboSchema(Schema):
     nodename = fields.Str()
     entrypoint = fields.Str(validate=validate_entrypoint_name, required=True)
     envname = fields.Str(missing='')
-    cpu = fields.Int(required=True)
+    cpu = fields.Float(required=True, validate=validate_cpu)
     memory = fields.Function(deserialize=parse_memory, required=True)
     count = fields.Int(missing=1)
     extra_env = fields.Function(deserialize=parse_extra_env, missing={})

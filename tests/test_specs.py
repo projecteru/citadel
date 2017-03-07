@@ -54,7 +54,7 @@ permitted_users:
   - "zhangye"
 combos:
   test:
-    cpu: 1
+    cpu: 1.2
     memory: "512MB"
     podname: "develop"
     entrypoint: "web"
@@ -65,7 +65,7 @@ combos:
       - "tonic"
       - "liuyifu"
   prod:
-    cpu: 1
+    cpu: 0.5
     memory: "512MB"
     podname: "develop"
     entrypoint: "web"
@@ -113,7 +113,7 @@ def test_specs():
     assert specs.mount_paths == ["/var/www/html", "/data/test-ci"]
 
     combos = specs.combos
-    combo_data = {'count': 1, 'memory': 536870912, 'cpu': 1, 'entrypoint': u'web', 'podname': u'develop', 'permitted_users': [u'tonic', u'liuyifu'], 'networks': [u'release'], 'zone': DEFAULT_ZONE, 'extra_env': {'FOO': 'bar'}, 'envname': ''}
+    combo_data = {'count': 1, 'memory': 536870912, 'cpu': 1.2, 'entrypoint': u'web', 'podname': u'develop', 'permitted_users': [u'tonic', u'liuyifu'], 'networks': [u'release'], 'zone': DEFAULT_ZONE, 'extra_env': {'FOO': 'bar'}, 'envname': ''}
     left_combo = combos['test']
     right_combo = Combo(_raw=combo_data, **combo_data)
     assert left_combo == right_combo
