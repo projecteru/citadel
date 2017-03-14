@@ -20,9 +20,9 @@ $ ./bin/run-etcd-watcher
 测试自己的分支：
 
 ```shell
-tools/upgrade-citadel.sh test
-tools/upgrade-citadel.sh test origin feature/somefeature
-tools/upgrade-citadel.sh test upstream master
+tools/deploy.sh test
+tools/deploy.sh test origin feature/somefeature
+tools/deploy.sh test upstream master
 ```
 
 ## 升级线上
@@ -30,9 +30,9 @@ tools/upgrade-citadel.sh test upstream master
 生产服部署在 c2-eru-1.
 
 ```shell
-tools/upgrade-citadel.sh prod
-tools/upgrade-citadel.sh prod origin feature/somefeature
-tools/upgrade-citadel.sh prod upstream master
+tools/deploy.sh prod
+tools/deploy.sh prod origin feature/somefeature
+tools/deploy.sh prod upstream master
 ```
 
 #### 本地搭建
