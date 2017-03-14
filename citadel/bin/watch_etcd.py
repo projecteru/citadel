@@ -6,8 +6,6 @@ import argparse
 import json
 import logging
 
-from etcd import EtcdWatchTimedOut, EtcdConnectionFailed
-
 from citadel.config import DEBUG
 from citadel.ext import get_etcd
 from citadel.app import celery  # must import citadel.app before importing citadel.tasks
@@ -28,16 +26,10 @@ logger = logging.getLogger('etcd-watcher')
 def watch_etcd(zone=None, etcd_path='/agent2'):
     etcd = get_etcd(zone)
     logger.info('Start watching etcd at zone %s, path %s', zone, etcd_path)
-    etcd_index = None
-    while True:
-        try:
-            resp = etcd.watch(etcd_path, recursive=True, timeout=0)
-        except (KeyError, EtcdWatchTimedOut, EtcdConnectionFailed):
-            continue
-        etcd_index = resp.etcd_index
+    for resp in etcd.eternal_watch(etcd_path, recursive=True):
         if not resp or resp.action != 'set':
             continue
-        logger.info('Index %s, key %s, value %s', etcd_index, resp.key, resp.value)
+        logger.info('Watch ETCD event: key %s, value %s', resp.key, resp.value)
         deal_with_agent_etcd_change.delay(resp.key, json.loads(resp.value))
 
 
