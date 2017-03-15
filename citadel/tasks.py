@@ -102,12 +102,11 @@ def build_image(self, repo, sha, uid='', artifact='', gitlab_build_id=''):
 @current_app.task(bind=True)
 def create_container(self, deploy_options=None, sha=None, user_id=None, envname=None):
     appname = deploy_options['appname']
+    app = App.get_by_name(appname)
     entrypoint = deploy_options['entrypoint']
     zone = deploy_options.pop('zone')
     logger.debug('Call grpc create_container with argument: %s', deploy_options)
     ms = _peek_grpc(get_core(zone).create_container(deploy_options))
-
-    release = Release.get_by_app_and_sha(appname, sha)
 
     containers = []
     task_id = self.request.id
@@ -140,13 +139,12 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
             logger.error('Error when creating container: %s', m.error)
             bad_news.append(content)
 
-    subscribers = release.specs.subscribers
-    msg = 'Deploy {}\n*GOOD NEWS*:\n```{}```'.format(release.name, good_news)
+    msg = 'Deploy {}\n*GOOD NEWS*:\n```{}```'.format(appname, good_news)
     if bad_news:
         msg += '\n*BAD NEWS*:\n```{}```'.format(bad_news)
         msg += '\n@timfeirg'
 
-    notbot_sendmsg(subscribers, msg)
+    notbot_sendmsg(app.subscribers, msg)
     return res
 
 
@@ -269,6 +267,7 @@ def deal_with_agent_etcd_change(self, key, data):
     healthy = data.get('Healthy')
     alive = data.get('Alive')
     appname = data.get('Name')
+    app = App.get_by_name(appname)
     if None in [container_id, healthy, alive, appname]:
         return
     container = Container.get_by_container_id(container_id)
@@ -277,8 +276,6 @@ def deal_with_agent_etcd_change(self, key, data):
 
     msg = ''
 
-    release = Release.get_by_app_and_sha(container.appname, container.sha)
-    subscribers = release.specs.subscribers or '#platform'
     if not alive:
         logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
@@ -295,7 +292,7 @@ def deal_with_agent_etcd_change(self, key, data):
                 make_kibana_url(appname=appname, ident=container.ident),
             )
 
-        notbot_sendmsg(subscribers, msg)
+        notbot_sendmsg(app.subscribers, msg)
         return
 
     if healthy:
@@ -464,9 +461,8 @@ def respawn_container(self, container_status, dangers, **kwargs):
     sha = container.sha
     cid = container_status.name
     if kwargs.get('notify'):
-        subscribers = container.release.specs.subscribers or '#platform'
         msg = '*Container Respawn*\n```\ncid: {}\nsha: {}\nreason: {}\n```'.format(cid, sha, dangers)
-        notbot_sendmsg(subscribers, msg)
+        notbot_sendmsg(container.app.subscribers, msg)
 
     upgrade_container(cid, sha, erection_timeout=0)
 
@@ -481,9 +477,8 @@ def send_warning(self, container_status, dangers, **kwargs):
     }
     """
     container = Container.get_by_container_id(container_status.name)
-    subscribers = container.release.specs.subscribers or '#platform'
     msg = '*Citadel Warning*\nDangers:\n`{}`\nContainer status:\n```\n{}\n```'.format(dangers, container_status)
-    notbot_sendmsg(subscribers, msg)
+    notbot_sendmsg(container.app.subscribers, msg)
 
 
 container_tackle_strategy_lib = {
