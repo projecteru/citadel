@@ -95,9 +95,9 @@
           <select name="release" class="form-control">
             % for release in releases:
               % if release.image:
-                <option value="${ release.sha }" >${ release.short_sha }: ${ shorten_sentence(release.commit_message) }...</option>
+                <option value="${ release.sha }" >${ release.short_sha } (${ release.branch }): ${ shorten_sentence(release.commit_message) }...</option>
               % else:
-                <option value="${ release.sha }" disabled>${ release.short_sha }: ${ shorten_sentence(release.commit_message) }...</option>
+                <option value="${ release.sha }" disabled>${ release.short_sha } (${ release.branch }): ${ shorten_sentence(release.commit_message) }...</option>
               % endif
             % endfor
           </select>
