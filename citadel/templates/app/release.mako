@@ -70,8 +70,11 @@
 
       <ul class="nav nav-tabs" id="add-container-form">
 
-        <% active_ = {'active': 'active'} %>
-          % for mode, combo in combos.items():
+        <%
+          active_ = {'active': 'active'}
+          combos_list = sorted(combos.items())
+        %>
+          % for mode, combo in combos_list:
             % if combo.allow(g.user.name) or g.user.privilege:
               <li class="${ active_.pop('active', '') }"><a class="btn" data-target="#${ mode }" data-toggle="tab">${ mode }</a></li>
             % else:
@@ -83,7 +86,7 @@
 
         <div class="tab-content">
           <% active_ = {'active': 'active'} %>
-            % for mode, combo in combos.items():
+            % for mode, combo in combos_list:
               <div class="tab-pane ${ active_.pop('active', '') }" id="${ mode }">
                 <br>
 
