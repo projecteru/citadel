@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from collections import OrderedDict
 from numbers import Number
 
 import yaml
@@ -304,7 +305,7 @@ class Specs(Jsonized):
         self.volumes = volumes
         self.base = base
         self.mount_paths = mount_paths
-        self.combos = {combo_name: Combo(_raw=data, **data) for combo_name, data in combos.iteritems()}
+        self.combos = OrderedDict((combo_name, Combo(_raw=data, **data)) for combo_name, data in combos.iteritems())
         self.permitted_users = set(permitted_users)
         for combo in self.combos.itervalues():
             self.permitted_users.update(combo.permitted_users)
