@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+
+from flask import request
 from flask import session, Blueprint, redirect, url_for, abort
 
 from citadel.ext import sso
@@ -19,6 +21,10 @@ def authorized():
         abort(400)
 
     session['sso'] = resp['access_token']
+
+    state = request.args.get('state')
+    if state:
+        return redirect(state)
     return redirect(url_for('user.login'))
 
 
@@ -26,7 +32,7 @@ def authorized():
 def login():
     if 'sso' in session:
         return redirect(url_for('index.index'))
-    return sso.authorize(callback=url_for('user.authorized', _external=True))
+    return sso.authorize(callback=url_for('user.authorized', _external=True), state=request.referrer)
 
 
 @bp.route('/logout')
