@@ -135,10 +135,11 @@
     }
     });
 
-    $('a.switch-zone').click(function (){
+    $('a.switch-zone').click(function(e) {
+      e.preventDefault();
       var self = $(this);
       $.ajax({
-      url: '/ajax/switch-zone?zone=' + self.data('zone'),
+        url: '/ajax/switch-zone?zone=' + self.data('zone'),
         type: 'POST',
         success: function(data, textStatus, jQxhr) {
           location.reload();
