@@ -111,7 +111,6 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
     containers = []
     task_id = self.request.id
     channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
-    good_news = []
     bad_news = []
     res = []
     for m in ms:
@@ -120,7 +119,6 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
         res.append(m.to_dict())
 
         if m.success:
-            good_news.append(content)
             logger.debug('Creating %s:%s got grpc message %s', appname, entrypoint, m)
             override_status = ContainerOverrideStatus.DEBUG if deploy_options.get('debug', False) else ContainerOverrideStatus.NONE
             container = Container.create(appname, sha, m.id, entrypoint, envname, deploy_options['cpu_quota'], zone, m.podname, m.nodename, override_status=override_status)
@@ -139,12 +137,10 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
             logger.error('Error when creating container: %s', m.error)
             bad_news.append(content)
 
-    msg = 'Deploy {}\n*GOOD NEWS*:\n```{}```'.format(appname, good_news)
     if bad_news:
-        msg += '\n*BAD NEWS*:\n```{}```'.format(bad_news)
-        msg += '\n@timfeirg'
+        msg = 'Deploy {}\n*BAD NEWS*:\n```\n{}\n```\n'.format(appname, bad_news)
+        notbot_sendmsg(app.subscribers, msg)
 
-    notbot_sendmsg(app.subscribers, msg)
     return res
 
 
