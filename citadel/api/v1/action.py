@@ -9,7 +9,7 @@ from citadel.libs.agent import EruAgentError, EruAgentClient
 from citadel.libs.datastructure import AbortDict
 from citadel.libs.view import create_api_blueprint
 from citadel.models.app import Release
-from citadel.models.gitlab import get_project_name, get_file_content
+from citadel.models.gitlab import get_project_name, get_file_content, get_project_group, get_gitlab_groups
 from citadel.rpc import get_core
 from citadel.tasks import ActionError, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback, build_image
 from citadel.views.helper import make_deploy_options
@@ -34,6 +34,11 @@ def build():
     artifact = data.get('artifact', '')
     uid = data.get('uid', '')
     gitlab_build_id = data.get('gitlab_build_id', '')
+
+    group = get_project_group(repo)
+    all_groups = get_gitlab_groups()
+    if not group or group not in all_groups:
+        raise ActionError(400, 'Only project under a group can be built, your git repo is %s, (tricky: not found)' % repo)
 
     async_result = build_image.delay(repo, sha, uid, artifact, gitlab_build_id)
     task_id = async_result.task_id
