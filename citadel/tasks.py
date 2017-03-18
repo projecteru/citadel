@@ -5,6 +5,7 @@ import yaml
 from celery import current_app
 from celery.result import AsyncResult
 from flask import url_for
+from grpc import RpcError
 from grpc.framework.interfaces.face import face
 from humanfriendly import parse_timespan
 from more_itertools import peekable
@@ -381,10 +382,15 @@ def trigger_backup():
 @current_app.task
 def backup(container_id, src_path):
     container = Container.get_by_container_id(container_id)
-    result = get_core(container.zone).backup(container.container_id, src_path)
+    try:
+        result = get_core(container.zone).backup(container.container_id, src_path)
+    except RpcError as e:
+        notbot_sendmsg(container.app.subscribers, 'Backup container {} failed, err: {}'.format(container_id, e))
+        return
+
     error = result.error
     if error:
-        raise ActionError(error)
+        notbot_sendmsg(container.app.subscribers, 'Backup container {} failed, err: {}'.format(container_id, error))
 
 
 def celery_task_stream_response(celery_task_ids):

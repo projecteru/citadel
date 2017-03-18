@@ -148,7 +148,6 @@ class CoreRPC(object):
         for m in stub.RemoveContainer(ids, _STREAM_TIMEOUT):
             yield JSONMessage(m)
 
-    @handle_rpc_exception(default=None)
     def backup(self, id_, src_path):
         stub = self._get_stub()
         opts = BackupOptions(id=id_, src_path=src_path)
