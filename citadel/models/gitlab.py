@@ -80,7 +80,7 @@ def get_build_artifact(project_name, ref, build_id):
     if not commit:
         return ''
 
-    build = next((b for b in sorted(commit.builds(), key=attrgetter('id')) if getattr(b, 'artifacts_file', None) and b.id < build_id), None)
+    build = next((b for b in commit.builds() if getattr(b, 'artifacts_file', None)), None)
     if not build:
         return ''
 
