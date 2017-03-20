@@ -224,6 +224,7 @@ def upgrade_container(self, old_container_id, sha, user_id=None, erection_timeou
     if not release or not release.image:
         raise ActionError(400, 'Release %s not found or not built' % sha)
 
+    erection_timeout = erection_timeout or release.erection_timeout
     deploy_options = old_container.deploy_options
     # update image, and use random node
     deploy_options.update({'image': release.image, 'nodename': ''})
@@ -238,7 +239,7 @@ def upgrade_container(self, old_container_id, sha, user_id=None, erection_timeou
     new_container_id = grpc_message['id']
     new_container = Container.get_by_container_id(new_container_id)
     rds.publish(channel_name, make_sentence_json('Wait for container {} to erect...'.format(new_container.short_id)))
-    healthy = new_container.wait_for_erection(timeout=erection_timeout or release.erection_timeout)
+    healthy = new_container.wait_for_erection(timeout=erection_timeout)
     if healthy:
         rds.publish(channel_name, make_sentence_json('New container {} OK, remove old container {}'.format(new_container_id, old_container_id)))
         remove_container(old_container_id)
@@ -265,6 +266,7 @@ def deal_with_agent_etcd_change(self, key, data):
     alive = data.get('Alive')
     appname = data.get('Name')
     app = App.get_by_name(appname)
+    subscribers = app.subscribers
     if None in [container_id, healthy, alive, appname]:
         return
     container = Container.get_by_container_id(container_id)
@@ -288,11 +290,7 @@ def deal_with_agent_etcd_change(self, key, data):
                 url_for('app.app', name=appname, _external=True),
                 make_kibana_url(appname=appname, ident=container.ident),
             )
-
-        notbot_sendmsg(app.subscribers, msg)
-        return
-
-    if healthy:
+    elif healthy:
         Publisher.add_container(container)
         container.mark_initialized()
         update_elb_for_containers(container)
@@ -309,6 +307,8 @@ def deal_with_agent_etcd_change(self, key, data):
         else:
             container.mark_initialized()
             logger.debug('Initial sick condition: [%s, %s, %s] DEL [%s, %s] [%s]', container.appname, container.podname, container.entrypoint, container_id, container.ident, ','.join(container.get_backends()))
+
+    notbot_sendmsg(subscribers, msg)
 
 
 @current_app.task(bind=True)
