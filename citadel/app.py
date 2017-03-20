@@ -11,7 +11,6 @@ from citadel.ext import sess, rds, db, mako
 from citadel.libs.datastructure import DateConverter
 from citadel.libs.utils import notbot_sendmsg
 from citadel.models.user import get_current_user, get_current_user_via_auth
-from citadel.tasks import ActionError
 
 
 logging.getLogger('requests').setLevel(logging.CRITICAL)
@@ -64,8 +63,7 @@ def make_celery(app):
         def on_failure(self, exc, task_id, args, kwargs, einfo):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
             rds.publish(channel_name, TASK_PUBSUB_EOF.format(task_id=task_id))
-            message = str(exc) if isinstance(exc, ActionError) else einfo.traceback
-            msg = 'Citadel task {}:\nargs\n```\n{}\n```\nkwargs:\n```\n{}\n```\nerror message:\n```\n{}\n```'.format(self.name, args, kwargs, message)
+            msg = 'Citadel task {}:\nargs\n```\n{}\n```\nkwargs:\n```\n{}\n```\nerror message:\n```\n{}\n```'.format(self.name, args, kwargs, str(exc))
             notbot_sendmsg('#platform', msg)
 
         def __call__(self, *args, **kwargs):
