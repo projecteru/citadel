@@ -6,7 +6,7 @@ import argparse
 import json
 import logging
 
-from citadel.config import DEBUG, IGNORE_ETCD_EVENTS_APPNAME
+from citadel.config import DEBUG
 from citadel.ext import get_etcd
 from citadel.app import celery  # must import citadel.app before importing citadel.tasks
 from citadel.tasks import deal_with_agent_etcd_change
@@ -29,13 +29,8 @@ def watch_etcd(zone=None, etcd_path='/agent2'):
     for resp in etcd.eternal_watch(etcd_path, recursive=True):
         if not resp or resp.action != 'set':
             continue
-        responson = json.loads(resp.value)
-        name = responson.get('Name')
-        if name in IGNORE_ETCD_EVENTS_APPNAME:
-            logger.info('Ignore %s events: %s', name, responson)
-            continue
-        logger.info('Watch ETCD event: key %s, value %s', resp.key, responson)
-        deal_with_agent_etcd_change.delay(resp.key, responson)
+        logger.info('Watch ETCD event: key %s, value %s', resp.key, resp.value)
+        deal_with_agent_etcd_change.delay(resp.key, json.loads(resp.value))
 
 
 def parse_args():
