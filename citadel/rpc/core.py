@@ -76,7 +76,7 @@ class Node(JSONMessage):
 
     @property
     def used_mem(self):
-        mem = sum([c.used_mem for c in self.containers])
+        mem = sum([c.memory for c in self.containers])
         verbose_mem = mem
         return verbose_mem
 

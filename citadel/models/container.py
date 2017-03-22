@@ -35,7 +35,8 @@ class Container(BaseModelMixin, PropsMixin):
     container_id = db.Column(db.CHAR(64), nullable=False, index=True)
     entrypoint = db.Column(db.String(50), nullable=False)
     env = db.Column(db.String(50), nullable=False)
-    cpu_quota = db.Column(db.Numeric(12, 3), nullable=False, default=1)
+    cpu_quota = db.Column(db.Numeric(12, 3), nullable=False)
+    memory = db.Column(db.Integer, nullable=False)
     zone = db.Column(db.String(50), nullable=False)
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
@@ -141,7 +142,7 @@ class Container(BaseModelMixin, PropsMixin):
             'entrypoint': self.entrypoint,
             'cpu_quota': float(self.cpu_quota),
             'count': 1,
-            'memory': self.info['HostConfig']['Memory'],
+            'memory': self.memory,
             'networks': {network_name: '' for network_name in self.networks},
             'env': [e for e in self.info['Config']['Env'] if not e.split('=', 1)[0] in UPGRADE_CONTAINER_IGNORE_ENV],
             'raw': release.raw,
@@ -164,11 +165,6 @@ class Container(BaseModelMixin, PropsMixin):
         container_info = json.loads(res.value)
         # if missing 'Healthy', considered healthy
         return container_info.get('Healthy', True)
-
-    @property
-    def used_mem(self):
-        mem = self.info.get('HostConfig', {}).get('Memory', 0)
-        return mem
 
     @property
     def short_id(self):
