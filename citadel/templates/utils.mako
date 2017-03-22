@@ -52,7 +52,7 @@
             <span data-toggle="tooltip" data-html="true" data-placement="top" title="
               <p>${ naturaltime(c.created) }</p>
               <p>CPU: ${ c.cpu_quota or u'0 (共享)'}</p>
-              <p>Memory: ${ naturalsize(c.used_mem, binary=True) }</p>
+              <p>Memory: ${ naturalsize(c.memory, binary=True) }</p>
               ">
               <a href="${ url_for("app.app", name=c.appname) }" target="_blank">${ c.appname }</a> / ${ c.ident }
             </span>
