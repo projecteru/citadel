@@ -51,12 +51,12 @@ class Container(BaseModelMixin, PropsMixin):
         return 'citadel:container:%s' % self.container_id
 
     @classmethod
-    def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, zone, podname, nodename, override_status=ContainerOverrideStatus.NONE):
+    def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, memory, zone, podname, nodename, override_status=ContainerOverrideStatus.NONE):
         try:
             c = cls(appname=appname, sha=sha, container_id=container_id,
                     entrypoint=entrypoint, env=env, cpu_quota=cpu_quota,
-                    zone=zone, podname=podname, nodename=nodename,
-                    override_status=override_status)
+                    memory=memory, zone=zone, podname=podname,
+                    nodename=nodename, override_status=override_status)
             db.session.add(c)
             db.session.commit()
         except IntegrityError:

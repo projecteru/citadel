@@ -122,7 +122,7 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
         if m.success:
             logger.debug('Creating %s:%s got grpc message %s', appname, entrypoint, m)
             override_status = ContainerOverrideStatus.DEBUG if deploy_options.get('debug', False) else ContainerOverrideStatus.NONE
-            container = Container.create(appname, sha, m.id, entrypoint, envname, deploy_options['cpu_quota'], zone, m.podname, m.nodename, override_status=override_status)
+            container = Container.create(appname, sha, m.id, entrypoint, envname, deploy_options['cpu_quota'], deploy_options['memory'], zone, m.podname, m.nodename, override_status=override_status)
             logger.debug('Container [%s] created', m.id)
             if not container:
                 # TODO: can't just continue here, must create container
