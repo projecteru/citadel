@@ -30,3 +30,5 @@ wrapt
 pyparsing
 crontab
 marshmallow
+-e git+http://gitlab.ricebook.net/platform/mapi.git#egg=mapi
+-e git+http://gitlab.ricebook.net/platform/erulb3.git#egg=erulb-py
