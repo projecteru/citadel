@@ -184,6 +184,7 @@ class Container(BaseModelMixin, PropsMixin):
         return self.override_status == ContainerOverrideStatus.DEBUG
 
     def mark_debug(self):
+        Publisher.remove_container(self)
         self.override_status = ContainerOverrideStatus.DEBUG
         try:
             db.session.commit()
