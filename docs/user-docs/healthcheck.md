@@ -1,0 +1,7 @@
+## 健康检查
+
+在 docker 宿主机上，我们有 eru-agent 会进行频密的健康检查(目前是3s一次，timeout 3s），如果发现容器不健康，会立刻报警并且从 ELB 上下线，使其停止对外服务。如果容器恢复健康，则立刻重新上线 ELB。
+
+任何应用只要声明了 ports，即免费赠送 tcp 健康检查。如需 http 健康检查，或者健康检查的端口不暴露给 ELB，请参照 [app.yaml 文档](http://gitlab.ricebook.net/platform/citadel/blob/master/documents/app-specs%E8%AF%B4%E6%98%8E.md)进行配置。
+
+如果有些应用在健康了以后，还有一段“预热”时间，应用需要加载一些资源，同时业务接口响应较慢，可以考虑取一个有代表性的业务接口作为健康检查接口。
