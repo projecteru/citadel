@@ -37,10 +37,10 @@
               data-original-title='钻进去看看'
               data-content="
               % if g.user.privilege:
-                <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ c.nodename } -t 'sudo docker-enter ${ c.short_id }'</code></pre>
+                <pre><code style='font-size:70%;white-space:nowrap' > ssh ${ c.nodename } -t 'sudo docker-enter ${ c.short_id }'</code></pre>
               % else:
                 用 sso 密码钻进容器：
-                <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ g.user.name }~${ c.container_id }@mimiron.ricebook.net -p 2200</code></pre>
+                <pre><code style='font-size:70%;white-space:nowrap' > ssh ${ g.user.name }~${ c.container_id }@mimiron.ricebook.net -p 2200</code></pre>
               % endif
               <a href='${ make_kibana_url(appname=c.appname, ident=c.ident) }' target='_blank'><span class='label label-info'>日志</span></a>
               <a href='http://dashboard.ricebook.net/dashboard/db/eru-apps?var-app=${ c.appname }&var-version=${ c.short_sha }&var-entry=${ c.entrypoint }&var-container_id=${ c.short_id }' target='_blank'><span class='label label-info'>监控</span></a>
@@ -65,7 +65,7 @@
               rel='popover'
               data-html='true'
               data-content="
-              <pre><code style='font-size:70%;white-space:nowrap' >ssh ${ c.nodename } -t 'sudo su'</code></pre>
+              <pre><code style='font-size:70%;white-space:nowrap' > ssh ${ c.nodename } -t 'sudo su'</code></pre>
               <a href='http://dashboard.ricebook.net/dashboard/db/servers?var-hostname=${ c.nodename }' target='_blank'><span class='label label-info'>host监控</span></a>
               <a href='${ url_for('admin.node', podname=c.podname, nodename=c.nodename) }' target='_blank'><span class='label label-info'>这台机还有啥</span></a>
               ">

@@ -59,7 +59,6 @@ CITADEL_HEALTH_CHECK_STATS_KEY = 'citadel:health'
 UPGRADE_CONTAINER_IGNORE_ENV = {
     'ERU_NODE_IP',
     'ERU_NODE_NAME',
-    'ERU_PERMDIR',
     'APP_NAME',
     'ERU_POD',
     'ERU_ZONE',

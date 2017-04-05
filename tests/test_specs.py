@@ -26,7 +26,6 @@ entrypoints:
     restart: "always"
     healthcheck_url: "/healthcheck"
     healthcheck_expected_code: 200
-    permdir: true
     publish_path: "/rhllor/service/com.platform.test"
     backup_path:
         - "/home/test-ci"
@@ -46,9 +45,6 @@ build:
   - "pip install -r requirements.txt"
 base: "hub.ricebook.net/base/centos:python-latest"
 subscribers: "#platform"
-mount_paths:
-  - "/var/www/html"
-  - "/data/test-ci"
 permitted_users:
   - "cmgs"
   - "zhangye"
@@ -100,7 +96,6 @@ def test_specs():
         'backup_path': [],
         'healthcheck_url': '/healthcheck',
         'healthcheck_expected_code': 200,
-        'permdir': False,
         'privileged': False,
     }
     left_entrypoint = entrypoints['rsyslog']
@@ -110,7 +105,6 @@ def test_specs():
 
     assert specs.build == ['curl www.baidu.com', 'pip install -r requirements.txt']
     assert specs.base == 'hub.ricebook.net/base/centos:python-latest'
-    assert specs.mount_paths == ["/var/www/html", "/data/test-ci"]
 
     combos = specs.combos
     combo_data = {'count': 1, 'memory': 536870912, 'cpu': 1.2, 'entrypoint': u'web', 'podname': u'develop', 'permitted_users': [u'tonic', u'liuyifu'], 'networks': [u'release'], 'zone': DEFAULT_ZONE, 'extra_env': {'FOO': 'bar'}, 'envname': ''}

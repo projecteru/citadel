@@ -7,7 +7,6 @@
 ```
     'ERU_NODE_IP',
     'ERU_NODE_NAME',
-    'ERU_PERMDIR',
     'APP_NAME',
     'ERU_POD',
     'ERU_ZONE',
