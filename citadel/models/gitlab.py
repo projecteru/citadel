@@ -32,7 +32,7 @@ def get_project_group(repo):
 
 @cache('citadel:allgroups', ttl=ONE_DAY)
 def get_gitlab_groups():
-    groups = gitlab.groups.list()
+    groups = gitlab.groups.list(all=True)
     return [g.name for g in groups]
 
 
