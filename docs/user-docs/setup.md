@@ -128,7 +128,6 @@ entrypoints:
     cmd: "gunicorn -c gunicorn_config.py app:app"
     ports:
       - "5000/tcp"
-    permdir: true
     restart: "always"
 build:
   - "pip install -U -r requirements.txt"

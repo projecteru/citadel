@@ -6,6 +6,7 @@
 
 * 用户文档
 	* [上线流程](docs/user-docs/setup.md)
+	* [`app.yaml` 文档](docs/user-docs/specs.md)
 	* [权限控制](docs/user-docs/permission.md)
 	* [部署套餐](docs/user-docs/combos.md)
 	* [平滑升级](docs/user-docs/rolling-update.md)

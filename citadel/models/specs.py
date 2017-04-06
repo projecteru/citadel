@@ -191,7 +191,6 @@ class EntrypointSchema(Schema):
     healthcheck_port = fields.Int(validate=validate_port)
     healthcheck_expected_code = fields.Int(validate=validate_http_code)
     hosts = fields.List(fields.Str())
-    permdir = fields.Bool(missing=False)
     privileged = fields.Bool(missing=False)
     log_config = fields.Str(validate=validate_log_config)
     working_dir = fields.Str()
@@ -202,15 +201,14 @@ class EntrypointSchema(Schema):
 class Entrypoint(Jsonized):
     def __init__(self, command=None, ports=None, network_mode=None,
                  restart=None, healthcheck_url=None, healthcheck_port=None,
-                 healthcheck_expected_code=None, hosts=None, permdir=None,
-                 privileged=None, log_config=None, working_dir=None,
-                 publish_path=None, backup_path=None, _raw=None):
+                 healthcheck_expected_code=None, hosts=None, privileged=None,
+                 log_config=None, working_dir=None, publish_path=None,
+                 backup_path=None, _raw=None):
         self.command = command
         self.ports = [Port(_raw=_raw, **data) for data in ports]
         self.network_mode = network_mode
         self.restart = restart
         self.hosts = hosts
-        self.permdir = permdir
         self.privileged = privileged
         self.log_config = log_config
         self.working_dir = working_dir
@@ -277,7 +275,6 @@ class SpecsSchema(Schema):
     build = fields.List(fields.Str())
     volumes = fields.List(fields.Str())
     base = fields.Str(required=True)
-    mount_paths = fields.List(fields.Str())
     combos = fields.Function(deserialize=parse_combos, missing={})
     permitted_users = fields.List(fields.Str(validate=validate_user), missing=[])
     subscribers = fields.Str(required=True)
@@ -295,15 +292,13 @@ class Specs(Jsonized):
     exclude_from_dump = ['crontab']
 
     def __init__(self, appname=None, entrypoints=None, build=None, volumes=None,
-                 base=None, mount_paths=None, combos={}, permitted_users=None,
-                 subscribers=None, erection_timeout=None, crontab=None,
-                 _raw=None):
+                 base=None, combos={}, permitted_users=None, subscribers=None,
+                 erection_timeout=None, crontab=None, _raw=None):
         self.appname = appname
         self.entrypoints = {entrypoint_name: Entrypoint(_raw=data, **data) for entrypoint_name, data in entrypoints.iteritems()}
         self.build = build
         self.volumes = volumes
         self.base = base
-        self.mount_paths = mount_paths
         self.combos = {combo_name: Combo(_raw=data, **data) for combo_name, data in combos.iteritems()}
         self.permitted_users = set(permitted_users)
         for combo in self.combos.itervalues():
@@ -323,6 +318,8 @@ class Specs(Jsonized):
         errors = unmarshal_result.errors
         if errors:
             raise ValidationError(str(errors))
+        if 'mount_paths' in dic or 'binds' in dic or any(['permdir' in entrypoint for entrypoint in dic.get('entrypoint', {}).values()]):
+            raise ValidationError('mount_paths, permdir, binds are no longer supported, use volumes instead, see http://platform.docs.ricebook.net/citadel/docs/user-docs/specs.html')
 
     @classmethod
     @memoize
