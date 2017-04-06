@@ -2,8 +2,6 @@
 
 * [Introduction](README.md)
 
-* [CHANGELOG](CHANGELOG.md)
-
 * 用户文档
 	* [上线流程](docs/user-docs/setup.md)
 	* [`app.yaml` 文档](docs/user-docs/specs.md)

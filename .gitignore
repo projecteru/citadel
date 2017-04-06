@@ -10,3 +10,4 @@ src
 .cache
 _book
 public
+node_modules

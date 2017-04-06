@@ -1,5 +1,6 @@
 {
 	"output": "public",
+	"plugins": ["heading-anchors"],
 	"title": "Citadel documents",
 	"description": "This documents of Citadel",
 	"author": "Platform"

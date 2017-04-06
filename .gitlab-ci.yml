@@ -3,6 +3,7 @@ pages:
   stage: deploy
   script:
     - "npm install -g gitbook-cli"
+    - "gitbook install"
     - "gitbook build . public"
   artifacts:
     paths:
