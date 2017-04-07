@@ -33,7 +33,7 @@ route add -net 10.215.240.0/20 gw 10.10.0.1
 
 #### 容器里边的运行目录是啥？
 
-之前是 `/$APPNAME` ，为了规避安全风险，换成了 `/home/$APPDIR`。
+默认就是应用所在的目录, 之前是 `/$APPNAME` ，为了规避安全风险，换成了 `/home/$APPNAME`. 当然, 你可以自己在 `app.yaml` 里设置 `working_dir`.
 
 #### 安装依赖很慢，或者被墙了
 
@@ -45,3 +45,13 @@ pip install -U -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.
 ```
 
 翻墙的话，可以参考[翻墙文档](http://phabricator.ricebook.net/w/develop/platform/gfw/)
+
+#### 我真的很想把玩一下各种镜像
+
+在 Mac 上[安装 Docker](https://docs.docker.com/docker-for-mac/install/), 然后在高级设置里加入 `insecure-registry` 这个参数就可以了:
+
+```json
+{
+	"insecure-registries": ["hub.ricebook.net"],
+}
+```
