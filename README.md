@@ -1,9 +1,15 @@
-这里应该讲讲 Citadel 是什么, eru-core 是什么, 可是没空写.
+这里是 Citadel 的文档, 至于 Citadel 是什么, eru-core 是什么, 在这里只能简要港下, 有兴趣了解的话, @dante 在书写 eru 项目的白皮书, 在那里会系统介绍项目架构和各个组件之间的关系.
+
+Citadel 是容器平台的各种功能的一个集合, 它负责调用 [`eru-core`](http://gitlab.ricebook.net/platform/core) 进行容器的创建和删除, 还负责把容器的 SDN IP 更新到 [ERU Load Balancer](http://gitlab.ricebook.net/platform/erulb3/) (ELB) 上, 使之能接受来自线上的流量. 除此外, Citadel 还与我们的[内网 gitlab](http://gitlab.ricebook.net/) 进行高度集成, 你可以用 gitlab ci 给自己的应用加上 Citadel 的自动化构建, (未来)甚至滚动上线, 这部分功能是通过在 gitlab ci build 镜像里内置 [`corecli`](http://gitlab.ricebook.net/platform/corecli/) 这个小工具来实现的.
 
 如果你只是想把自己的项目在 Citadel 上部署的话, 请阅读[上线流程](docs/user-docs/setup.md).
 
 Changelog
 ==========
+
+__2017-04-08__
+
+  +  强制项目维护者使用自己的 sso auth token, 详见[安全与权限](docs/user-docs/security-and-permissions.md)
 
 __2017-04-06__
 

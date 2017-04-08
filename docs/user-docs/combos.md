@@ -1,6 +1,6 @@
 ## 部署套餐
 
-其实就是把部署参数在 `app.yaml` 创建成一个叫 `Combos` 的东西，这样在 Citadel 界面上就无需手动选择各种部署参数了：
+如果不在 `app.yaml` 里声明 `combos` 的话, 每一次在 Citadel 界面上部署都要手动选择各种部署参数(cpu, memory, network 等等), 太麻烦了, 所以可以把常用的部署参数写在 `app.yaml` 里, 比如:
 
 ```
 combos:
@@ -18,7 +18,7 @@ combos:
       - "tonic"
     # 每个机房都有自己的 ELB，所以每个机房都要单独绑定不同的域名
     elb:
-      - "internal ci-test.test.ricebook.net"
+      - "internal my-app.ricebook.net"
   test:
     cpu: 0.1
     memory: "50MB"
@@ -29,5 +29,5 @@ combos:
       - "c1-test2"
     envs: "FOO=bar;"
     elb:
-      - "develop ci-test-c1.test.ricebook.net"
+      - "develop my-app.test.ricebook.net"
 ```
