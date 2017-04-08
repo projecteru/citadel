@@ -30,7 +30,7 @@ def get_current_user_via_auth(token):
 
     status_code = resp.status_code
     if status_code != 200:
-        logger.warn('Neptulon error: headers %s, code %s, body %s', headers, status_code, resp.raw_data)
+        logger.warn('Neptulon error: headers %s, code %s, body %s', headers, status_code, resp.text)
         return None
 
     return User.from_dict(resp.json())

@@ -116,7 +116,7 @@ def create_app():
             session.pop('sso', None)
 
         if not g.user and not anonymous_path(request.path):
-            abort(401, 'Must login')
+            abort(401, 'Not authenticated')
 
     return app
 
