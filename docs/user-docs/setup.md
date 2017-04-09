@@ -76,7 +76,7 @@ base 镜像基本都是基于 Alpine 做的了，[这里](http://hub.ricebook.ne
 
 ## 2. 添加 `app.yaml`
 
-在项目根目录添加 `app.yaml`，让 Citadel 知道如何部署你的项目。关于 `app.yaml`，请务必阅读六爷呕心沥血写的[超级完整科普的文档](http://gitlab.ricebook.net/platform/citadel/blob/master/documents/app-specs%E8%AF%B4%E6%98%8E.md)
+在项目根目录添加 `app.yaml`，让 Citadel 知道如何部署你的项目. `app.yaml` 功能丰富, 详见 [`app.yaml` 文档](user-docs/specs.md)
 
 #### Java 项目：
 
