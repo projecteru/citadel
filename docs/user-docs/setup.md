@@ -1,8 +1,9 @@
 # 操作步骤
 
-1. 在项目根目录添加 `.gitlab-ci.yml`，让 Gitlab-CI build 你的项目，build 结束以后会将该版本注册进 citadel。
-2. 将项目域名绑定到 ELB（eru-loadbalance），这一步在 [slack#sa-online](https://ricebook.slack.com/messages/sa-online/) 提申请，由平台负责绑定
-3. 在 citadel 上部署容器，跑起来
+1. 去 sso 上获取 auth token, 然后去 gitlab 项目设置 - CI/CD Pipelines, 把这个 token 定义成 `CITADEL_AUTH_TOKEN` 这个变量.
+2. 在项目根目录添加 `.gitlab-ci.yml`，让 Gitlab-CI build 你的项目，build 结束以后会将该版本注册进 citadel。
+3. 将项目域名绑定到 ELB（eru-loadbalance），这一步在 [slack#sa-online](https://ricebook.slack.com/messages/sa-online/) 提申请，由平台负责绑定
+4. 在 citadel 上部署容器，跑起来
 
 ## 1. 添加 `.gitlab-ci.yml`
 
@@ -18,9 +19,7 @@ Java 项目在 Gitlab-CI build 阶段会打包成 `.jar` 文件生成 Gitlab art
 # .gitlab-ci.yml
 image: "hub.ricebook.net/base/alpine:java-2017.03.17"
 variables:
-  CITADEL_AUTH_TOKEN: "D73YeuAMzZSkoDY4FAEGRAmMKMY0Rpfv06FQEbygtEkB6TrXceeWrWcqKWAMNekL"
   CITADEL_URL: "http://citadel.ricebook.net"
-  MIMIRON_URL: "http://mimiron.ricebook.net"
   SSO_URL: "http://sso.ricebook.net"
 stages:
   - "build"
@@ -56,9 +55,7 @@ Python 不需要编译出二进制文件，所以这样写就可以了：
 # .gitlab-ci.yml
 image: "hub.ricebook.net/base/centos:python-latest"
 variables:
-  CITADEL_AUTH_TOKEN: "D73YeuAMzZSkoDY4FAEGRAmMKMY0Rpfv06FQEbygtEkB6TrXceeWrWcqKWAMNekL"
   CITADEL_URL: "http://citadel.ricebook.net"
-  MIMIRON_URL: "http://mimiron.ricebook.net"
   SSO_URL: "http://sso.ricebook.net"
 stages:
   - "build"
