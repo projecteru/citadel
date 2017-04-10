@@ -26,6 +26,10 @@
     </thead>
     <tbody>
       % for c in containers:
+        <%
+          ssh_command_root = "ssh {container.nodename} -t 'sudo docker-enter {container.short_id}'".format(container=c)
+          ssh_command_process = "ssh {container.nodename} -t 'sudo docker exec -it {container.short_id} sh'".format(container=c)
+        %>
         <tr>
           <td><input name="container-id" type="checkbox" value="${ c.container_id }"></td>
           <td>
@@ -37,7 +41,7 @@
               data-original-title='钻进去看看'
               data-content="
               % if g.user.privilege:
-                <pre><code style='font-size:70%;white-space:nowrap' > ssh ${ c.nodename } -t 'sudo docker-enter ${ c.short_id }'</code></pre>
+                <pre><code style='font-size:70%;white-space:nowrap' >${ ssh_command_root }</code><br><code style='font-size:70%;white-space:nowrap' >${ ssh_command_process }</code></pre>
               % else:
                 用 sso 密码钻进容器：
                 <pre><code style='font-size:70%;white-space:nowrap' > ssh ${ g.user.name }~${ c.container_id }@mimiron.ricebook.net -p 2200</code></pre>

@@ -21,6 +21,10 @@
       </thead>
       <tbody>
         % for elb in elbs:
+          <%
+          ssh_command_root = "ssh {elb.container.nodename} -t 'sudo docker-enter {elb.container.short_id}'".format(elb=elb)
+          ssh_command_process = "ssh {elb.container.nodename} -t 'sudo docker exec -it {elb.container.short_id} sh'".format(elb=elb)
+          %>
           <tr>
             <td>
               <a href="javascript://"
@@ -33,7 +37,8 @@
                 <a href='http://${ elb.ip }/__erulb__/upstream' target='_blank'><span class='label label-info'>upstream</span></a>
                 <a href='http://${ elb.ip }/__erulb__/rule' target='_blank'><span class='label label-info'>rule</span></a>
                 <br> <br>
-                <pre><code style='font-size:70%;white-space:nowrap' > ssh ${ elb.container.nodename } -t 'sudo docker-enter ${ elb.container.short_id }'</code></pre>">
+                <pre><code style='font-size:70%;white-space:nowrap' >${ ssh_command_root }</code><br><code style='font-size:70%;white-space:nowrap' >${ ssh_command_process }</code></pre>
+                ">
                 ${ elb.ip }
               </a>
             </td>
