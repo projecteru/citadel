@@ -123,22 +123,6 @@ class PropsItem(object):
         obj.delete_props_item(self.name)
 
 
-class JsonType(types.TypeDecorator):
-    impl = types.Text
-
-    def process_bind_param(self, value, engine):
-        try:
-            return json.dumps(value)
-        except (ValueError, TypeError):
-            return '{}'
-
-    def process_result_value(self, value, engine):
-        try:
-            return json.loads(value)
-        except (ValueError, TypeError):
-            return {}
-
-
 class Enum34(types.TypeDecorator):
     impl = types.Integer
 

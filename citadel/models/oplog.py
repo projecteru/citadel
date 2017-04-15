@@ -3,7 +3,7 @@ import enum
 import sqlalchemy
 
 from citadel.ext import db
-from citadel.models.base import BaseModelMixin, JsonType, Enum34
+from citadel.models.base import BaseModelMixin, Enum34
 
 
 class OPType(enum.Enum):
@@ -26,7 +26,7 @@ class OPLog(BaseModelMixin):
     appname = db.Column(db.CHAR(64), nullable=False, default='', index=True)
     sha = db.Column(db.CHAR(64), nullable=False, default='', index=True)
     action = db.Column(Enum34(OPType))
-    content = db.Column(JsonType, default={})
+    content = db.Column(db.JSON, default={})
 
     @classmethod
     def get_by(cls, user_id=None, appname=None, sha=None, action=None, time_window=None, start=0, limit=100):

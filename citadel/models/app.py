@@ -11,7 +11,7 @@ from citadel.config import DEFAULT_ZONE
 from citadel.ext import db, gitlab
 from citadel.libs.datastructure import SmartStatus
 from citadel.libs.utils import logger
-from citadel.models.base import BaseModelMixin, PropsItem, ModelDeleteError, PropsMixin, ModelCreateError, JsonType
+from citadel.models.base import BaseModelMixin, PropsItem, ModelDeleteError, PropsMixin, ModelCreateError
 from citadel.models.gitlab import get_project_name, get_file_content, get_commit
 from citadel.models.loadbalance import ELBRule
 from citadel.models.specs import Specs
@@ -23,7 +23,7 @@ class App(BaseModelMixin):
     name = db.Column(db.CHAR(64), nullable=False, unique=True)
     # 形如 git@gitlab.ricebook.net:platform/apollo.git
     git = db.Column(db.String(255), nullable=False)
-    tackle_rule = db.Column(JsonType, default={})
+    tackle_rule = db.Column(db.JSON, default={})
 
     @classmethod
     def get_or_create(cls, name, git=None, tackle_rule=None):
