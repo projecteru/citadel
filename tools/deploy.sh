@@ -8,10 +8,6 @@ branch=${3-master}
 
 if [ $deploy_mode == "test" ]
 then
-  cat > ~/.corecli.json << EOF
-{"sso_url": "http://sso.ricebook.net", "citadel_url": "http://citadel.test.ricebook.net", "auth_token": "***REMOVED***", "mimiron_url": "", "username": "liuyifu"}
-EOF
-  echo "corecli config has been set to citadel.test.ricebook.net"
   ssh c1-eru-2 << EOF
   sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git fetch --all --prune
   sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git reset --hard $remote/$branch
@@ -29,7 +25,7 @@ EOF
 elif [ $deploy_mode == "prod" ]
 then
   cat > ~/.corecli.json << EOF
-{"sso_url": "http://sso.ricebook.net", "citadel_url": "http://citadel.ricebook.net", "auth_token": "***REMOVED***", "mimiron_url": "", "username": "liuyifu"}
+{"sso_url": "http://sso.ricebook.net", "citadel_url": "http://citadel.ricebook.net", "auth_token": "nHBKNpFBbRe5nRbuS2Z1ta7IkDQpcie0i4qRf09W5oBeWl5PcktCOykhBbT8vtDQ", "mimiron_url": "", "username": "liuyifu"}
 EOF
   echo "corecli config has been set to citadel.ricebook.net"
   ssh c2-eru-1 << EOF
