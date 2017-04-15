@@ -26,7 +26,7 @@ class OPLog(BaseModelMixin):
     appname = db.Column(db.CHAR(64), nullable=False, default='', index=True)
     sha = db.Column(db.CHAR(64), nullable=False, default='', index=True)
     action = db.Column(Enum34(OPType))
-    content = db.Column(db.JSON, default={})
+    content = db.Column(db.JSON)
 
     @classmethod
     def get_by(cls, user_id=None, appname=None, sha=None, action=None, time_window=None, start=0, limit=100):

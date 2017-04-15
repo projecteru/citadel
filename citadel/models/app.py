@@ -23,7 +23,7 @@ class App(BaseModelMixin):
     name = db.Column(db.CHAR(64), nullable=False, unique=True)
     # 形如 git@gitlab.ricebook.net:platform/apollo.git
     git = db.Column(db.String(255), nullable=False)
-    tackle_rule = db.Column(db.JSON, default={})
+    tackle_rule = db.Column(db.JSON)
 
     @classmethod
     def get_or_create(cls, name, git=None, tackle_rule=None):

@@ -66,7 +66,7 @@ class ELBRule(BaseModelMixin):
     domain = db.Column(db.String(128), nullable=False)
     appname = db.Column(db.CHAR(64), nullable=False)
     sha = db.Column(db.CHAR(64), nullable=True, default='')
-    rule = db.Column(db.JSON, default={})
+    rule = db.Column(db.JSON)
 
     def __str__(self):
         return '<ELBRule: elbname: %s, domain: %s, appname: %s, sha: %s, rule: %s>' % (self.elbname, self.domain, self.appname, self.sha, self.rule)
