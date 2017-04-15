@@ -13,15 +13,6 @@ then
   sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git reset --hard $remote/$branch
   sudo systemctl restart citadel citadel-worker watch-etcd
 EOF
-elif [ $deploy_mode == "devel" ]
-then
-  port=5003
-  ssh c2-eru-1 -t << EOF
-  sudo fuser -k $port/tcp
-  sudo git --work-tree=/opt/citadel-devel --git-dir=/opt/citadel-devel/.git fetch --all --prune
-  sudo git --work-tree=/opt/citadel-devel --git-dir=/opt/citadel-devel/.git reset --hard $remote/$branch
-  gunicorn --chdir /opt/citadel citadel.app:app --bind 0.0.0.0:$port --timeout 1200
-EOF
 elif [ $deploy_mode == "prod" ]
 then
   cat > ~/.corecli.json << EOF
