@@ -254,22 +254,12 @@
           </td>
           <td>${ naturaltime(release.created) }</td>
           <td class="col-sm-6" style="font-size:70%">
-            % if release.author:
-              ${ release.author }: ${ release.commit_message }
-            % else:
-              <span data-toggle="tooltip" data-placement="top" title="中途切换了 repo，用这个来修复单个 release">
-                <input class="form-control fix-release-git" type="text" name="override_git" data-release-url="${ url_for('app.release', name=release.name, sha=release.sha) }" placeholder='正确的 git 地址'>
-              </span>
-            % endif
+            ${ release.author }: ${ release.commit_message }
           </td>
           <td>
-            % if release.branch:
-              <span class='label label-info'>
-                ${ release.branch }
-              </span>
-            % else:
-              <a href='http://phabricator.ricebook.net/w/develop/platform/deploy-citadel-app/#faq' target='_blank'>??<a>
-            % endif
+            <span class='label label-info'>
+              ${ release.branch }
+            </span>
           </td>
           <td>
             % if release.raw:
@@ -315,26 +305,6 @@
       });
     });
 
-    $('input.fix-release-git').keyup(function (){
-      var self = $(this);
-      var s = self.val();
-      if (s.endsWith('.git')) {
-        $.ajax({
-          url: self.data('release-url'),
-          dataType: 'json',
-          type: 'post',
-          contentType: 'application/json',
-          data: JSON.stringify({override_git: s}),
-          success: function(data, textStatus, jQxhr){
-            location.reload();
-          },
-          error: function(jqXhr, textStatus, errorThrown){
-            console.log('Fix release git got error:', jqXhr, textStatus, errorThrown);
-            alert(jqXhr.responseText);
-          }
-        })
-      }
-    })
   </script>
 
 </%def>

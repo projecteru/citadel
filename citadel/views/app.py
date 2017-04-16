@@ -50,7 +50,7 @@ def app(name):
     return render_template('/app/app.mako', app=app, releases=releases, containers=containers)
 
 
-@bp.route('/<name>/version/<sha>', methods=['GET', 'DELETE', 'POST'])
+@bp.route('/<name>/version/<sha>', methods=['GET', 'DELETE'])
 def release(name, sha):
     app = bp_get_app(name)
     release = Release.get_by_app_and_sha(app.name, sha)
@@ -63,13 +63,6 @@ def release(name, sha):
             return jsonify({'message': 'OK'})
         else:
             flash(u'要么没权限，要么还在跑')
-
-    if request.method == 'POST':
-        payload = request.get_json()
-        if not (payload and 'override_git' in payload):
-            return jsonify({'message': 'override_git not provided'}), 400
-        release.fix_git(payload['override_git'])
-        return jsonify({'message': 'OK'}), 200
 
     containers = Container.get_by(appname=app.name, sha=sha, zone=g.zone)
     appspecs = release.specs_text
