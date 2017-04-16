@@ -71,7 +71,7 @@
             </li>
           % endif
           <li>
-          <a href="http://phabricator.ricebook.net/w/develop/platform/deploy-citadel-app/" target="_blank"><span class="fui-question-circle"></span> 我不懂！</a>
+          <a href="http://platform.docs.ricebook.net/citadel/" target="_blank"><span class="fui-question-circle"></span> 我不懂！</a>
           </li>
         </ul>
         <ul class="nav navbar-nav navbar-right">

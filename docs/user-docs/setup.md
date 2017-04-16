@@ -1,19 +1,19 @@
 # 操作步骤
 
-1. 去 sso 上获取 auth token, 然后去 gitlab 项目设置 - CI/CD Pipelines, 把这个 token 定义成 `CITADEL_AUTH_TOKEN` 这个变量.
-2. 在项目根目录添加 `.gitlab-ci.yml`，让 Gitlab-CI build 你的项目，build 结束以后会将该版本注册进 citadel。
-3. 将项目域名绑定到 ELB（eru-loadbalance），这一步在 [slack#sa-online](https://ricebook.slack.com/messages/sa-online/) 提申请，由平台负责绑定
-4. 在 citadel 上部署容器，跑起来
+1. 去 sso 上获取 auth token, 然后去 gitlab 项目设置 - CI/CD Pipelines, 把 token 定义成 `CITADEL_AUTH_TOKEN` 这个变量.
+2. 在项目根目录添加 `.gitlab-ci.yml`, 让 Gitlab-CI build 你的项目, build 结束以后会将该版本注册进 citadel.
+3. 将项目根目录添加 `app.yaml`, 让 Citadel 知道如何部署你的项目, 以及绑定什么域名.
+4. 在 citadel 上部署容器, 跑起来
 
 ## 1. 添加 `.gitlab-ci.yml`
 
-在项目根目录添加 `.gitlab-ci.yml` 让 Gitlab CI 打包你的项目，并且注册到 Citadel。
+在项目根目录添加 `.gitlab-ci.yml` 让 Gitlab CI 打包你的项目, 并且注册到 Citadel.
 
-下边的范例基本可以照抄，**需要修改的部分已经注释**。
+下边的范例基本可以照抄, **需要修改的部分已经注释**.
 
 #### Java 项目
 
-Java 项目在 Gitlab-CI build 阶段会打包成 `.jar` 文件生成 Gitlab artifacts，将直接用来制作镜像，以 [pisces-search](http://gitlab.ricebook.net/data_analysis_and_search/pisces-search/) 项目为例，可以这样写：
+Java 项目在 Gitlab-CI build 阶段会打包成 `.jar` 文件生成 Gitlab artifacts, 将直接用来制作镜像, 以 [pisces-search](http://gitlab.ricebook.net/data_analysis_and_search/pisces-search/) 项目为例, 可以这样写：
 
 ```
 # .gitlab-ci.yml
@@ -29,7 +29,7 @@ stages:
 build_job:
   stage: "build"
   script:
-    # 打包命令，请自己修改
+    # 打包命令, 请自己修改
     - "mvn --quiet clean package -Dmaven.test.skip=true"
     - "cp target/pisces-search-1.0-SNAPSHOT-exec.jar pisces-search.jar"
   # 声明 artifacts
@@ -49,7 +49,7 @@ core_build_job:
 
 #### Python 项目
 
-Python 不需要编译出二进制文件，所以这样写就可以了：
+Python 不需要编译出二进制文件, 所以这样写就可以了：
 
 ```
 # .gitlab-ci.yml
@@ -69,11 +69,11 @@ build_job:
     - "corecli --debug build"
 ```
 
-base 镜像基本都是基于 Alpine 做的了，[这里](http://hub.ricebook.net/v2/base/alpine/tags/list) 是所有可用的 alpine 镜像。如果对 base 镜像有要求，请探索 [footstone](http://gitlab.ricebook.net/footstone/)，如果没有符合要求的镜像，请在 #sa-online 讨论。
+base 镜像基本都是基于 Alpine 做的了, [这里](http://hub.ricebook.net/v2/base/alpine/tags/list) 是所有可用的 alpine 镜像.如果对 base 镜像有要求, 请探索 [footstone](http://gitlab.ricebook.net/footstone/), 如果没有符合要求的镜像, 请在 #sa-online 讨论.
 
 ## 2. 添加 `app.yaml`
 
-在项目根目录添加 `app.yaml`，让 Citadel 知道如何部署你的项目. `app.yaml` 功能丰富, 详见 [`app.yaml` 文档](user-docs/specs.md)
+在项目根目录添加 `app.yaml`, 让 Citadel 知道如何部署你的项目. `app.yaml` 功能丰富, 详见 [`app.yaml` 文档](user-docs/specs.md)
 
 #### Java 项目：
 
@@ -111,7 +111,7 @@ combos:
     envname: "prod"
     networks:
       - "release"
-    # Citadel app 部署权限，只有 zhangjianhua 可以部署该 Combo
+    # Citadel app 部署权限, 只有 zhangjianhua 可以部署该 Combo
     permitted_users:
       - "zhangjianhua"
 ```
@@ -145,15 +145,15 @@ combos:
 
 ## 3. 添加容器
 
-访问 [Citadel](http://citadel.ricebook.net)。
+访问 [Citadel](http://citadel.ricebook.net).
 
 ## 4. 绑定域名
 
-绑定域名请在 `app.yaml` 的 combo 下声明（参考 [test-ci](http://gitlab.ricebook.net/platform/ci-test/commit/0070e269#0cf0bb82cc508190c215cbfa97023ebc538ede19_59_81) ），但是请注意：
+绑定域名请在 `app.yaml` 的 combo 下声明（参考 [test-ci](http://gitlab.ricebook.net/platform/ci-test/commit/0070e269#0cf0bb82cc508190c215cbfa97023ebc538ede19_59_81) ）, 但是请注意：
 
-* 域名可以通过 `app.yaml` 创建，却不能通过 `app.yaml` 来删除，或者修改。因为可能导致灾难性后果。所以如果你修改了 entrypoint，需要删除域名，然后重新注册（也就是在 gitlab 重新 build 啦）
-* 对于以下域名，sa 已经做好了通配符转发：
+* 域名可以通过 `app.yaml` 创建, 却不能通过 `app.yaml` 来删除, 或者修改.因为可能导致灾难性后果.所以如果你修改了 entrypoint, 需要删除域名, 然后重新注册（也就是在 gitlab 重新 build 啦）
+* 对于以下域名, sa 已经做好了通配符转发：
   * `*.ricebook.net` 和 `*.rhllor.net` 转发到 c2 ELB
   * `*.test.ricebook.net` 和 `*.test.rhllor.net` 转发到 c1 ELB
 
-如果你要绑定的域名无法应用以上通配符转发规则，比如 `*.ricebook.com`，需要先在 `app.yaml` 里声明域名，然后联系 sa 在 nginx 上进行绑定。
+如果你要绑定的域名无法应用以上通配符转发规则, 比如 `*.ricebook.com`, 需要先在 `app.yaml` 里声明域名, 然后联系 sa 在 nginx 上进行绑定.

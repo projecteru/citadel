@@ -51,7 +51,7 @@
       % endif
     </ul>
     <h5>域名</h5>
-    <p>操作域名前请务必详读<a href="http://phabricator.ricebook.net/w/develop/platform/deploy-citadel-app/#4-1" target="_blank">文档</a></p>
+    <p>操作域名前请务必详读<a href="http://platform.docs.ricebook.net/citadel/docs/user-docs/setup.html#4-绑定域名" target="_blank">文档</a></p>
     <ul class="list-group">
       % for rule in app.get_associated_elb_rules(g.zone):
         <li class="list-group-item">
