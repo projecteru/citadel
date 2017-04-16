@@ -171,7 +171,6 @@ class Release(BaseModelMixin, PropsMixin):
     app_id = db.Column(db.Integer, nullable=False)
     image = db.Column(db.String(255), nullable=False, default='')
 
-    override_git = PropsItem('override_git', default='')
     branch = PropsItem('branch', default='')
 
     def __str__(self):
@@ -244,9 +243,6 @@ class Release(BaseModelMixin, PropsMixin):
             raise ModelDeleteError('Release {} is still running, delete containers {} before deleting this release'.format(self.short_sha, container_list))
         return super(Release, self).delete()
 
-    def fix_git(self, git):
-        self.override_git = git
-
     def get_permitted_users(self):
         usernames = self.specs.permitted_users
         permitted_users = [User.get(u) for u in usernames]
@@ -303,8 +299,6 @@ class Release(BaseModelMixin, PropsMixin):
     @property
     def gitlab_commit(self):
         commit = get_commit(self.app.project_name, self.sha)
-        if not commit:
-            return get_commit(get_project_name(self.override_git), self.sha)
         return commit
 
     @property
@@ -322,9 +316,6 @@ class Release(BaseModelMixin, PropsMixin):
     @property
     def specs_text(self):
         specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
-        if not specs_text:
-            specs_text = get_file_content(get_project_name(self.override_git), 'app.yaml', self.sha)
-
         return specs_text
 
     @property
