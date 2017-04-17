@@ -71,7 +71,7 @@ class App(BaseModelMixin):
         return EnvSet(self.env_sets.get(envname, {}))
 
     def add_env_set(self, envname, env_set):
-        env_sets = self.env_sets.copy() or {}
+        env_sets = (self.env_sets or {}).copy()
         env_sets[envname] = env_set
         self.env_sets = env_sets
         logger.debug('Set env set %s for %s, full env_sets: %s', envname, self.name, env_sets)
@@ -79,7 +79,7 @@ class App(BaseModelMixin):
         db.session.commit()
 
     def remove_env_set(self, envname):
-        env_sets = self.env_sets.copy() or {}
+        env_sets = (self.env_sets or {}).copy()
         env = env_sets.pop(envname, None)
         if env:
             self.env_sets = env_sets
