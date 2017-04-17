@@ -45,8 +45,12 @@
       <h3 class="panel-title">app.yaml</h3>
     </%def>
 
-    <pre>${ appspecs | n }</pre>
+    <pre>${ release.specs_text | n }</pre>
   </%call>
+
+  <%
+    containers = release.get_container_list(zone=g.zone)
+  %>
 
   <%call expr="utils.panel()">
     <%def name="header()">
@@ -72,7 +76,7 @@
 
         <%
           active_ = {'active': 'active'}
-          combos_list = sorted(combos.items())
+          combos_list = sorted(combo for combo in combos.items() if combo.zone == g.zone)
         %>
           % for mode, combo in combos_list:
             % if combo.allow(g.user.name) or g.user.privilege:
@@ -231,8 +235,8 @@
               <label class="col-sm-2 control-label" for="">Env</label>
               <div class="col-sm-10">
                 <select class="form-control" name="envname">
-                  % for env in envs:
-                    <option value="${ env.envname }">${ env.envname }</option>
+                  % for envname in app.get_env_sets():
+                    <option value="${ envname }">${ envname }</option>
                   % endfor
                 </select>
               </div>

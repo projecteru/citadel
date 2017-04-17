@@ -7,7 +7,6 @@ from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import App, Release
 from citadel.models.base import ModelCreateError
 from citadel.models.container import Container
-from citadel.models.env import Environment
 from citadel.models.gitlab import get_project_group, get_gitlab_groups
 
 
@@ -49,26 +48,27 @@ def get_app_releases(name):
 @bp.route('/<name>/env', methods=['GET'])
 def get_app_envs(name):
     app = _get_app(name)
-    return [e.to_jsonable() for e in Environment.get_by_app(app.name)]
+    return app.get_env_sets()
 
 
 @bp.route('/<name>/env/<envname>', methods=['GET', 'PUT', 'POST', 'DELETE'])
 def app_env_action(name, envname):
     app = _get_app(name)
     if request.method == 'GET':
-        env = Environment.get_by_app_and_env(app.name, envname)
+        env = app.get_env_set(envname)
         if not env:
             abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
-        return env.to_jsonable()
+
+        return DEFAULT_RETURN_VALUE
     elif request.method in ('PUT', 'POST'):
         data = request.get_json()
-        env = Environment.create(app.name, envname, **data)
-        return env.to_jsonable()
+        app.add_env_set(envname, data)
+        return DEFAULT_RETURN_VALUE
     elif request.method == 'DELETE':
-        env = Environment.get_by_app_and_env(app.name, envname)
-        if not env:
+        deleted = app.remove_env_set(envname)
+        if not deleted:
             abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
-        env.delete()
+
         return DEFAULT_RETURN_VALUE
 
 

@@ -104,7 +104,7 @@ def notbot_sendmsg(to, content, subject='Citadel message'):
 
 
 def make_shell_env(env_content):
-    return '\n'.join('export {}="{}"'.format(k, v) for k, v in env_content)
+    return u'\n'.join(u'export {}="{}"'.format(k, v) for k, v in env_content)
 
 
 def memoize(f):

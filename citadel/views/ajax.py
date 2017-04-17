@@ -10,7 +10,6 @@ from citadel.libs.utils import logger
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
 from citadel.models import Container
 from citadel.models.app import AppUserRelation, Release
-from citadel.models.env import Environment
 from citadel.models.loadbalance import ELBRule, update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import get_core
@@ -34,14 +33,11 @@ for code in ERROR_CODES:
 def delete_app_env(name):
     envname = request.form['env']
     app = bp_get_app(name)
-
-    # 记录oplog
     OPLog.create(g.user.id, OPType.DELETE_ENV, app.name, content={'envname': envname})
+    deleted = app.remove_env_set(envname)
+    if not deleted:
+        abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
 
-    env = Environment.get_by_app_and_env(app.name, envname)
-    if env:
-        logger.info('Env [%s] for app [%s] deleted', envname, name)
-        env.delete()
     return DEFAULT_RETURN_VALUE
 
 
@@ -211,9 +207,9 @@ def create_loadbalance():
     payload = request.get_json()
     release = Release.get(payload['releaseid'])
     envname = payload['envname']
-    env = Environment.get_by_app_and_env(ELB_APP_NAME, envname)
-    env_vars = env and env.to_env_vars() or []
-    name = env.get('ELBNAME', 'unnamed')
+    env_set = release.app.get_env_set(envname)
+    env_vars = env_set.to_env_vars()
+    name = env_set.get('ELBNAME', 'unnamed')
     user_id = g.user.id
     sha = release.sha
 

@@ -61,8 +61,8 @@
         <label class="col-sm-2 control-label" for="">Name</label>
         <div class="col-sm-8">
           <select class="form-control" name="envname">
-            % for env in envs:
-              <option value="${ env.envname }">${ env.envname }</option>
+            % for envname in env_sets:
+              <option value="${ envname }">${ envname }</option>
             % endfor
           </select>
         </div>

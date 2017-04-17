@@ -29,20 +29,20 @@ from citadel.libs.utils import make_shell_env
     </div>
   </div>
 
-  % for env in envs:
+  % for envname, env_set in app.get_env_sets().items():
     <%
-      env_content = sorted(env.items(), key=itemgetter(0))
+      env_vars = sorted(env_set.items(), key=itemgetter(0))
     %>
     <div class="panel panel-info">
       <div class="panel-heading">
-        <h3 class="panel-title">${ env.envname }
+        <h3 class="panel-title">${ envname }
           <a name="resize" class="btn-xs pull-right" href="#"><span class="fui-resize"></span></a>
         </h3>
       </div>
       <div class="panel-body hidden">
         <form class="form-horizontal" action="${ url_for('app.app_env', name=app.name) }" method="POST">
-          <input type="hidden" name="env" value="${ env.envname }">
-          % for key, value in env_content:
+          <input type="hidden" name="env" value="${ envname }">
+          % for key, value in env_vars:
             <div class="form-group">
               <div class="col-sm-5">
                 <input class="form-control key" type="text" name="key_${ key }" value="${ key }">
@@ -57,8 +57,8 @@ from citadel.libs.utils import make_shell_env
             </div>
           % endfor
         </form>
-        <button class="btn btn-info pull-left" data-clipboard-text="${ make_shell_env(env_content) }">Copy Env</button>
-        <a name="delete-env" class="btn btn-warning pull-right to-right" href="#" data-env="${ env.envname }"><span class="fui-trash"></span> Delete Env</a>
+        <button class="btn btn-info pull-left" data-clipboard-text="${ make_shell_env(env_vars) }">Copy Env</button>
+        <a name="delete-env" class="btn btn-warning pull-right to-right" href="#" data-env="${ envname }"><span class="fui-trash"></span> Delete Env</a>
         <a name="submit-env" class="btn btn-info pull-right to-right" href="#"><span class="fui-check"></span> OK</a>
         <a name="add-row" class="btn btn-info pull-right to-right" href="#"><span class="fui-plus"></span> Add Row</a>
       </div>
