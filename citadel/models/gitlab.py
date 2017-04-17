@@ -4,7 +4,6 @@ from __future__ import absolute_import
 import os
 import re
 from base64 import b64decode
-from operator import attrgetter
 from urlparse import urlparse
 
 from citadel.config import GITLAB_URL, GITLAB_API_URL
@@ -44,7 +43,7 @@ def get_file_content(project_name, file_path, ref):
     def _get_file_content(project_name, file_path, ref):
         p = gitlab.projects.get(project_name)
         f = p.files.get(file_path=file_path, ref=ref)
-        return b64decode(f.content)
+        return b64decode(f.content).decode('utf-8')
 
     return _get_file_content(project_name, file_path, ref)
 

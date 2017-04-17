@@ -3,7 +3,6 @@ from flask import g, request, abort, flash, jsonify, url_for, redirect
 from flask_mako import render_template
 
 from citadel.config import IGNORE_PODS, ELB_APP_NAME
-from citadel.libs.utils import make_unicode
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release, AppUserRelation
 from citadel.models.base import ModelDeleteError
@@ -82,7 +81,7 @@ def release(name, sha):
         draw_combos = False
 
     return render_template('/app/release.mako', app=app, release=release,
-                           envs=envs, appspecs=make_unicode(appspecs),
+                           envs=envs, appspecs=appspecs,
                            containers=containers, networks=networks,
                            nodes=nodes, pods=pods, combos=combos,
                            draw_combos=draw_combos)
