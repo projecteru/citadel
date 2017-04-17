@@ -40,15 +40,15 @@ def index():
     # elb container is deployed in host network mode, that means one elb
     # instance per node
     nodes = [n for n in get_core(g.zone).get_pod_nodes(ELB_POD_NAME) if n.name not in occupied_pods]
-    envs = Environment.get_by_app(ELB_APP_NAME)
-    releases = Release.get_by_app(app.name, limit=20)
+    env_sets = app.get_env_sets()
+    releases = Release.get_by_app(ELB_APP_NAME, limit=20)
     return render_template('/loadbalance/list.mako',
                            elb_dict=elb_dict,
                            podname=ELB_POD_NAME,
                            appname=ELB_APP_NAME,
                            releases=releases,
                            nodes=nodes,
-                           envs=envs)
+                           env_sets=env_sets)
 
 
 @bp.route('/<name>', methods=['GET'])

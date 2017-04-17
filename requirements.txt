@@ -18,7 +18,7 @@ raven
 PyYAML
 more_itertools
 gunicorn
-MySQL-python
+pymysql
 requests
 six
 celery[redis]

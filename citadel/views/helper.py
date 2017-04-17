@@ -7,7 +7,6 @@ from humanfriendly import parse_size
 
 from citadel.config import DEFAULT_ZONE
 from citadel.models.app import AppUserRelation, Release, App
-from citadel.models.env import Environment
 from citadel.models.loadbalance import ELBInstance
 from citadel.rpc import get_core
 
@@ -50,6 +49,7 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
     :param debug: bool, cheers
     """
     appname = release.name
+    app = release.app
     if combo_name:
         combo = release.specs.combos[combo_name]
         zone = combo.zone
@@ -57,10 +57,10 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
         nodename = combo.nodename
         entrypoint = combo.entrypoint
         envname = combo.envname
-        env = Environment.get_by_app_and_env(appname, envname)
+        env_set = app.get_env_set(envname)
         # combo.extra_env is dict, sorry...
         extra_env = combo.extra_env
-        env_vars = env and env.to_env_vars() or []
+        env_vars = env_set.to_env_vars()
         env_vars.extend(['='.join([k, v]) for k, v in extra_env.iteritems()])
         cpu_quota = combo.cpu
         memory = combo.memory_str
@@ -73,8 +73,8 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
         except AttributeError:
             zone = DEFAULT_ZONE
 
-        env = Environment.get_by_app_and_env(appname, envname)
-        env_vars = env and env.to_env_vars() or []
+        env_set = app.get_env_set(envname)
+        env_vars = env_set.to_env_vars()
         if isinstance(extra_env, basestring):
             env_vars.extend(extra_env.strip().split(';'))
         elif isinstance(extra_env, list):

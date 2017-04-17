@@ -7,7 +7,6 @@ from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release, AppUserRelation
 from citadel.models.base import ModelDeleteError
 from citadel.models.container import Container
-from citadel.models.env import Environment
 from citadel.models.gitlab import make_commit_url
 from citadel.models.oplog import OPLog, OPType
 from citadel.models.user import User
@@ -52,7 +51,7 @@ def app(name):
 @bp.route('/<name>/version/<sha>', methods=['GET', 'DELETE'])
 def release(name, sha):
     app = bp_get_app(name)
-    release = Release.get_by_app_and_sha(app.name, sha)
+    release = Release.get_by_app_and_sha(name, sha)
     if not all([app, release]):
         abort(404, 'App or release not found')
 
@@ -63,33 +62,20 @@ def release(name, sha):
         else:
             flash(u'要么没权限，要么还在跑')
 
-    containers = Container.get_by(appname=app.name, sha=sha, zone=g.zone)
-    appspecs = release.specs_text
-    envs = Environment.get_by_app(app.name)
     # we won't be using pod redis and elb here
     pods = [p for p in get_core(g.zone).list_pods() if p.name not in IGNORE_PODS]
     nodes = get_nodes_for_first_pod(pods)
-    combos = release.combos
-    # only display combos under current zone
-    combos = dict((combo_name, combo) for combo_name, combo in combos.items() if combo.zone == g.zone)
     networks = get_networks_for_first_pod(pods)
 
     draw_combos = bool(request.values.get('draw_combos', type=int, default=1))
     # if there's combos, nomal users must use them, while admin can switch back
     # to the original deploy UI
-    if combos and not draw_combos and g.user.privilege:
+    if release.combos and not draw_combos and g.user.privilege:
         draw_combos = False
 
     return render_template('/app/release.mako', app=app, release=release,
-                           envs=envs, appspecs=appspecs,
-                           containers=containers, networks=networks,
-                           nodes=nodes, pods=pods, combos=combos,
+                           networks=networks, nodes=nodes, pods=pods,
                            draw_combos=draw_combos)
-
-
-@bp.route('/<name>/raw-env', methods=['GET', 'POST'])
-def raw_app_env(name):
-    pass
 
 
 @bp.route('/<name>/env', methods=['GET', 'POST'])
@@ -97,20 +83,16 @@ def app_env(name):
     app = bp_get_app(name)
 
     if request.method == 'GET':
-        envs = Environment.get_by_app(app.name)
-        return render_template('/app/env.mako', app=app, envs=envs)
+        return render_template('/app/env.mako', app=app)
 
     keys = [key for key in request.form.keys() if key.startswith('key_')]
     env_keys = [request.form[key] for key in keys]
-    env_dict = {key: request.form['value_%s' % key] for key in env_keys}
+    env_set = {key: request.form.get('value_%s' % key, '') for key in env_keys}
 
     envname = request.form['env']
-    Environment.create(app.name, envname, **env_dict)
-
-    # 记录oplog
-    op_content = {'envname': envname, 'keys': env_keys}
+    app.add_env_set(envname, env_set)
+    op_content = {'envname': envname}
     OPLog.create(g.user.id, OPType.CREATE_ENV, app.name, content=op_content)
-
     return redirect(url_for('app.app_env', name=name))
 
 

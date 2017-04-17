@@ -18,12 +18,21 @@ from citadel.models.specs import Specs
 from citadel.models.user import User
 
 
+class EnvSet(dict):
+
+    def to_env_vars(self):
+        """外部调用需要的['A=1', 'B=var=1']这种格式"""
+        return [u'%s=%s' % (k, v) for k, v in self.iteritems()]
+
+
 class App(BaseModelMixin):
     __tablename__ = 'app'
     name = db.Column(db.CHAR(64), nullable=False, unique=True)
     # 形如 git@gitlab.ricebook.net:platform/apollo.git
     git = db.Column(db.String(255), nullable=False)
     tackle_rule = db.Column(db.JSON)
+    # {'prod': {'PASSWORD': 'xxx'}, 'test': {'PASSWORD': 'xxx'}}
+    env_sets = db.Column(db.JSON)
 
     @classmethod
     def get_or_create(cls, name, git=None, tackle_rule=None):
@@ -54,6 +63,30 @@ class App(BaseModelMixin):
     @classmethod
     def get_apps_with_tackle_rule(cls):
         return cls.query.filter(cls.tackle_rule != {}).all()
+
+    def get_env_sets(self):
+        return self.env_sets or {}
+
+    def get_env_set(self, envname):
+        return EnvSet(self.env_sets.get(envname, {}))
+
+    def add_env_set(self, envname, env_set):
+        env_sets = self.env_sets.copy() or {}
+        env_sets[envname] = env_set
+        self.env_sets = env_sets
+        logger.debug('Set env set %s for %s, full env_sets: %s', envname, self.name, env_sets)
+        db.session.add(self)
+        db.session.commit()
+
+    def remove_env_set(self, envname):
+        env_sets = self.env_sets.copy() or {}
+        env = env_sets.pop(envname, None)
+        if env:
+            self.env_sets = env_sets
+            db.session.add(self)
+            db.session.commit()
+
+        return bool(env)
 
     @property
     def project_name(self):

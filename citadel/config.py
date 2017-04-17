@@ -34,7 +34,7 @@ ZONE_CONFIG = {
     },
 }
 
-SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', default='mysql://root:@localhost:3306/citadel')
+SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', default='mysql+pymysql://root:@localhost:3306/citadel')
 SQLALCHEMY_TRACK_MODIFICATIONS = getenv('SQLALCHEMY_TRACK_MODIFICATIONS', default=True, type=bool)
 
 GITLAB_URL = getenv('GITLAB_URL', default='http://gitlab.ricebook.net')
