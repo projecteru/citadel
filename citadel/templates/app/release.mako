@@ -70,13 +70,12 @@
       <h3 class="modal-title">Add Container</h3>
     </%def>
 
-    % if combos and draw_combos:
+    % if combos_list and draw_combos:
 
       <ul class="nav nav-tabs" id="add-container-form">
 
         <%
           active_ = {'active': 'active'}
-          combos_list = sorted(combo for combo in combos.items() if combo.zone == g.zone)
         %>
           % for mode, combo in combos_list:
             % if combo.allow(g.user.name) or g.user.privilege:
@@ -298,7 +297,7 @@
 
         <%def name="footer()">
           <button class="btn btn-warning pull-left" data-toggle="collapse" data-target=".advance-form-group">老子搞点高级的</button>
-          % if g.user.privilege and combos:
+          % if g.user.privilege and combos_list:
             <button class="btn btn-info pull-left" id="toggle-combos">切换部署模式</button>
             <script>
               $('#toggle-combos').click(function(){

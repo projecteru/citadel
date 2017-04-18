@@ -68,6 +68,7 @@ def release(name, sha):
     networks = get_networks_for_first_pod(pods)
 
     draw_combos = bool(request.values.get('draw_combos', type=int, default=1))
+    combos_list = sorted((combo_name, combo) for combo_name, combo in release.combos.items() if combo.zone == g.zone)
     # if there's combos, nomal users must use them, while admin can switch back
     # to the original deploy UI
     if release.combos and not draw_combos and g.user.privilege:
@@ -75,7 +76,7 @@ def release(name, sha):
 
     return render_template('/app/release.mako', app=app, release=release,
                            networks=networks, nodes=nodes, pods=pods,
-                           draw_combos=draw_combos)
+                           combos_list=combos_list, draw_combos=draw_combos)
 
 
 @bp.route('/<name>/env', methods=['GET', 'POST'])
