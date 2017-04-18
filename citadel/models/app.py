@@ -68,7 +68,8 @@ class App(BaseModelMixin):
         return self.env_sets or {}
 
     def get_env_set(self, envname):
-        return EnvSet(self.env_sets.get(envname, {}))
+        env_sets = self.env_sets or {}
+        return EnvSet(env_sets.get(envname, {}))
 
     def add_env_set(self, envname, env_set):
         env_sets = (self.env_sets or {}).copy()
