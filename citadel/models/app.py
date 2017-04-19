@@ -34,6 +34,9 @@ class App(BaseModelMixin):
     # {'prod': {'PASSWORD': 'xxx'}, 'test': {'PASSWORD': 'xxx'}}
     env_sets = db.Column(db.JSON)
 
+    def __str__(self):
+        return '<{}:{}>'.format(self.name, self.git)
+
     @classmethod
     def get_or_create(cls, name, git=None, tackle_rule=None):
         app = cls.get_by_name(name)

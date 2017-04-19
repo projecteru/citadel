@@ -346,8 +346,9 @@ def schedule_task(app):
             logger.debug('Crontab not due: %s:%s', appname, cmd)
             continue
         combo = specs.combos[cmd]
-        if Container.get_by(entrypoint=combo.entrypoint, appname=appname):
-            notbot_sendmsg(app.subscribers, 'Cronjob {} skipped because last cronjob did not exit 0'.format(cmd))
+        this_cronjob_containers = Container.get_by(entrypoint=combo.entrypoint, appname=appname)
+        if this_cronjob_containers and set([c.status() for c in this_cronjob_containers]) != {'running'}:
+            notbot_sendmsg(app.subscribers, '{} cronjob skipped, because last cronjob container {} did not exit cleanly'.format(app, this_cronjob_containers))
             continue
         deploy_options = make_deploy_options(
             release, combo_name=cmd,
