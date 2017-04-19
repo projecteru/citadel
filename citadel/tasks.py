@@ -337,6 +337,9 @@ def trigger_tackle_routine(self):
 def schedule_task(app):
     appname = app.name
     release = app.latest_release
+    if not release.image:
+        logger.debug('Crontab skipped, %s not built yet', release)
+        return
     specs = app.specs
     for crontab, cmd in specs.crontab:
         if not crontab.next(default_utc=False) < 60:

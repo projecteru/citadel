@@ -208,7 +208,7 @@ class Release(BaseModelMixin, PropsMixin):
     branch = PropsItem('branch', default='')
 
     def __str__(self):
-        return '<app {r.name} release {r.sha} with image {r.image}>'.format(r=self)
+        return '<{r.name}:{r.short_sha}>'.format(r=self)
 
     def get_uuid(self):
         return 'citadel:release:%s' % self.id
