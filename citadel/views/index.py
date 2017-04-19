@@ -16,7 +16,8 @@ def index():
 
 @bp.route('/health-check')
 def health_check():
-    if rds.get(CITADEL_HEALTH_CHECK_STATS_KEY) != 'OK':
-        abort(500, 'Citadel Worker is down, or beat is down')
+    msg = rds.get(CITADEL_HEALTH_CHECK_STATS_KEY)
+    if msg != 'OK':
+        abort(500, msg)
 
     return 'OK'

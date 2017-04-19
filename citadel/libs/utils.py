@@ -95,6 +95,7 @@ def notbot_sendmsg(to, content, subject='Citadel message'):
     if DEBUG:
         logger.debug('Sending notbot message to %s, content: %s', to, content)
         return
+    content = '[citadel] {}'.format(content)
     try:
         res = requests.post(NOTBOT_SENDMSG_URL, {'to': to, 'content': content, subject: subject})
     except:

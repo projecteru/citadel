@@ -5,12 +5,12 @@ import yaml
 from celery import current_app
 from celery.result import AsyncResult
 from flask import url_for
-from grpc import RpcError
+from grpc import RpcError, StatusCode
 from grpc.framework.interfaces.face import face
 from humanfriendly import parse_timespan
 from more_itertools import peekable
 
-from citadel.config import CITADEL_TACKLE_TASK_THROTTLING_KEY, ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
+from citadel.config import ZONE_CONFIG, CITADEL_TACKLE_TASK_THROTTLING_KEY, ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
 from citadel.ext import rds, hub
 from citadel.libs.jsonutils import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg, logger, make_sentence_json
@@ -57,7 +57,18 @@ def record_health_status(self):
     """health check for citadel itself:
         if citadel web is down, sa will know
         if citadel worker is down, the health stats in redis will expire in 20 secs, and then sa will know
+        if eru-core is down, send slack message
     """
+    for zone in ZONE_CONFIG:
+        core = get_core(zone)
+        try:
+            core.list_pods()
+        except RpcError as e:
+            if e.code() is StatusCode.UNAVAILABLE:
+                msg = 'eru-core ({}) is down, @eru will fix this ASAP'.format(zone)
+                rds.setex(CITADEL_HEALTH_CHECK_STATS_KEY, msg, 30)
+                notbot_sendmsg('#platform', msg)
+
     rds.setex(CITADEL_HEALTH_CHECK_STATS_KEY, 'OK', 30)
 
 
