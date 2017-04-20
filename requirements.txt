@@ -9,7 +9,6 @@ redis
 smart_getenv
 SQLAlchemy
 Werkzeug
-ipython
 python-etcd
 flask_mako
 protobuf
@@ -31,4 +30,4 @@ pyparsing
 crontab
 marshmallow
 -e git+http://gitlab.ricebook.net/platform/mapi.git#egg=mapi
--e git+http://gitlab.ricebook.net/platform/erulb3.git#egg=erulb-py
+-e git+http://gitlab.ricebook.net/platform/erulb3.git@feature/python3#egg=erulb-py

@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-
-from __future__ import division
-
 import json
 from decimal import Decimal
-from urlparse import urlparse
+
+from six.moves.urllib_parse import urlparse
 
 from citadel.libs.jsonutils import Jsonized
 
@@ -32,14 +30,14 @@ class Network(JSONMessage):
 
     def __init__(self, network):
         super(Network, self).__init__(network)
-        self.subnets = list(network.subnets)
+        self.subnets = network.subnets
 
     @property
     def subnets_string(self):
         return ','.join(self.subnets)
 
     def __str__(self):
-        return 'Network<name: %s, subnets: %s>' % (self.name, self.subnets_string)
+        return '<{}:{}>' % (self.name, self.subnets_string)
 
 
 class Node(JSONMessage):

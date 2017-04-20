@@ -30,13 +30,13 @@
                 <span class="label label-${ 'danger' if app.has_problematic_container(g.zone) else 'success' }">${ len(containers) } Containers</span>
               </td>
               <td>
-                <% pods = set([c.podname for c in containers])%>
+                <% pods = set(c.podname for c in containers)%>
                 % for p in pods:
                   <span class="label label-info">${ p }</span>
                 % endfor
               </td>
               <td>
-                <% versions = set([c.sha for c in containers])%>
+                <% versions = set(c.sha for c in containers)%>
                 % for v in versions:
                   <span class="label label-info">${ v[:7] }</span>
                 % endfor

@@ -254,7 +254,7 @@ class Container(BaseModelMixin, PropsMixin):
 
     def get_ips(self):
         ips = []
-        for name, network in self.networks.iteritems():
+        for name, network in self.networks.items():
             # 如果是host模式要去取下node的IP
             if name == 'host':
                 node = get_core(self.zone).get_node(self.podname, self.nodename)

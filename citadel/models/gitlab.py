@@ -1,10 +1,9 @@
-# coding: utf-8
-from __future__ import absolute_import
-
+# -*- coding: utf-8 -*-
 import os
 import re
 from base64 import b64decode
-from urlparse import urlparse
+
+from six.moves.urllib_parse import urlparse
 
 from citadel.config import GITLAB_URL, GITLAB_API_URL
 from citadel.ext import gitlab

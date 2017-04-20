@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
+import enum
 import json
 from collections import Iterable
 
-import enum
 from erulbpy import ELBClient
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
@@ -10,7 +10,7 @@ from werkzeug.utils import cached_property
 from citadel.config import ELB_BACKEND_NAME_DELIMITER, ZONE_CONFIG
 from citadel.ext import db, rds
 from citadel.libs.datastructure import purge_none_val_from_dict
-from citadel.libs.utils import logger, make_unicode, memoize
+from citadel.libs.utils import logger, memoize
 from citadel.models.base import BaseModelMixin, ModelCreateError
 from citadel.models.container import Container
 
@@ -175,7 +175,7 @@ class ELBInstance(BaseModelMixin):
     @property
     def comment(self):
         comment = rds.get('citadel:elb:{}:comment'.format(self.name))
-        return make_unicode(comment)
+        return comment and comment.decode('utf-8')
 
     @comment.setter
     def comment(self, val):

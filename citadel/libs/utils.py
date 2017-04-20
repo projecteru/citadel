@@ -32,7 +32,7 @@ def handle_exception(exceptions, default=None):
             try:
                 return f(*args, **kwargs)
             except exceptions as e:
-                logger.error('Call %s error: %s', f.func_name, e)
+                logger.error('Call %s error: %s', f.__name__, e)
                 if callable(default):
                     return default()
                 return default
@@ -49,43 +49,10 @@ def login_user(user):
     session['name'] = user.name
 
 
-def make_unicode(s):
-    try:
-        return s.decode('utf-8')
-    except:
-        return s
-
-
 def shorten_sentence(s, length=88):
     if len(s) > length:
         return s[:length]
     return s
-
-
-def normalize_domain(domain):
-    """保留第一级的path, 并且去掉最后的/"""
-    if '/' not in domain:
-        return domain
-
-    r = domain.split('/', 2)
-    if len(r) == 2:
-        domain, path = r
-        if path:
-            return '/'.join([domain, path])
-        return domain
-    else:
-        domain = r[0]
-        path = r[1]
-        return '/'.join([domain, path])
-
-
-def parse_domain(domain):
-    s = domain.split('/')
-    if len(s) == 1:
-        domain, location = s[0], ''
-    else:
-        domain, location = s[:2]
-    return domain, '/' + location
 
 
 def notbot_sendmsg(to, content, subject='Citadel message'):
@@ -105,7 +72,11 @@ def notbot_sendmsg(to, content, subject='Citadel message'):
 
 
 def make_shell_env(env_content):
-    return u'\n'.join(u'export {}="{}"'.format(k, v) for k, v in env_content)
+    """
+    >>> make_shell_env([('FOO', 'BAR')])
+    'export FOO="BAR"'
+    """
+    return '\n'.join('export {}="{}"'.format(k, v) for k, v in env_content)
 
 
 def memoize(f):

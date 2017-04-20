@@ -22,7 +22,7 @@ class EnvSet(dict):
 
     def to_env_vars(self):
         """外部调用需要的['A=1', 'B=var=1']这种格式"""
-        return [u'%s=%s' % (k, v) for k, v in self.iteritems()]
+        return ['%s=%s' % (k, v) for k, v in self.items()]
 
 
 class App(BaseModelMixin):
@@ -149,7 +149,7 @@ class App(BaseModelMixin):
             ]
         }
         """
-        if isinstance(rule, basestring):
+        if isinstance(rule, str):
             rule = json.loads(rule)
 
         self.tackle_rule = rule
@@ -177,10 +177,10 @@ class App(BaseModelMixin):
         return super(App, self).delete()
 
     def get_online_entrypoints(self, zone=None):
-        return list(set([c.entrypoint for c in self.get_container_list(zone)]))
+        return set(c.entrypoint for c in self.get_container_list(zone))
 
     def get_online_pods(self, zone=None):
-        return list(set([c.podname for c in self.get_container_list(zone)]))
+        return set(c.podname for c in self.get_container_list(zone))
 
     def get_associated_elb_rules(self, zone=DEFAULT_ZONE):
         from citadel.models.loadbalance import ELBRule
@@ -243,7 +243,7 @@ class Release(BaseModelMixin, PropsMixin):
         # after the instance is created, manage app permission through combo
         # permitted_users
         permitted_users = set(new_release.get_permitted_users())
-        current_permitted_users = set([User.get(id_) for id_ in AppUserRelation.get_user_id_by_appname(appname)])
+        current_permitted_users = set(User.get(id_) for id_ in AppUserRelation.get_user_id_by_appname(appname))
         come = permitted_users - current_permitted_users
         gone = current_permitted_users - permitted_users
         for u in come:
@@ -259,7 +259,7 @@ class Release(BaseModelMixin, PropsMixin):
             AppUserRelation.delete(appname, u.id)
 
         # create ELB routes, if there's any
-        for combo in new_release.specs.combos.itervalues():
+        for combo in new_release.specs.combos.values():
             if not combo.elb:
                 continue
             for elbname_and_domain in combo.elb:

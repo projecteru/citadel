@@ -62,7 +62,7 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
         # combo.extra_env is dict, sorry...
         extra_env = combo.extra_env
         env_vars = env_set.to_env_vars()
-        env_vars.extend(['='.join([k, v]) for k, v in extra_env.iteritems()])
+        env_vars.extend(['='.join([k, v]) for k, v in extra_env.items()])
         cpu_quota = combo.cpu
         memory = combo.memory_str
         # user can override count in combo
@@ -76,17 +76,17 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
 
         env_set = app.get_env_set(envname)
         env_vars = env_set.to_env_vars()
-        if isinstance(extra_env, basestring):
+        if isinstance(extra_env, str):
             env_vars.extend(extra_env.strip().split(';'))
         elif isinstance(extra_env, list):
             env_vars.extend(extra_env)
 
-    if isinstance(networks, basestring):
+    if isinstance(networks, str):
         networks ={networks: ''}
     elif isinstance(networks, collections.Sequence):
         networks = {network_name: '' for network_name in networks}
 
-    if isinstance(memory, basestring):
+    if isinstance(memory, str):
         memory = parse_size(memory, binary=True)
 
     deploy_options = {
