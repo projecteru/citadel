@@ -289,10 +289,13 @@ def deal_with_agent_etcd_change(self, key, data):
     if not alive:
         logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
+        Publisher.remove_container(container)
+
         exitcode = container.info.get('State', {}).get('ExitCode', None)
-        logger.debug('Container %s exit %s', container.short_id, exitcode)
+        # remove cronjob container
         if exitcode == 0 and container.is_cronjob():
             remove_container(container_id)
+            return
 
         if not container.is_removing() and exitcode != 0:
             msg = 'Dead container `{}`\nexit code: {}\ncitadel url: {}\ncontainer log: {}'.format(
@@ -307,6 +310,7 @@ def deal_with_agent_etcd_change(self, key, data):
         update_elb_for_containers(container)
         logger.debug('Healthy condition: [%s, %s, %s] ADD [%s, %s] [%s]', container.appname, container.podname, container.entrypoint, container_id, container.ident, ','.join(container.get_backends()))
     else:
+        Publisher.remove_container(container)
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
         if container.initialized and not container.is_removing():
             logger.debug('Sick condition: [%s, %s, %s] DEL [%s, %s] [%s]', container.appname, container.podname, container.entrypoint, container_id, container.ident, ','.join(container.get_backends()))
