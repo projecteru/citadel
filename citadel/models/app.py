@@ -108,7 +108,7 @@ class App(BaseModelMixin):
     @property
     def subscribers(self):
         specs = self.specs
-        return specs.subscribers
+        return specs and specs.subscribers
 
     @property
     def cronjob_entrypoints(self):

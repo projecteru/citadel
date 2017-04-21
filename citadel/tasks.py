@@ -277,13 +277,13 @@ def deal_with_agent_etcd_change(self, key, data):
     alive = data.get('Alive')
     appname = data.get('Name')
     app = App.get_by_name(appname)
-    subscribers = app.subscribers
     if None in [container_id, healthy, alive, appname]:
         return
     container = Container.get_by_container_id(container_id)
     if not container:
         return
 
+    subscribers = app.subscribers
     msg = ''
 
     if not alive:
