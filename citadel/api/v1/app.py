@@ -100,6 +100,9 @@ def register_release():
     if not app:
         abort(400, 'Error during create an app (%s, %s, %s)' % (name, git, sha))
 
+    if not app.gitlab_project.as_dict().get('description'):
+        abort(400, 'Must write gitlab project description, we want to know what this app does, and how important it is')
+
     try:
         release = Release.create(app, sha, branch=branch)
     except (ModelCreateError, ValidationError) as e:

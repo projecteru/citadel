@@ -7,6 +7,10 @@ Citadel 是容器平台的各种功能的一个集合, 它负责调用 [`eru-cor
 Changelog
 ==========
 
+__2017-04-23__
+
+  + Citadel app 的 gitlab 项目必须写项目简介, 包括用途, 是否影响线上, 可否短暂下线
+
 __2017-04-08__
 
   +  强制项目维护者使用自己的 sso auth token, 详见[安全与权限](docs/user-docs/security-and-permissions.md)
