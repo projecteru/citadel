@@ -277,10 +277,8 @@ def deal_with_agent_etcd_change(self, key, data):
     alive = data.get('Alive')
     appname = data.get('Name')
     app = App.get_by_name(appname)
-    if not all([container_id, healthy, alive, appname, app]):
-        return
     container = Container.get_by_container_id(container_id)
-    if not container:
+    if None in [container_id, healthy, alive, appname, app, container]:
         return
 
     subscribers = app.subscribers
