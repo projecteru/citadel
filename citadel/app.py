@@ -10,7 +10,7 @@ from citadel.config import DEBUG, SENTRY_DSN, TASK_PUBSUB_CHANNEL, TASK_PUBSUB_E
 from citadel.ext import sess, rds, db, mako
 from citadel.libs.datastructure import DateConverter
 from citadel.libs.utils import notbot_sendmsg
-from citadel.models.user import get_current_user, get_current_user_via_auth
+from citadel.models.user import get_current_user
 
 
 logging.getLogger('requests').setLevel(logging.CRITICAL)
@@ -109,13 +109,13 @@ def create_app():
         g.limit = request.args.get('limit', type=int, default=20)
         g.zone = session.get('zone') or request.values.get('zone') or DEFAULT_ZONE
 
-        token = request.headers.get('X-Neptulon-Token', '') or request.values.get('X-Neptulon-Token')
-        g.user = token and get_current_user_via_auth(token) or (get_current_user() if 'sso' in session or DEBUG else None)
-
-        if not g.user:
-            session.pop('sso', None)
+        if DEBUG:
+            g.user = User.from_dict(_DEBUG_USER_DICT)
+        else:
+            g.user = get_current_user()
 
         if not g.user and not anonymous_path(request.path):
+            session.pop('sso', None)
             abort(401, 'Not authenticated')
 
     return app
