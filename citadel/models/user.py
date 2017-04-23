@@ -1,6 +1,6 @@
 # coding: utf-8
 import requests
-from flask import abort, request
+from flask import abort, session, request
 from requests.exceptions import ConnectTimeout, ReadTimeout, ConnectionError
 
 from citadel.config import DEBUG, AUTH_AUTHORIZE_URL, AUTH_GET_USER_URL
@@ -30,7 +30,7 @@ def get_current_user_via_auth(token):
 
     status_code = resp.status_code
     if status_code != 200:
-        logger.warn('Neptulon error: headers %s, code %s, body %s', headers, status_code, resp.text)
+        logger.warn('Neptulon error during citadel request %s: headers %s, code %s, body %s', request, headers, status_code, resp.text)
         return None
 
     return User.from_dict(resp.json())
@@ -50,21 +50,20 @@ def get_user_via_auth(token, identifier):
 
     status_code = resp.status_code
     if status_code != 200:
-        logger.warn('Neptulon error: headers %s, params %s, code %s, body %s', headers, params, status_code, resp.text)
+        logger.warn('Neptulon error during citadel request %s: headers %s, params %s, code %s, body %s', request, headers, params, status_code, resp.text)
         return None
 
     return User.from_dict(resp.json())
 
 
 def get_current_user():
-    if DEBUG:
-        return User.from_dict(_DEBUG_USER_DICT)
-
     token = request.headers.get('X-Neptulon-Token') or request.values.get('X-Neptulon-Token')
     if token:
         return get_current_user_via_auth(token)
-    resp = sso.get('me')
-    return User.from_dict(resp.data)
+    if 'sso' in session:
+        resp = sso.get('me')
+        return User.from_dict(resp.data)
+    return None
 
 
 @memoize
