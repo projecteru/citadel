@@ -88,17 +88,17 @@ combos:
 	* `before_stop`: 停止容器之前执行的命令, 也是一个 hook. 现在的用例也还是给 apollo-mq 的, 这个 mq 啊, 幺蛾子啊, 在停止容器之前得先把进程停掉, 确保不再接收任务. 所以在 stop 之前就会去 POST stop 的 API 来停掉容器, 保证先停服务, 再下容器.
 	* `ports`: 是一个端口列表, 实际上只是用来告诉 citadel 和 core, 程序用了哪些端口的. 你可以选择不告诉, 但是那样自动的 ELB 绑定, health check, 都无法使用. 因为 core 不知道你跑哪里了啊! 难道你还期待 core 去帮你一个一个的 `lsof` 然后看端口查进程名字来对应么... 乖, 把你占用的端口和协议写在这里吧. 比如你在这里列出了 `5000/tcp`, 那么上一个容器时, 会自动帮你把 `{容器IP}:5000` 这个地址发布到 etcd 里去, 并且去注册到 ELB 中, 如果你有设置健康检查, 还会定时往这个地址去测试看看进程还有没有响应. 那如果你不写... 这些就都没了, 手动再见.
 	* `restart`: 告诉 core 啥时候这个容器需要 restart. 实际上这个值是直接给 docker 的, 所以可选的有 always, on-failure, 不写就默认不需要自动重启.
-	* `healthcheck_url`: 只要声明了 `ports` 就会免费送你 tcp 健康检查的，但是写了这个健康检查 url 的话，应用可以做更灵活准确的健康检查.tcp 健康检查的原理很简单：agent 会去尝试连接 `{容器IP}:{容器端口}` 这个地址, 连接失败认为是挂了, 修改 etcd 里容器的健康状态, 其余工作交给 citadel 来完成. http 的话 agent 会去尝试 GET http://`{容器IP}:容器端口`/[healthcheck_url], 你还可以声明请求 `healthcheck_url` 所期待的状态码，见 `healthcheck_expected_code`.
-	* `healthcheck_port`: 如果用来做健康检查的端口和暴露给 ELB 的端口不一样，需要在这里声明.
-	* `healthcheck_expected_code`: 声明了健康检查 url 的期待返回值，如果没有声明，则认为 [200, 500) 区间的状态码都属于健康.因为这个进程还在响应请求, 这里的超时时间是 5 秒, 5 秒还没有返回认为容器不健康，会发送报警到项目 `subscribers`.
+	* `healthcheck_url`: 只要声明了 `ports` 就会免费送你 tcp 健康检查的, 但是写了这个健康检查 url 的话, 应用可以做更灵活准确的健康检查.tcp 健康检查的原理很简单：agent 会去尝试连接 `{容器IP}:{容器端口}` 这个地址, 连接失败认为是挂了, 修改 etcd 里容器的健康状态, 其余工作交给 citadel 来完成. http 的话 agent 会去尝试 GET `http://[IP]:[PORT]/[healthcheck_url]`, 你还可以声明请求 `healthcheck_url` 所期待的状态码, 见 `healthcheck_expected_code`.
+	* `healthcheck_port`: 如果用来做健康检查的端口和暴露给 ELB 的端口不一样, 需要在这里声明.
+	* `healthcheck_expected_code`: 声明了健康检查 url 的期待返回值, 如果没有声明, 则认为 [200, 500) 区间的状态码都属于健康.因为这个进程还在响应请求, 这里的超时时间是 5 秒, 5 秒还没有返回认为容器不健康, 会发送报警到项目 `subscribers`.
 	* `network_mode`: 如果你不想用 calico 的 SDN, 可以在这里标记为 host, 这样会占用整个宿主机的 IP, 最好不要这样, 不作死就不会死.
 	* `log_config`: 可选 `json-file`, `none`, `syslog` 等, 可以覆盖整个 core 的日志配置, 也就是说可以上一个用 json-file 来记日志的容器, 方便实时 debug, 但是我们其实有其他的 debug 手段, 所以这个选项也可以无视掉, 不作死就不会死.
-	* `publish_path`: 如果定义了的话，会把容器 ip 写到这个 etcd 路径下边.
+	* `publish_path`: 如果定义了的话, 会把容器 ip 写到这个 etcd 路径下边.
 	* `hosts`: 可以给容器内部的 `/etc/hosts` 追加记录, 如果你有一些域名没有走 DNS 或者是需要固定 IP, 可以用这个实现, 是一个列表, 结构是 `域名:IP`, 跟 hosts 文件格式一样, 一行一个, 重复写的内容前面的会被后面的覆盖掉.
 	* `working_dir`: core 默认的工作目录是在 `/{appname}`, 如果你希望切走, 可以在这里写上工作目录的绝对路径, 如果目录不存在, 那就会挂...
 	* `privileged`: 容器默认使用 appname 的 user 来运行, 有时候你可能想监听 80 端口, 需要 root 权限, 这时候这里可以设置为 true, 但是请不要滥用, 万一你被人搞了进来拿到了 root 又搞了什么别的坏事... 不作死就不会死.
 * `base`: 打包镜像的时候使用的基础镜像名字. 如果不写 `build`, 这里的镜像就是部署时会使用的镜像.
-* `build`: list，打包镜像阶段的 shell 命令，如果缺省，则不为该 app 打包镜像，部署的似乎直接用 `base` 作为镜像.
+* `build`: list, 打包镜像阶段的 shell 命令, 如果缺省, 则不为该 app 打包镜像, 部署的似乎直接用 `base` 作为镜像.
 * `binds`: 不再支持, 见 `volumes`.
 * `mount_path`: 不再支持, 见 `volumes`.
 * `volumes`: 符合 docker volume 格式的挂载方式, 一行一个, 格式是 `{宿主机目录}:{容器目录}:rw` 或者 `{宿主机目录}:{容器目录}`, 不写 rw 就默认只读. 在书写 `volumes` 的时候, 支持展开 `$PERMDIR` 和 `$APPDIR` 两个变量, 对于用 citadel 管理的 app 来说, 只能挂载 `$PERMDIR` 及其下边的目录, 这是为了防止用户挂载宿主机的目录, 或者挂载其他应用的目录.
