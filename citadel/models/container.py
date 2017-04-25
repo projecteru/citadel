@@ -45,7 +45,7 @@ class Container(BaseModelMixin, PropsMixin):
     initialized = PropsItem('initialized', default=0, type=int)
 
     def __str__(self):
-        return '<{}:{}>'.format(self.appname, self.short_id)
+        return '<{}:{}:{}>'.format(self.appname, self.short_sha, self.short_id)
 
     def get_uuid(self):
         return 'citadel:container:%s' % self.container_id

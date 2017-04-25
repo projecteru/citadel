@@ -296,9 +296,10 @@ def deal_with_agent_etcd_change(self, key, data):
             return
 
         if not container.is_removing() and exitcode != 0:
-            msg = 'Dead container `{}`\nexit code: {}\ncitadel url: {}\ncontainer log: {}'.format(
-                container.short_id,
+            msg = 'Dead container `{}`\nexit code: {}\nOOMKilled: {}\ncitadel url: {}\ncontainer log: {}'.format(
+                container,
                 exitcode,
+                container.info.get('State', {}).get('OOMKilled', None),
                 url_for('app.app', name=appname, _external=True),
                 make_kibana_url(appname=appname, ident=container.ident),
             )
@@ -312,8 +313,8 @@ def deal_with_agent_etcd_change(self, key, data):
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
         if container.initialized and not container.is_removing():
             logger.debug('Sick condition: [%s, %s, %s] DEL [%s, %s] [%s]', container.appname, container.podname, container.entrypoint, container_id, container.ident, ','.join(container.get_backends()))
-            msg = 'Sick container `{}` removed from ELB\ncitadel url: {}\ncontainer log: {}'.format(
-                container.short_id,
+            msg = 'Sick container `{}`\ncitadel url: {}\nkibana log: {}'.format(
+                container,
                 url_for('app.app', name=appname, _external=True),
                 make_kibana_url(appname=appname, ident=container.ident)
             )

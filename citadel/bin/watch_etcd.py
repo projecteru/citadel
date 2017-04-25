@@ -29,6 +29,9 @@ def watch_etcd(zone=None, etcd_path='/agent2'):
     for resp in etcd.eternal_watch(etcd_path, recursive=True):
         if not resp or resp.action != 'set':
             continue
+        event = json.loads(resp.value)
+        if event.get('Name') == 'lambda':
+            continue
         logger.info('Watch ETCD event: key %s, value %s', resp.key, resp.value)
         deal_with_agent_etcd_change.delay(resp.key, json.loads(resp.value))
 
