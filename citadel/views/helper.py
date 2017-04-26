@@ -4,6 +4,7 @@ from functools import wraps
 
 from flask import g, abort
 from humanfriendly import parse_size
+from six.moves.urllib.parse import quote, urlencode
 
 from citadel.config import DEFAULT_ZONE
 from citadel.models.app import AppUserRelation, Release, App
@@ -142,7 +143,13 @@ def need_admin(f):
     return _
 
 
-def make_kibana_url(appname=None, ident=None, entrypoint=None):
+def make_kibana_url(appname=None, ident=None, entrypoint=None, domain=None):
+    if domain:
+        params = {
+            '_g': '()',
+            '_a': "(columns:!(_source),index:'rsyslog-nginx-*',interval:auto,query:(query_string:(analyze_wildcard:!t,query:'host:{}')),sort:!(rsyslog_ts,desc))".format(domain),
+        }
+        return "http://kibana.ricebook.net/app/kibana?#/discover?" + urlencode(params)
     if not appname:
         return 'BAD_URL'
     if ident:

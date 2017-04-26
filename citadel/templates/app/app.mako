@@ -55,8 +55,19 @@
     <ul class="list-group">
       % for rule in app.get_associated_elb_rules(g.zone):
         <li class="list-group-item">
-        <a target="_blank" href="${ url_for('loadbalance.elb', name=rule.elbname) }#${ rule.domain }">${ rule.domain }</a>
-        <a name="delete-rule" class="btn btn-xs btn-warning" data-rule-domain="${ rule.domain }" data-elbname="${ rule.elbname }"><span class="fui-trash"></span></a>
+        <a href='javascript://'
+          data-placement='right'
+          data-toggle="popover"
+          rel='popover'
+          data-html='true'
+          data-content="
+          <a href='${ make_kibana_url(domain=rule.domain) }' target='_blank'><span class='label label-info'>流量日志</span></a>
+          <a href='http://${ rule.domain }' target='_blank'><span class='label label-info'>访问该域名</span></a>
+          <a href='${ url_for('loadbalance.elb', name=rule.elbname) }#${ rule.domain }' target='_blank'><span class='label label-info'>ELB 规则</span></a>
+          ">
+          ${ rule.domain }
+        </a>
+        <a name='delete-rule' class='btn btn-xs btn-warning' data-rule-domain='${ rule.domain }' data-elbname='${ rule.elbname }'><span class='fui-trash'></span></a>
         </li>
       % endfor
     </ul>
