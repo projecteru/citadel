@@ -46,11 +46,13 @@ tools/deploy.sh test upstream master
 ```shell
 # setup pyenv and python 3
 curl -L https://raw.githubusercontent.com/pyenv/pyenv-installer/master/bin/pyenv-installer | bash
-cat >> /root/.bashrc << EOF
+
+# add following lines to /root/.bashrc
 export PATH="/root/.pyenv/bin:$PATH"
 eval "$(pyenv init -)"
 eval "$(pyenv virtualenv-init -)"
-EOF
+
+source /root/.bashrc
 pyenv install 3.6.1
 
 # setup Citadel virtualenv

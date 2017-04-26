@@ -7,6 +7,11 @@ Citadel 是容器平台的各种功能的一个集合, 它负责调用 [`eru-cor
 Changelog
 ==========
 
+__2017-04-26__
+
+  + Citadel 迁移到 python 3, 今后只支持 python 3, 维护者请按照文档[搭建本地开发环境](docs/dev-docs/deploy.md)
+  + Citadel 增加了 GitLab CI 测试流程, 并且在[开发者文档](docs/dev-docs/deploy.md)描述了开发测试流程
+
 __2017-04-23__
 
   + Citadel app 的 gitlab 项目必须写项目简介, 包括用途, 是否影响线上, 可否短暂下线
