@@ -30,7 +30,7 @@ class Network(JSONMessage):
 
     def __init__(self, network):
         super(Network, self).__init__(network)
-        self.subnets = network.subnets
+        self.subnets = list(network.subnets)
 
     @property
     def subnets_string(self):

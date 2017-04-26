@@ -102,7 +102,7 @@
       </tr>
     </thead>
     <tbody>
-      % for name, elbs in elb_dict.iteritems():
+      % for name, elbs in elb_dict.items():
         <tr>
           <td><a href="${ url_for('loadbalance.elb', name=name) }">${ name }</a></td>
           <td>

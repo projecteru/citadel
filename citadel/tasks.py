@@ -419,12 +419,13 @@ def celery_task_stream_response(celery_task_ids):
     pubsub = rds.pubsub()
     pubsub.subscribe(task_progress_channels)
     for item in pubsub.listen():
-        logger.debug('Got pubsub message: %s', item)
         # each content is a single JSON encoded grpc message
-        content = item['data']
+        raw_content = item['data']
         # omit the initial message where item['data'] is 1L
-        if not isinstance(content, str):
+        if isinstance(raw_content, int):
             continue
+        content = raw_content.decode('utf-8')
+        logger.debug('Got pubsub message: %s', content)
         # task will publish TASK_PUBSUB_EOF at success or failure
         if content.startswith('CELERY_TASK_DONE'):
             finished_task_id = content[content.find(':') + 1:]

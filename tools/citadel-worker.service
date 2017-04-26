@@ -6,7 +6,7 @@ After=network.target
 [Service]
 Type=simple
 User=nobody
-Environment="OAUTHLIB_INSECURE_TRANSPORT=1" "GRPC_VERBOSITY=INFO"
+Environment="OAUTHLIB_INSECURE_TRANSPORT=1" "GRPC_VERBOSITY=INFO" "C_FORCE_ROOT=true"
 WorkingDirectory=/opt/citadel
 ExecStart=/root/.pyenv/versions/3.6.1/envs/citadel/bin/celery -A citadel.app:celery worker --autoscale=50,8 --loglevel DEBUG -Q citadel -B
 LimitNOFILE=10485760

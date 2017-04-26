@@ -17,7 +17,7 @@ def index():
 @bp.route('/health-check')
 def health_check():
     msg = rds.get(CITADEL_HEALTH_CHECK_STATS_KEY)
-    if msg != 'OK':
+    if msg.decode('utf-8') != 'OK':
         abort(500, msg)
 
     return 'OK'

@@ -4,7 +4,7 @@ from functools import wraps
 
 from flask import g, abort
 from humanfriendly import parse_size
-from six.moves.urllib.parse import quote, urlencode
+from six.moves.urllib.parse import urlencode
 
 from citadel.config import DEFAULT_ZONE
 from citadel.models.app import AppUserRelation, Release, App
@@ -66,7 +66,7 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
         cpu_quota = combo.cpu
         memory = combo.memory_str
         # user can override count in combo
-        count = max(combo.count, count or 1)
+        count = max(combo.count, int(count) or 1)
         networks = combo.networks
     else:
         try:

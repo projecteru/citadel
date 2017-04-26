@@ -153,7 +153,9 @@ def remove_containers():
         c.mark_removing()
         should_remove.append(c.container_id)
 
-    remove_container.delay(should_remove, user_id=g.user.id)
+    if should_remove:
+        remove_container.delay(should_remove, user_id=g.user.id)
+
     return DEFAULT_RETURN_VALUE
 
 
