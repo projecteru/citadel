@@ -1,3 +1,4 @@
 #-i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 -i https://pypi.doubanio.com/simple/
 pytest
+ipython

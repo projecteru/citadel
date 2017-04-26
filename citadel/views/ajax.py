@@ -113,7 +113,7 @@ def get_release_entrypoints(release_id):
     if not (release.specs and release.specs.entrypoints):
         abort(404, 'Release %s has no entrypoints')
 
-    return release.specs.entrypoints.keys()
+    return list(release.specs.entrypoints.keys())
 
 
 @bp.route('/debug-container', methods=['POST'])
@@ -121,7 +121,7 @@ def get_release_entrypoints(release_id):
 def debug_container():
     payload = request.get_json()
     container_ids = payload['container_id']
-    if isinstance(container_ids, basestring):
+    if isinstance(container_ids, str):
         container_ids = [container_ids]
 
     containers = [Container.get_by_container_id(i) for i in container_ids]
@@ -138,7 +138,7 @@ def remove_containers():
     # 过滤掉ELB的容器, ELB不要走这个方式下线
     payload = request.get_json()
     container_ids = payload['container_id']
-    if isinstance(container_ids, basestring):
+    if isinstance(container_ids, str):
         container_ids = [container_ids]
 
     containers = [Container.get_by_container_id(i) for i in container_ids]
@@ -266,7 +266,7 @@ def delete_rule(name):
         return {'error': 'Rule not found'}, 404
 
     if len(rules) > 1:
-        return {'error': u'这数据有问题，你快找平台看看'}, 500
+        return {'error': '这数据有问题，你快找平台看看'}, 500
 
     rule = rules[0]
     if not AppUserRelation.user_permitted_to_app(g.user.id, name):

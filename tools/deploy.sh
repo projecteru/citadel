@@ -11,7 +11,6 @@ then
   ssh c1-eru-2 << EOF
   sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git fetch --all --prune
   sudo git --work-tree=/opt/citadel --git-dir=/opt/citadel/.git reset --hard $remote/$branch
-  sudo systemctl restart citadel citadel-worker watch-etcd
 EOF
 elif [ $deploy_mode == "prod" ]
 then

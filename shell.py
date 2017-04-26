@@ -28,7 +28,7 @@ def hook_readline_hist():
         try:
             readline.write_history_file(histfile)
         except:
-            print 'Unable to save Python command history'
+            print('Unable to save Python command history')
     atexit.register(save_hist)
 
 

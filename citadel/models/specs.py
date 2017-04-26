@@ -9,7 +9,7 @@ from marshmallow import Schema, fields, ValidationError
 
 from citadel.config import ZONE_CONFIG, DEFAULT_ZONE
 from citadel.libs.jsonutils import Jsonized
-from citadel.libs.utils import memoize, make_unicode
+from citadel.libs.utils import memoize
 
 
 FIVE_MINUTES = parse_timespan('5m')
@@ -64,7 +64,7 @@ def validate_user(username):
     from citadel.models.user import User
     try:
         if not User.get(username):
-            raise ValidationError(u'Bad username in permitted_users: {}'.format(make_unicode(username)))
+            raise ValidationError('Bad username in permitted_users: {}'.format(username))
     except RuntimeError:
         pass
 
@@ -98,12 +98,12 @@ def parse_port_list(port_list):
 
 
 def parse_memory(s):
-    return parse_size(s, binary=True) if isinstance(s, basestring) else s
+    return parse_size(s, binary=True) if isinstance(s, str) else s
 
 
 def parse_extra_env(s):
     extra_env = {}
-    if isinstance(s, basestring):
+    if isinstance(s, str):
         parts = s.split(';')
         for p in parts:
             if not p:
@@ -119,7 +119,7 @@ def parse_combos(dic):
     should re-write once marshmallow supports nested schema
     http://stackoverflow.com/questions/38048775/marshmallow-dict-of-nested-schema
     """
-    for combo_name, combo_dic in dic.iteritems():
+    for combo_name, combo_dic in dic.items():
         unmarshal_result = combo_schema.load(combo_dic)
         errors = unmarshal_result.errors
         if errors:
@@ -130,7 +130,7 @@ def parse_combos(dic):
 
 
 def parse_entrypoints(dic):
-    for entrypoint_name, entrypoint_dic in dic.iteritems():
+    for entrypoint_name, entrypoint_dic in dic.items():
         validate_entrypoint_name(entrypoint_name)
         unmarshal_result = entrypoint_schema.load(entrypoint_dic)
         errors = unmarshal_result.errors
@@ -142,7 +142,7 @@ def parse_entrypoints(dic):
 
 
 def better_parse_timespan(s):
-    if isinstance(s, basestring):
+    if isinstance(s, str):
         try:
             seconds = parse_timespan(s)
         except InvalidTimespan as e:
@@ -258,7 +258,7 @@ class Combo(Jsonized):
 
     @property
     def env_string(self):
-        return ';'.join('%s=%s' % (k, v) for k, v in self.extra_env.iteritems())
+        return ';'.join('%s=%s' % (k, v) for k, v in self.extra_env.items())
 
     def allow(self, user):
         if not self.permitted_users:
@@ -295,13 +295,13 @@ class Specs(Jsonized):
                  base=None, combos={}, permitted_users=None, subscribers=None,
                  erection_timeout=None, crontab=None, _raw=None):
         self.appname = appname
-        self.entrypoints = {entrypoint_name: Entrypoint(_raw=data, **data) for entrypoint_name, data in entrypoints.iteritems()}
+        self.entrypoints = {entrypoint_name: Entrypoint(_raw=data, **data) for entrypoint_name, data in entrypoints.items()}
         self.build = build
         self.volumes = volumes
         self.base = base
-        self.combos = {combo_name: Combo(_raw=data, **data) for combo_name, data in combos.iteritems()}
+        self.combos = {combo_name: Combo(_raw=data, **data) for combo_name, data in combos.items()}
         self.permitted_users = set(permitted_users)
-        for combo in self.combos.itervalues():
+        for combo in self.combos.values():
             self.permitted_users.update(combo.permitted_users)
 
         self.subscribers = subscribers

@@ -84,12 +84,12 @@ def edit_rule(name):
         abort(404)
 
     if len(rules) > 1:
-        flash(u'这数据绝逼有问题，你赶紧找平台看看')
+        flash('这数据绝逼有问题，你赶紧找平台看看')
         return redirect(url_for('loadbalance.elb', name=name))
 
     rule = rules[0]
     if not rule.edit_rule(rule_content):
-        flash(u'edit rule failed', 'error')
+        flash('edit rule failed', 'error')
 
     return redirect(url_for('loadbalance.elb', name=name))
 
@@ -110,7 +110,7 @@ def add_rule(name):
         abort(400, str(e))
 
     if not rule:
-        flash(u'create rule failed')
+        flash('create rule failed')
 
     return redirect(url_for('loadbalance.elb', name=name))
 
@@ -133,7 +133,7 @@ def add_general_rule(name):
                        entrypoint=entrypoint,
                        podname=podname)
     if not r:
-        flash(u'Create rule failed', 'error')
+        flash('Create rule failed', 'error')
 
     return redirect(url_for('loadbalance.elb', name=name))
 

@@ -1,7 +1,6 @@
-# coding: utf-8
-
+# -*- coding: utf-8 -*-
 import pytest
-from urlparse import urlparse
+from six.moves.urllib_parse import urlparse
 
 from citadel.app import create_app
 from citadel.ext import db, rds

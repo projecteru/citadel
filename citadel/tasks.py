@@ -158,7 +158,7 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
 
 @current_app.task(bind=True)
 def create_elb_instance_upon_containers(self, container_ids, name, sha, comment=None, user_id=None):
-    if isinstance(container_ids, basestring):
+    if isinstance(container_ids, str):
         container_ids = container_ids,
 
     release = Release.get_by_app_and_sha(ELB_APP_NAME, sha)
@@ -177,7 +177,7 @@ def create_elb_instance_upon_containers(self, container_ids, name, sha, comment=
 
 @current_app.task(bind=True)
 def remove_container(self, ids, user_id=None):
-    if isinstance(ids, basestring):
+    if isinstance(ids, str):
         ids = [ids]
 
     containers = [Container.get_by_container_id(i) for i in ids]
@@ -350,7 +350,7 @@ def schedule_task(app):
             continue
         combo = specs.combos[cmd]
         this_cronjob_containers = Container.get_by(entrypoint=combo.entrypoint, appname=appname)
-        if this_cronjob_containers and set([c.status() for c in this_cronjob_containers]) != {'running'}:
+        if this_cronjob_containers and set(c.status() for c in this_cronjob_containers) != {'running'}:
             notbot_sendmsg(app.subscribers, '{} cronjob skipped, because last cronjob container {} did not exit cleanly'.format(app, this_cronjob_containers))
             continue
         deploy_options = make_deploy_options(
@@ -412,7 +412,7 @@ def backup(container_id, src_path):
 
 
 def celery_task_stream_response(celery_task_ids):
-    if isinstance(celery_task_ids, basestring):
+    if isinstance(celery_task_ids, str):
         celery_task_ids = celery_task_ids,
 
     task_progress_channels = [TASK_PUBSUB_CHANNEL.format(task_id=id_) for id_ in celery_task_ids]
@@ -423,7 +423,7 @@ def celery_task_stream_response(celery_task_ids):
         # each content is a single JSON encoded grpc message
         content = item['data']
         # omit the initial message where item['data'] is 1L
-        if not isinstance(content, basestring):
+        if not isinstance(content, str):
             continue
         # task will publish TASK_PUBSUB_EOF at success or failure
         if content.startswith('CELERY_TASK_DONE'):
@@ -437,7 +437,7 @@ def celery_task_stream_response(celery_task_ids):
 
 def celery_task_stream_traceback(celery_task_ids):
     """collect traceback for celery tasks, do not guarantee send order"""
-    if isinstance(celery_task_ids, basestring):
+    if isinstance(celery_task_ids, str):
         celery_task_ids = celery_task_ids,
 
     for task_id in celery_task_ids:

@@ -32,17 +32,17 @@ def app(name):
     app = bp_get_app(name)
     if request.method == 'DELETE':
         if not AppUserRelation.user_permitted_to_app(g.user.id, name):
-            return jsonify({'message': u'没权限'}), 403
+            return jsonify({'message': '没权限'}), 403
         else:
             try:
                 app.delete()
-                return jsonify({'message': u'OK'}), 200
+                return jsonify({'message': 'OK'}), 200
             except ModelDeleteError:
-                return jsonify({'message': u'容器删干净之后才能删除应用'}), 400
+                return jsonify({'message': '容器删干净之后才能删除应用'}), 400
 
     releases = Release.get_by_app(app.name, limit=8)
     if len(releases) == 8:
-        flash(u'你的版本太多了，清理一下好不好！')
+        flash('你的版本太多了，清理一下好不好！')
 
     containers = Container.get_by(appname=app.name, zone=g.zone)
     return render_template('/app/app.mako', app=app, releases=releases, containers=containers)
@@ -60,7 +60,7 @@ def release(name, sha):
             release.delete()
             return jsonify({'message': 'OK'})
         else:
-            flash(u'要么没权限，要么还在跑')
+            flash('要么没权限，要么还在跑')
 
     # we won't be using pod redis and elb here
     pods = [p for p in get_core(g.zone).list_pods() if p.name not in IGNORE_PODS]

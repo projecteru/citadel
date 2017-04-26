@@ -21,5 +21,5 @@ if __name__ == '__main__':
     if '127.0.0.1' in dsn or 'localhost' in dsn or '--force' in sys.argv:
         flushdb(app)
     else:
-        print 'you are not doing this on your own computer,'
-        print 'if sure, add --force to flush database.'
+        print('you are not doing this on your own computer,')
+        print('if sure, add --force to flush database.')

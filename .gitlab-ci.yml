@@ -1,5 +1,24 @@
-image: "hub.ricebook.net/base/centos:F2E-2017.03.31"
+image: "hub.ricebook.net/base/centos:python3-latest"
+variables:
+  MYSQL_DATABASE: "citadel"
+  MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+  REDIS_URL: "redis://:@hub.ricebook.net__ci__redis:6379/0"
+  SQLALCHEMY_DATABASE_URI: "mysql+pymysql://root:@hub.ricebook.net__ci__mysql:3306/citadel?charset=utf8mb4"
+  OAUTH2_CLIENT_ID: "***REMOVED***"
+  OAUTH2_CLIENT_SECRET: "***REMOVED***"
+  OAUTHLIB_INSECURE_TRANSPORT: "1"
+
+test_job:
+  stage: "test"
+  services:
+    - "hub.ricebook.net/ci/mysql:5.7"
+    - "hub.ricebook.net/ci/redis:3.0.7"
+  script:
+    - "pip3 install -U -r requirements.txt -r requirements-dev.txt"
+    - "bin/run-tests"
+
 pages:
+  image: "hub.ricebook.net/base/centos:F2E-2017.03.31"
   stage: deploy
   script:
     - "npm install -g gitbook-cli"

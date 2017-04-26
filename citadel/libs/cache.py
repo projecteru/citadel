@@ -1,6 +1,6 @@
 # coding: utf-8
 
-import cPickle
+import pickle
 import functools
 import inspect
 from collections import OrderedDict
@@ -29,11 +29,11 @@ def cache(fmt=None, ttl=None):
 
             value = rds.get(key)
             if value is not None:
-                return cPickle.loads(value)
+                return pickle.loads(value)
 
             r = f(*args, **kwargs)
             if r is not None:
-                rds.set(key, cPickle.dumps(r), ex=ttl)
+                rds.set(key, pickle.dumps(r), ex=ttl)
 
             return r
         return _

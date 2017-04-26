@@ -91,7 +91,7 @@ def test_specs():
     entrypoints = specs.entrypoints
     rsyslog_entrypoint_data = {
         'command': 'python rsyslog_test.py',
-        'ports': [{'protocol': u'tcp', 'port': 5000}],
+        'ports': [{'protocol': 'tcp', 'port': 5000}],
         'restart': 'always',
         'backup_path': [],
         'healthcheck_url': '/healthcheck',
@@ -107,7 +107,7 @@ def test_specs():
     assert specs.base == 'hub.ricebook.net/base/centos:python-latest'
 
     combos = specs.combos
-    combo_data = {'count': 1, 'memory': 536870912, 'cpu': 1.2, 'entrypoint': u'web', 'podname': u'develop', 'permitted_users': [u'tonic', u'liuyifu'], 'networks': [u'release'], 'zone': DEFAULT_ZONE, 'extra_env': {'FOO': 'bar'}, 'envname': ''}
+    combo_data = {'count': 1, 'memory': 536870912, 'cpu': 1.2, 'entrypoint': 'web', 'podname': 'develop', 'permitted_users': ['tonic', 'liuyifu'], 'networks': ['release'], 'zone': DEFAULT_ZONE, 'extra_env': {'FOO': 'bar'}, 'envname': ''}
     left_combo = combos['test']
     right_combo = Combo(_raw=combo_data, **combo_data)
     assert left_combo == right_combo
