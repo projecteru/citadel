@@ -47,6 +47,9 @@ class BaseModelMixin(db.Model, Jsonized):
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.id == other.id
 
+    def __hash__(self):
+        return hash((self.__class__, self.id))
+
     def to_dict(self):
         return {
             'id': self.id,
