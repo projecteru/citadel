@@ -1,23 +1,6 @@
-# Citadel
+## 开发 & 测试
 
-## 什么鬼名字... 六姨夫取的, 哪天得 `ack` + `awk` 一把
-
-## RUN
-
-```shell
-start web server
-
-$ ./bin/run-web-server --reload
-
-start etcd watcher
-
-$ ./bin/run-etcd-watcher
-```
-
-## DEV
-
-测试服为 http://citadel.test.ricebook.net，citadel & core 部署在 c1-eru-1。
-测试自己的分支：
+测试服为 http://citadel.test.ricebook.net, citadel & core 部署在 c1-eru-2, 合并分支以前请用脚本部署到测试环境, 人肉测试过以后再合并上线. 测试脚本这样用就可以:
 
 ```shell
 tools/deploy.sh test
@@ -27,7 +10,7 @@ tools/deploy.sh test upstream master
 
 ## 升级线上
 
-生产服部署在 c2-eru-1.
+生产环境部署在 c2-eru-1.
 
 ```shell
 tools/deploy.sh prod
@@ -44,15 +27,6 @@ corecli register
 # inside project erulb: git@gitlab.ricebook.net:platform/eru-lb.git
 corecli register
 corecli build
-```
-
-#### Deploy
-
-```shell
-pip install -U -r requirements.txt
-export GRPC_VERBOSITY=ERROR
-export FLASK_APP=app.py
-flask run --reload --debugger
 ```
 
 ## TEST
