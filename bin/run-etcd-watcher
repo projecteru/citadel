@@ -1,2 +1,2 @@
 #!/bin/sh
-python -m citadel.bin.watch_etcd $@
+/root/.pyenv/versions/3.6.1/envs/citadel/bin/python3 -m citadel.bin.watch_etcd $@
