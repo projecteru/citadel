@@ -130,6 +130,9 @@ SESSION_REDIS = redis.Redis.from_url(REDIS_URL)
 SESSION_KEY_PREFIX = '{}:session:'.format(PROJECT_NAME)
 PERMANENT_SESSION_LIFETIME = timedelta(days=2)
 
+# flask cache settings
+CACHE_REDIS_DB = redis.Redis.from_url(REDIS_URL)
+
 # citadel-tackle config
 CITADEL_TACKLE_EXPRESSION_KEY = 'citadel:tackle:expression:{}-{}-{}'
 CITADEL_TACKLE_TASK_THROTTLING_KEY = 'citadel:tackle:throttle:{id_}:{strategy}'

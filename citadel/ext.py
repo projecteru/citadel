@@ -1,6 +1,7 @@
 # coding: utf-8
 import mapi
 from etcd import Client
+from flask_caching import Cache
 from flask_mako import MakoTemplates
 from flask_oauthlib.client import OAuth
 from flask_session import Session
@@ -34,6 +35,7 @@ sso = oauth.remote_app(
     authorize_url=OAUTH2_AUTHORIZE_URL,
 )
 
+cache = Cache(config={'CACHE_TYPE': 'redis'})
 gitlab = Gitlab(GITLAB_URL, private_token=GITLAB_PRIVATE_TOKEN)
 sess = Session()
 hub = mapi.MapiClient(HUB_ADDRESS)

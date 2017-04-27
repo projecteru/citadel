@@ -5,6 +5,7 @@ Flask
 Flask_OAuthlib
 Flask_SQLAlchemy
 Flask-Session
+Flask-Caching
 redis
 smart_getenv
 SQLAlchemy

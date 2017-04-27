@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask import g, request, abort, flash, jsonify, url_for, redirect
 from flask_mako import render_template
+from citadel.ext import cache
 
 from citadel.config import IGNORE_PODS, ELB_APP_NAME
 from citadel.libs.view import create_page_blueprint
@@ -110,7 +111,10 @@ def app_permitted_users(name):
 
 
 @bp.route('/<name>/version/<sha>/gitlab')
+@cache.cached(timeout=50)
 def gitlab_url(name, sha):
     release = bp_get_release(name, sha)
     commit = release.gitlab_commit
-    return redirect(make_commit_url(commit))
+    commit_info = commit.as_dict()
+    full_sha = commit_info['id']
+    return redirect(make_commit_url(commit_info['project_id'], full_sha))

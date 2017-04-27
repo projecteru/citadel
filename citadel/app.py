@@ -7,7 +7,7 @@ from raven.contrib.flask import Sentry
 from werkzeug.utils import import_string
 
 from citadel.config import DEBUG, SENTRY_DSN, TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF, DEFAULT_ZONE
-from citadel.ext import sess, rds, db, mako
+from citadel.ext import sess, rds, db, mako, cache
 from citadel.libs.datastructure import DateConverter
 from citadel.libs.utils import notbot_sendmsg
 from citadel.models.user import get_current_user
@@ -87,6 +87,7 @@ def create_app():
     make_celery(app)
     db.init_app(app)
     mako.init_app(app)
+    cache.init_app(app)
     sess.init_app(app)
 
     if DEBUG:

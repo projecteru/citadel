@@ -85,8 +85,7 @@ def get_build_artifact(project_name, ref, build_id):
     return '%s/projects/%s/builds/%s/artifacts' % (GITLAB_API_URL, project.id, build.id)
 
 
-@memoize
-def make_commit_url(c):
-    project = gitlab.projects.get(c.project_id)
-    url = os.path.join(GITLAB_URL, project.path_with_namespace, 'commit', c.id)
+def make_commit_url(gitlab_project_id, sha):
+    project = gitlab.projects.get(gitlab_project_id)
+    url = os.path.join(GITLAB_URL, project.path_with_namespace, 'commit', sha)
     return url
