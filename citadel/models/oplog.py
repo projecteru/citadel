@@ -72,7 +72,7 @@ class OPLog(BaseModelMixin):
     @property
     def user_real_name(self):
         user = get_user(self.user_id)
-        return user.real_name
+        return user and user.real_name
 
     @property
     def short_sha(self):
