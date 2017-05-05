@@ -149,11 +149,4 @@ combos:
 
 ## 4. 绑定域名
 
-绑定域名请在 `app.yaml` 的 combo 下声明（参考 [test-ci](http://gitlab.ricebook.net/platform/ci-test/commit/0070e269#0cf0bb82cc508190c215cbfa97023ebc538ede19_59_81) ）, 但是请注意：
-
-* 域名可以通过 `app.yaml` 创建, 却不能通过 `app.yaml` 来删除, 或者修改.因为可能导致灾难性后果.所以如果你修改了 entrypoint, 需要删除域名, 然后重新注册（也就是在 gitlab 重新 build 啦）
-* 对于以下域名, sa 已经做好了通配符转发：
-  * `*.ricebook.net` 和 `*.rhllor.net` 转发到 c2 ELB
-  * `*.test.ricebook.net` 和 `*.test.rhllor.net` 转发到 c1 ELB
-
-如果你要绑定的域名无法应用以上通配符转发规则, 比如 `*.ricebook.com`, 需要先在 `app.yaml` 里声明域名, 然后联系 sa 在 nginx 上进行绑定.
+见[域名绑定](elb.md)

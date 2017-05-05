@@ -4,6 +4,7 @@
 
 * 用户文档
 	* [上线流程](docs/user-docs/setup.md)
+	* [域名绑定](docs/user-docs/elb.md)
 	* [`app.yaml` 文档](docs/user-docs/specs.md)
 	* [权限控制](docs/user-docs/security-and-permissions.md)
 	* [部署套餐](docs/user-docs/combos.md)
