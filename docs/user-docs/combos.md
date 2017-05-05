@@ -16,9 +16,6 @@ combos:
     permitted_users:
       - "liuyifu"
       - "tonic"
-    # 每个机房都有自己的 ELB，所以每个机房都要单独绑定不同的域名
-    elb:
-      - "internal my-app.ricebook.net"
   test:
     cpu: 0.1
     memory: "50MB"
@@ -28,6 +25,6 @@ combos:
     networks:
       - "c1-test2"
     envs: "FOO=bar;"
-    elb:
-      - "develop my-app.test.ricebook.net"
 ```
+
+另外, combos 还可以用来定义域名转发规则, 具体请阅读[域名转发](elb.md).

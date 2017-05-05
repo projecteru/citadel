@@ -19,6 +19,7 @@ combos:
     networks:
       - "release"
     elb:
+    # 每个机房都有自己的 ELB，所以每个机房都要单独绑定不同的域名
       - "internal notbot.intra.ricebook.net"
   web:
     zone: "c1"
