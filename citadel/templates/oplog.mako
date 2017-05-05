@@ -9,11 +9,6 @@
 
 <%block name="main">
 
-  <ol class="breadcrumb">
-    <li><a href="${ url_for('admin.index') }">Admin</a></li>
-    <li class="active"><b>OP Log</b></li>
-  </ol>
-
   <%call expr="utils.panel()">
     <%def name="header()">
       <h3 class="panel-title">OP Logs</h3>
