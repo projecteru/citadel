@@ -183,7 +183,7 @@ def upgrade_containers():
     if ELB_APP_NAME in appnames:
         abort(400, 'Do not upgrade {} through this API'.format(ELB_APP_NAME))
 
-    async_results = [upgrade_container.delay(cid, sha) for cid in [c.container_id for c in containers if c]]
+    async_results = [upgrade_container.delay(cid, sha, user_id=g.user.id) for cid in [c.container_id for c in containers if c]]
     task_ids = [r.task_id for r in async_results]
     messages = chain(celery_task_stream_response(task_ids), celery_task_stream_traceback(task_ids))
     return Response(messages, mimetype='application/json')

@@ -253,10 +253,10 @@ def upgrade_container(self, old_container_id, sha, user_id=None, erection_timeou
     healthy = new_container.wait_for_erection(timeout=erection_timeout)
     if healthy:
         rds.publish(channel_name, make_sentence_json('New container {} OK, remove old container {}'.format(new_container_id, old_container_id)))
-        remove_container(old_container_id)
+        remove_container(old_container_id, user_id=user_id)
     else:
         rds.publish(channel_name, make_sentence_json('New container {} SO SICK, have to remove...'.format(new_container_id)))
-        remove_container(new_container_id)
+        remove_container(new_container_id, user_id=user_id)
 
 
 @current_app.task(bind=True)
