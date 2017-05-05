@@ -20,7 +20,7 @@
         % for user in users:
           <tr>
             <td>${ user.id }</td>
-            <td>${ user.realname }</td>
+            <td>${ user.real_name }</td>
           </tr>
         % endfor
       </tbody>

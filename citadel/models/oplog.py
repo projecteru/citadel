@@ -4,6 +4,7 @@ import sqlalchemy
 
 from citadel.ext import db
 from citadel.models.base import BaseModelMixin, Enum34
+from citadel.models.user import get_user
 
 
 class OPType(enum.Enum):
@@ -67,3 +68,12 @@ class OPLog(BaseModelMixin):
     @property
     def verbose_action(self):
         return self.action.name
+
+    @property
+    def user_real_name(self):
+        user = get_user(self.user_id)
+        return user.real_name
+
+    @property
+    def short_sha(self):
+        return self.sha and self.sha[:7]

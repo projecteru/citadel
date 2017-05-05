@@ -35,7 +35,7 @@
 	    <td>${ user.id }</td>
 	    <td><a href="${ url_for('admin.user_info', identifier=user.id) }">${ user.name }</a></td>
 	    <td>${ user.email }</td>
-	    <td>${ user.realname }</td>
+	    <td>${ user.real_name }</td>
 	    <td>${ 'YES' if user.privilege else 'NO' }</td>
 	  </tr>
 	% endfor

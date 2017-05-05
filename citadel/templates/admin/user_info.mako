@@ -6,7 +6,7 @@
 <%block name="main">
   <%call expr="utils.panel()">
     <%def name="header()">
-      <h3 class="panel-title">Apps for ${ user.name } / ${ user.realname }</h3>
+      <h3 class="panel-title">Apps for ${ user.name } / ${ user.real_name }</h3>
     </%def>
     <table class="table">
       <thead>

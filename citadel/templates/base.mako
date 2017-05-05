@@ -46,26 +46,25 @@
           <li class="${ 'active' if request.path.startswith('/app') else '' }">
           <a href="${ url_for('app.index') }"><span class="fui-list-numbered"></span> App List</a>
           </li>
+          <li class="${ 'active' if request.path.startswith(url_for('index.oplog')) else '' }">
+          <a href="${ url_for('index.oplog') }"><span class="fui-list-thumbnailed"></span> OPLog</a>
+          </li>
           % if g.user and g.user.privilege:
-            <li class="${ 'active' if request.path.startswith('/loadbalance') else '' }">
-            <a href="${ url_for('loadbalance.index') }"><span class="fui-windows"></span> Load Balance</a>
-            </li>
 
             <li class="dropdown ${ 'active' if request.path.startswith(url_for('admin.index')) else '' }">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown">
               <span class="fui-eye"></span> Admin Area
             </a>
             <ul class="dropdown-menu">
+              <li class="${ 'active' if request.path.startswith('/loadbalance') else '' }">
+              <a href="${ url_for('loadbalance.index') }"><span class="fui-windows"></span> Load Balance</a>
+              </li>
               <li class="${ 'active' if request.path.startswith(url_for('admin.users')) else '' }">
               <a href="${ url_for('admin.users') }"><span class="fui-user"></span> Users</a>
               </li>
               <li class="divider"></li>
               <li class="${ 'active' if request.path.startswith(url_for('admin.pods')) else '' }">
               <a href="${ url_for('admin.pods') }"><span class="fui-list-thumbnailed"></span> Pods</a>
-              </li>
-              <li class="divider"></li>
-              <li class="${ 'active' if request.path.startswith(url_for('admin.oplog')) else '' }">
-              <a href="${ url_for('admin.oplog') }"><span class="fui-list-thumbnailed"></span> OPLog</a>
               </li>
             </ul>
             </li>

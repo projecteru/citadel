@@ -68,9 +68,10 @@ def get_current_user():
 
 @memoize
 def get_user(identifier):
+    if not identifier:
+        return None
     if DEBUG:
         return User.from_dict(_DEBUG_USER_DICT)
-
     token = request.headers.get('X-Neptulon-Token') or request.values.get('X-Neptulon-Token')
     if token:
         return get_user_via_auth(token, identifier)
@@ -92,11 +93,11 @@ def get_users(start=0, limit=20, q=None):
 
 class User(object):
 
-    def __init__(self, id, name, email, realname, privilege, token='', pubkey=''):
+    def __init__(self, id, name, email, real_name, privilege, token='', pubkey=''):
         self.id = id
         self.name = name
         self.email = email
-        self.realname = realname
+        self.real_name = real_name
         self.privilege = privilege
         self.token = token
         self.pubkey = pubkey
