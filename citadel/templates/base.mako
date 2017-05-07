@@ -59,6 +59,7 @@
               <li class="${ 'active' if request.path.startswith('/loadbalance') else '' }">
               <a href="${ url_for('loadbalance.index') }"><span class="fui-windows"></span> Load Balance</a>
               </li>
+              <li class="divider"></li>
               <li class="${ 'active' if request.path.startswith(url_for('admin.users')) else '' }">
               <a href="${ url_for('admin.users') }"><span class="fui-user"></span> Users</a>
               </li>
