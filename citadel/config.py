@@ -89,6 +89,10 @@ task_default_routing_key = PROJECT_NAME
 task_serializer = 'pickle'
 accept_content = ['pickle', 'json']
 beat_schedule = {
+    'clean-oplog': {
+        'task': 'citadel.tasks.clean_oplog',
+        'schedule': crontab(hour='7'),
+    },
     'clean-images': {
         'task': 'citadel.tasks.clean_images',
         'schedule': crontab(hour='4'),

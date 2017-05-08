@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+from datetime import datetime, timedelta
 
 import yaml
 from celery import current_app
@@ -283,6 +284,12 @@ def clean_images(self):
             if not Release.get_by_app_and_sha(appname, short_sha):
                 if hub.delete_repo(repo_name, short_sha):
                     logger.warn('Delete image %s:%s', appname, short_sha)
+
+
+@current_app.task(bind=True)
+def clean_oplog(self):
+    threshold = datetime.now() - timedelta(days=7)
+    OPLog.query.filter(OPLog.created < threshold).delete()
 
 
 @current_app.task(bind=True)
