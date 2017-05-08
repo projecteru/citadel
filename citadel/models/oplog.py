@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import enum
 import sqlalchemy
+from flask import g
 
 from citadel.ext import db
 from citadel.models.base import BaseModelMixin, Enum34
@@ -23,6 +24,7 @@ class OPType(enum.Enum):
 class OPLog(BaseModelMixin):
 
     __tablename__ = 'operation_log'
+    zone = db.Column(db.CHAR(64), nullable=False, default='', index=True)
     user_id = db.Column(db.Integer, nullable=False, default=0, index=True)
     appname = db.Column(db.CHAR(64), nullable=False, default='', index=True)
     sha = db.Column(db.CHAR(64), nullable=False, default='', index=True)
@@ -32,7 +34,7 @@ class OPLog(BaseModelMixin):
     @classmethod
     def get_by(cls, user_id=None, appname=None, sha=None, action=None, time_window=None, start=0, limit=100):
         """filter OPLog by user, action, or a tuple of 2 datetime as timewindow"""
-        filters = []
+        filters = [cls.zone == g.zone | cls.zone == '']
         if user_id:
             filters.append(cls.user_id == user_id)
 
@@ -52,11 +54,12 @@ class OPLog(BaseModelMixin):
         return cls.query.filter(sqlalchemy.and_(*filters)).order_by(cls.id.desc()).offset(start).limit(limit).all()
 
     @classmethod
-    def create(cls, user_id, action, appname='', sha='', content=None):
+    def create(cls, user_id, action, appname='', sha='', zone='', content=None):
         if content is None:
             content = {}
 
-        op_log = cls(user_id=user_id,
+        op_log = cls(zone=zone,
+                     user_id=user_id,
                      appname=appname,
                      sha=sha,
                      action=action,

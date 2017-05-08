@@ -144,7 +144,12 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
             op_content = {'entrypoint': deploy_options['entrypoint'], 'envname': envname, 'networks': deploy_options['networks']}
             op_content.update(m.to_dict())
             op_content['cpu'] = deploy_options['cpu_quota']
-            OPLog.create(user_id, OPType.CREATE_CONTAINER, appname, sha, op_content)
+            OPLog.create(user_id,
+                         OPType.CREATE_CONTAINER,
+                         appname=appname,
+                         sha=sha,
+                         zone=zone,
+                         content=op_content)
         else:
             logger.error('Error when creating container: %s', m.error)
             bad_news.append(content)
@@ -172,7 +177,12 @@ def create_elb_instance_upon_containers(self, container_ids, name, sha, comment=
 
         # 记录oplog
         op_content = {'elbname': name, 'container_id': container.container_id}
-        OPLog.create(user_id, OPType.CREATE_ELB_INSTANCE, release.app.name, release.sha, op_content)
+        OPLog.create(user_id,
+                     OPType.CREATE_ELB_INSTANCE,
+                     appname=release.app.name,
+                     sha=release.sha,
+                     zone=container.zone,
+                     content=op_content)
 
 
 @current_app.task(bind=True)
@@ -212,7 +222,12 @@ def remove_container(self, ids, user_id=None):
             container.delete()
             # 记录oplog
             op_content = {'container_id': m.id}
-            OPLog.create(user_id, OPType.REMOVE_CONTAINER, container.appname, container.sha, op_content)
+            OPLog.create(user_id,
+                         OPType.REMOVE_CONTAINER,
+                         appname=container.appname,
+                         sha=container.sha,
+                         zone=container.zone,
+                         content=op_content)
             logger.debug('Container [%s] deleted', m.id)
         elif 'Key not found' in m.message or 'No such container' in m.message:
             container.delete()
