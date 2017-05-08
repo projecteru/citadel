@@ -46,9 +46,19 @@
           <li class="${ 'active' if request.path.startswith('/app') else '' }">
           <a href="${ url_for('app.index') }"><span class="fui-list-numbered"></span> App List</a>
           </li>
-          <li class="${ 'active' if request.path.startswith(url_for('index.oplog')) else '' }">
-          <a href="${ url_for('index.oplog') }"><span class="fui-list-thumbnailed"></span> OPLog</a>
-          </li>
+          <li class="dropdown ${ 'active' if request.path.startswith(url_for('index.oplog')) else '' }">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+            <span class="fui-eye"></span> OPLog
+          </a>
+          <ul class="dropdown-menu">
+            <li class="${ 'active' if request.path.startswith('/oplog/release') else '' }">
+            <a href="${ url_for('index.oplog_report', type_='release') }"><span class="fui-windows"></span> 上线日志</a>
+            </li>
+            <li class="divider"></li>
+            <li class="${ 'active' if request.path == '/oplog' else '' }">
+            <a href="${ url_for('index.oplog') }"><span class="fui-windows"></span> OPLog</a>
+            </li>
+          </ul>
           % if g.user and g.user.privilege:
 
             <li class="dropdown ${ 'active' if request.path.startswith(url_for('admin.index')) else '' }">

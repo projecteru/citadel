@@ -32,9 +32,9 @@ class OPLog(BaseModelMixin):
     content = db.Column(db.JSON)
 
     @classmethod
-    def get_by(cls, user_id=None, appname=None, sha=None, action=None, time_window=None, start=0, limit=100):
+    def get_by(cls, user_id=None, appname=None, sha=None, action=None, time_window=None, start=0, limit=200):
         """filter OPLog by user, action, or a tuple of 2 datetime as timewindow"""
-        filters = [cls.zone == g.zone | cls.zone == '']
+        filters = [(cls.zone == g.zone) | (cls.zone == '')]
         if user_id:
             filters.append(cls.user_id == user_id)
 
@@ -52,6 +52,29 @@ class OPLog(BaseModelMixin):
             filters.extend([cls.dt >= start, cls.dt <= end])
 
         return cls.query.filter(sqlalchemy.and_(*filters)).order_by(cls.id.desc()).offset(start).limit(limit).all()
+
+    @classmethod
+    def generate_report(cls, type_, start=0, limit=20):
+        """
+        Sensible operation log report
+
+        Args:
+            type_ (str): choose from ('release')
+        """
+        if type_ == 'release':
+            query = '''
+            SELECT min(created) AS created, user_id, appname, sha, action
+            FROM operation_log
+            GROUP BY user_id, appname, sha, action
+            ORDER BY created DESC
+            '''
+        else:
+            raise Exception('Bad mode {}'.format(type_))
+        res = [cls(**row) for row in db.session.execute(query).fetchall()]
+        for obj in res:
+            obj.action = OPType(obj.action)
+
+        return res
 
     @classmethod
     def create(cls, user_id, action, appname='', sha='', zone='', content=None):
