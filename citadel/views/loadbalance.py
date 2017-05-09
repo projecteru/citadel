@@ -94,23 +94,16 @@ def edit_rule(name):
     return redirect(url_for('loadbalance.elb', name=name))
 
 
-@bp.route('/<name>/add-rule', methods=['GET', 'POST'])
+@bp.route('/<name>/add-rule', methods=['POST'])
 @need_admin
 def add_rule(name):
-    if request.method == 'GET':
-        all_apps = [a for a in App.get_all(limit=100) if a and a.name != ELB_APP_NAME]
-        return render_template('/loadbalance/add_rule.mako', name=name, all_apps=all_apps)
-
     appname = request.form['appname']
     domain = _cleanse_domain(request.form['domain'])
     rule_content = request.form['rule']
     try:
-        rule = ELBRule.create(g.zone, appname, name, domain, rule_content)
+        ELBRule.create(g.zone, appname, name, domain, rule_content)
     except ModelCreateError as e:
         abort(400, str(e))
-
-    if not rule:
-        flash('create rule failed')
 
     return redirect(url_for('loadbalance.elb', name=name))
 
@@ -124,16 +117,12 @@ def add_general_rule(name):
 
     domain = _cleanse_domain(request.form['domain'])
     if not domain:
-        abort(400)
+        abort(400, 'Bad domain')
 
-    r = ELBRule.create(g.zone,
-                       name,
-                       domain,
-                       appname,
-                       entrypoint=entrypoint,
-                       podname=podname)
-    if not r:
-        flash('Create rule failed', 'error')
+    try:
+        ELBRule.create(g.zone, name, domain, appname, entrypoint=entrypoint, podname=podname)
+    except ModelCreateError as e:
+        abort(400, str(e))
 
     return redirect(url_for('loadbalance.elb', name=name))
 

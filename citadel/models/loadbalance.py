@@ -82,6 +82,10 @@ class ELBRule(BaseModelMixin):
 
     @classmethod
     def create(cls, zone, elbname, domain, appname, rule=None, sha='', entrypoint=None, podname=None):
+        from citadel.models.app import App
+        app = App.get_by_name(appname)
+        if not app:
+            raise ModelCreateError('App {} not found'.format(appname))
         rule = rule or cls.generate_simple_rule(appname, entrypoint, podname)
         if not rule:
             raise ModelCreateError('Bad rule')

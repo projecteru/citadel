@@ -95,30 +95,19 @@
         <div class="form-group">
           <label class="col-sm-2 control-label" for="">App Name</label>
           <div class="col-sm-10">
-            <select id="" class="form-control" name="appname">
-              % for app in all_apps:
-                <option value="${ app.name }">${ app.name }</option>
-              % endfor
-            </select>
+            <input class="form-control" type="text" name="appname">
           </div>
         </div>
         <div class="form-group">
           <label class="col-sm-2 control-label" for="">Entrypoint</label>
           <div class="col-sm-10">
-            <select id="" class="form-control" name="entrypoint">
-              <option value="_all">_all</option>
-            </select>
+            <input class="form-control" type="text" name="entrypoint">
           </div>
         </div>
         <div class="form-group">
           <label class="col-sm-2 control-label" for="">Podname</label>
           <div class="col-sm-10">
-            <% pods = all_apps[0].get_online_pods() %>
-            <select id="" class="form-control" name="podname">
-              % for p in pods:
-                <option value="${ p }">${ p }</option>
-              % endfor
-            </select>
+            <input class="form-control" type="text" name="podname">
           </div>
         </div>
         <div class="form-group">

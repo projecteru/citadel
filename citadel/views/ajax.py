@@ -41,21 +41,6 @@ def delete_app_env(name):
     return DEFAULT_RETURN_VALUE
 
 
-@bp.route('/app/<name>/online-entrypoints', methods=['GET'])
-@jsonize
-def get_app_online_entrypoints(name):
-    app = bp_get_app(name)
-    entrypoints = app.get_online_entrypoints()
-    return entrypoints
-
-
-@bp.route('/app/<name>/online-pods', methods=['GET'])
-@jsonize
-def get_app_online_pods(name):
-    app = bp_get_app(name)
-    return app.get_online_pods()
-
-
 @bp.route('/release/<release_id>/deploy', methods=['POST'])
 def deploy_release(release_id):
     """部署的ajax接口, oplog在对应action里记录."""
