@@ -248,7 +248,7 @@ class Combo(Jsonized):
         self.memory = memory
         self.count = count
         self.extra_env = extra_env
-        self.networks = networks or []
+        self.networks = networks
         self.permitted_users = set(permitted_users)
         self.elb = elb
 
