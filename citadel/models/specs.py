@@ -185,7 +185,7 @@ class Port(Jsonized):
 class EntrypointSchema(Schema):
     cmd = fields.Str(attribute='command', required=True)
     ports = fields.Function(deserialize=parse_port_list, missing=[])
-    network_mode = fields.Str(validate=validate_network_mode)
+    network_mode = fields.Str(validate=validate_network_mode, missing='bridge')
     restart = fields.Str(validate=validate_restart)
     healthcheck_url = fields.Str()
     healthcheck_port = fields.Int(validate=validate_port)
@@ -229,7 +229,7 @@ class ComboSchema(Schema):
     memory = fields.Function(deserialize=parse_memory, required=True)
     count = fields.Int(missing=1)
     extra_env = fields.Function(deserialize=parse_extra_env, missing={})
-    networks = fields.List(fields.Str())
+    networks = fields.List(fields.Str(), missing=[])
     permitted_users = fields.List(fields.Str(validate=validate_user), missing=[])
     elb = fields.List(fields.Str())
 

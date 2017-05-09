@@ -76,8 +76,6 @@ combos:
     podname: "develop"
     zone: "c1"
     entrypoint: "cron"
-    networks:
-      - "c1-test2"
 crontab:
   - '* * * * * cron'
 '''
@@ -94,6 +92,7 @@ def test_specs():
         'ports': [{'protocol': 'tcp', 'port': 5000}],
         'restart': 'always',
         'backup_path': [],
+        'network_mode': 'bridge',
         'healthcheck_url': '/healthcheck',
         'healthcheck_expected_code': 200,
         'privileged': False,
@@ -114,6 +113,9 @@ def test_specs():
     assert left_combo.env_string == 'FOO=bar'
     assert left_combo.allow('tonic') is True
     assert left_combo.allow('cmgs') is False
+
+    cron_combo = combos['cron']
+    assert cron_combo.networks == []
 
     assert specs.permitted_users == {'tonic', 'liuyifu', 'cmgs', 'zhangye'}
     assert specs.subscribers == '#platform'
