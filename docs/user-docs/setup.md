@@ -99,7 +99,6 @@ entrypoints:
 build:
   - "echo 'already done in CI'"
 base: "hub.ricebook.net/base/alpine:java-2017.03.17"
-# Citadel 项目权限
 permitted_users:
   - "zhangjianhua"
 combos:
@@ -111,9 +110,6 @@ combos:
     envname: "prod"
     networks:
       - "release"
-    # Citadel app 部署权限, 只有 zhangjianhua 可以部署该 Combo
-    permitted_users:
-      - "zhangjianhua"
 ```
 
 #### Python 项目：

@@ -7,24 +7,30 @@ $(document).ready(function(){
   }
 });
 
+  update_pod_info = function($) {
+    var pod = $('#add-container-form select[name=pod]').val();
+    var node_selection = $('select[name=node]');
+    var get_nodes_url = '/ajax/pod/' + pod + '/nodes';
+    $.get(get_nodes_url, {}, function(r){
+      node_selection.html('').append($('<option>').val('').text('随便'));
+      for (var i=0; i<r.length; i++) {
+        node_selection.append($('<option>').val(r[i].name).text(r[i].name + ' - ' + r[i].ip));
+      }
+    });
+    var network_checkboxes = $('#network-checkbox');
+    var get_networks_url = '/api/v1/pod/' + pod + '/networks';
+    $.get(get_networks_url, {}, function(r){
+      network_checkboxes.html("")
+      for (var i=0; i<r.length; i++) {
+        network_checkboxes.append('<label class="checkbox"><input type="checkbox" name="network" value="' + r[i].name + '" checked>' + r[i].name + ' - ' + r[i].subnets + '</label>');
+      }
+    });
+  }
+
+update_pod_info($);
+
 $('#add-container-form select[name=pod]').change(function(){
-  var pod = $(this).val();
-  var node_selection = $('select[name=node]');
-  var get_nodes_url = '/ajax/pod/' + pod + '/nodes';
-  $.get(get_nodes_url, {}, function(r){
-    node_selection.html('').append($('<option>').val('').text('随便'));
-    for (var i=0; i<r.length; i++) {
-      node_selection.append($('<option>').val(r[i].name).text(r[i].name + ' - ' + r[i].ip));
-    }
-  });
-  var network_checkboxes = $('#network-checkbox');
-  var get_networks_url = '/api/v1/pod/' + pod + '/networks';
-  $.get(get_networks_url, {}, function(r){
-    network_checkboxes.html("")
-    for (var i=0; i<r.length; i++) {
-      network_checkboxes.append('<label class="checkbox"><input type="checkbox" name="network" value="' + r[i].name + '" checked>' + r[i].name + ' - ' + r[i].subnets + '</label>');
-    }
-  });
+  update_pod_info($);
 });
 
 $('#add-container-button').click(function(e){

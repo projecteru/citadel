@@ -60,9 +60,6 @@ combos:
     networks:
       - "release"
     envs: "FOO=bar;"
-    permitted_users:
-      - "tonic"
-      - "liuyifu"
   prod-in-c2:
     cpu: 1
     memory: "512MB"
@@ -70,9 +67,6 @@ combos:
     entrypoint: "web"
     networks:
       - "release"
-    permitted_users:
-      - "liuyifu"
-      - "tonic"
     elb:
       - "internal ci-test.test.ricebook.net"
 ```
@@ -111,5 +105,4 @@ combos:
 	* `podname`: 部署的区域, c2 机房里这里可选的是 intra 和 release, 如果是对外发布的应用, 选择 release.
 	* `entrypoint`: 用上面列出的哪个 entrypoint 来部署, 如果没在里面出现那就不要怪我了...
 	* `networks`: 是一个列表, 需要绑定的 calico SDN 的网络名字, c2 机房只有一个 release 网络.
-	* `permitted_users`: 谁可以用这个套餐, 可能 A 能用这个套餐 1, B 不能但是可以用套餐 2, 这种情况可以列在这里.
 	* `elb`: 一行一个, 告诉 citadel 这个 combo 上线之后, 要去更新哪个 ELB 的哪个域名. 格式是 `ELB 域名`, c2 可用的 ELB 有两个, internal 和 public.

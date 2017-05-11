@@ -12,10 +12,6 @@ combos:
     entrypoint: "web"
     networks:
       - "release"
-    # 在 Combo 下声明 permitted_users，可以达到控制部署权限的效果
-    permitted_users:
-      - "liuyifu"
-      - "tonic"
   test:
     cpu: 0.1
     memory: "50MB"

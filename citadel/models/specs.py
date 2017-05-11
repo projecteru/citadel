@@ -230,15 +230,13 @@ class ComboSchema(Schema):
     count = fields.Int(missing=1)
     extra_env = fields.Function(deserialize=parse_extra_env, missing={})
     networks = fields.List(fields.Str(), missing=[])
-    permitted_users = fields.List(fields.Str(validate=validate_user), missing=[])
     elb = fields.List(fields.Str())
 
 
 class Combo(Jsonized):
     def __init__(self, zone=None, podname=None, nodename=None, entrypoint=None,
                  envname=None, cpu=None, memory=None, count=None,
-                 extra_env=None, networks=None, permitted_users=None, elb=None,
-                 _raw=None):
+                 extra_env=None, networks=None, elb=None, _raw=None):
         self.zone = zone
         self.podname = podname
         self.nodename = nodename
@@ -249,7 +247,6 @@ class Combo(Jsonized):
         self.count = count
         self.extra_env = extra_env
         self.networks = networks
-        self.permitted_users = set(permitted_users)
         self.elb = elb
 
     @property
@@ -259,12 +256,6 @@ class Combo(Jsonized):
     @property
     def env_string(self):
         return ';'.join('%s=%s' % (k, v) for k, v in self.extra_env.items())
-
-    def allow(self, user):
-        if not self.permitted_users:
-            return True
-        return user in self.permitted_users
-
 
 combo_schema = ComboSchema()
 
@@ -301,9 +292,6 @@ class Specs(Jsonized):
         self.base = base
         self.combos = {combo_name: Combo(_raw=data, **data) for combo_name, data in combos.items()}
         self.permitted_users = set(permitted_users)
-        for combo in self.combos.values():
-            self.permitted_users.update(combo.permitted_users)
-
         self.subscribers = subscribers
         self.erection_timeout = erection_timeout
         self.crontab = crontab
