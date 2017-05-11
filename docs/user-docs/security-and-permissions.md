@@ -22,25 +22,4 @@ permitted_users:
   - "zhangye"
 ```
 
- 表示 liuyifu 和 zhangye 这两个 sso 用户可以访问该应用.
-
-在 combos 下声明 `permitted_users`, 可以限制用户的部署权限, 比如:
-
-```yaml
-combos:
-  test:
-    cpu: 0.3
-    memory: "512MB"
-    podname: "develop"
-    entrypoint: "web"
-    networks:
-      - "c1-test"
-    envs: "FOO=bar;"
-    permitted_users:
-      - "liuyifu"
-```
-
-这表示虽然 zhangye 和 liuyifu 都可以访问该项目, 但是 `test` 这个部署套餐只有 liuyifu 有权限部署.
-如果部署套餐下边没有控制权限, 则所有具有项目权限的人都可以部署任意套餐.
-
-**注意!** 部署套餐的权限控制, 是 UI 展示上的隐藏, 目的仅仅是防呆, 如果有项目权限的人用自己的 sso auth token 来调用 citadel 接口, 还是可以成功部署的.
+表示 liuyifu 和 zhangye 这两个 sso 用户可以访问该应用.

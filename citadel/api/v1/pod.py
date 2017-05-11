@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-from flask import abort, g, request
+from flask import g, request, abort
 
+from citadel.ext import cache
 from citadel.libs.datastructure import AbortDict
-from citadel.libs.view import create_api_blueprint
 from citadel.libs.memcap import get_node_memcap, sync_node_memcap
+from citadel.libs.view import create_api_blueprint
 from citadel.models.container import Container
 from citadel.rpc import get_core
 
@@ -20,6 +21,7 @@ def _get_pod(name):
 
 
 @bp.route('/', methods=['GET'])
+@cache.cached(timeout=60 * 10)
 def get_all_pods():
     return get_core(g.zone).list_pods()
 
@@ -30,6 +32,7 @@ def get_pod(name):
 
 
 @bp.route('/<name>/nodes', methods=['GET'])
+@cache.cached(timeout=60 * 10)
 def get_pod_nodes(name):
     pod = _get_pod(name)
     return get_core(g.zone).get_pod_nodes(pod.name)
@@ -42,6 +45,7 @@ def get_pod_containers(name):
 
 
 @bp.route('/<name>/networks', methods=['GET'])
+@cache.cached(timeout=60 * 10)
 def get_pod_networks(name):
     pod = _get_pod(name)
     return get_core(g.zone).get_pod_networks(pod.name)

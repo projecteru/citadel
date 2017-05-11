@@ -117,22 +117,6 @@ def bp_get_balancer(id):
     return elb
 
 
-def get_nodes_for_first_pod(pods):
-    """取一个pods列表里的第一个pod的nodes.
-    场景很简单啊, 因为是页面渲染,
-    第一次返回页面的时候需要一些默认值,
-    默认的节点当然就是第一个pod的节点了..."""
-    if not pods:
-        return []
-    return get_core(g.zone).get_pod_nodes(pods[0].name)
-
-
-def get_networks_for_first_pod(pods):
-    if not pods:
-        return []
-    return get_core(g.zone).get_pod_networks(pods[0].name)
-
-
 def need_admin(f):
     @wraps(f)
     def _(*args, **kwargs):

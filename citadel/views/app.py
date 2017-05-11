@@ -12,7 +12,7 @@ from citadel.models.gitlab import make_commit_url
 from citadel.models.oplog import OPLog, OPType
 from citadel.models.user import User
 from citadel.rpc import get_core
-from citadel.views.helper import bp_get_app, bp_get_release, get_nodes_for_first_pod, get_networks_for_first_pod
+from citadel.views.helper import bp_get_app, bp_get_release
 
 
 bp = create_page_blueprint('app', __name__, url_prefix='/app')
@@ -65,19 +65,9 @@ def release(name, sha):
 
     # we won't be using pod redis and elb here
     pods = [p for p in get_core(g.zone).list_pods() if p.name not in IGNORE_PODS]
-    nodes = get_nodes_for_first_pod(pods)
-    networks = get_networks_for_first_pod(pods)
-
-    draw_combos = bool(request.values.get('draw_combos', type=int, default=1))
     combos_list = sorted((combo_name, combo) for combo_name, combo in release.combos.items() if combo.zone == g.zone)
-    # if there's combos, nomal users must use them, while admin can switch back
-    # to the original deploy UI
-    if release.combos and not draw_combos and g.user.privilege:
-        draw_combos = False
-
     return render_template('/app/release.mako', app=app, release=release,
-                           networks=networks, nodes=nodes, pods=pods,
-                           combos_list=combos_list, draw_combos=draw_combos)
+                           pods=pods, combos_list=combos_list)
 
 
 @bp.route('/<name>/env', methods=['GET', 'POST'])

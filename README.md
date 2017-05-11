@@ -7,6 +7,14 @@ Citadel 是容器平台的各种功能的一个集合, 它负责调用 [`eru-cor
 Changelog
 ==========
 
+__2017-05-12__
+
+  + 移除部署套餐的权限, 实现粗糙, 业务也用不到
+
+__2017-05-08__
+
+  + Citadel 优化了 OPLog, 并且增加了[上线日志](http://citadel.ricebook.net/oplog/release)
+
 __2017-04-26__
 
   + Citadel 迁移到 python 3, 今后只支持 python 3, 维护者请按照文档[搭建本地开发环境](docs/dev-docs/deploy.md)

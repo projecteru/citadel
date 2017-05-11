@@ -5,6 +5,10 @@
   ${ release.name } @ ${ release.sha[:7] }
 </%def>
 
+<%!
+  from humanfriendly import parse_size
+%>
+
 <%def name="more_css()">
   .progress-bar {
   -webkit-transition: none !important;
@@ -70,7 +74,7 @@
       <h3 class="modal-title">Add Container</h3>
     </%def>
 
-    % if combos_list and draw_combos:
+    % if combos_list:
 
       <ul class="nav nav-tabs" id="add-container-form">
 
@@ -78,11 +82,7 @@
           active_ = {'active': 'active'}
         %>
           % for mode, combo in combos_list:
-            % if combo.allow(g.user.name) or g.user.privilege:
-              <li class="${ active_.pop('active', '') }"><a class="btn" data-target="#${ mode }" data-toggle="tab">${ mode }</a></li>
-            % else:
-              <li class="${ active_.pop('active', '') } disabled"><a class="btn" data-target="#${ mode }">${ mode }</a></li>
-            % endif
+            <li class="${ active_.pop('active', '') }"><a class="btn" data-target="#${ mode }" data-toggle="tab">${ mode }</a></li>
           % endfor
 
         </ul>
@@ -103,37 +103,36 @@
                   <div class="form-group">
                     <label class="col-sm-2 control-label" for="">Pod</label>
                     <div class="col-sm-10">
-                      <select name="pod" class="form-control" disabled>
+                      <select name="pod" class="form-control">
                         <option value="${ combo.podname }">${ combo.podname }</option>
+                        % for p in [p for p in pods if p.name != combo.podname]:
+                          <option value="${ p.name }">${ p.name }</option>
+                        % endfor
                       </select>
                     </div>
                   </div>
                   <div class="form-group collapse advance-form-group">
                     <label class="col-sm-2 control-label" for="">Node</label>
                     <div class="col-sm-10">
-                      <select class="form-control" name="node" disabled hidden>
-                        <option value="${ combo.nodename }">
-                        % if not combo.nodename:
-                          随便
-                        % else:
-                          ${ combo.nodename }
-                        % endif
-                        </option>
+                      <select class="form-control" name="node" hidden>
                       </select>
                     </div>
                   </div>
                   <div class="form-group">
                     <label class="col-sm-2 control-label" for="">Entrypoint</label>
                     <div class="col-sm-10">
-                      <select class="form-control" name="entrypoint" disabled>
+                      <select class="form-control" name="entrypoint">
                         <option value="${ combo.entrypoint }">${ combo.entrypoint }</option>
+                        % for entry in [s for s in release.specs.entrypoints.keys() if s != combo.entrypoint]:
+                          <option value="${ entry }">${ entry }</option>
+                        % endfor
                       </select>
                     </div>
                   </div>
                   <div class="form-group">
                     <label class="col-sm-2 control-label" for="">Env</label>
                     <div class="col-sm-10">
-                      <select class="form-control" name="envname" disabled>
+                      <select class="form-control" name="envname">
                         <option value="${ combo.envname }">${ combo.envname }</option>
                       </select>
                     </div>
@@ -147,23 +146,29 @@
                   <div class="form-group collapse advance-form-group">
                     <label class="col-sm-2 control-label" for="">CPU</label>
                     <div class="col-sm-10">
-                      <select class="form-control" name="cpu" disabled>
+                      <select class="form-control" name="cpu">
                         <option value="${ combo.cpu }" type="number">${ combo.cpu }</option>
+                        % for cpu_value in [n for n in (0.5, 1, 2, 4, 8) if float(n) != combo.cpu]:
+                          <option value="${ cpu_value }" type="number">${ cpu_value }</option>
+                        % endfor
                       </select>
                     </div>
                   </div>
                   <div class="form-group collapse advance-form-group">
                     <label class="col-sm-2 control-label" for="">Memory</label>
                     <div class="col-sm-10">
-                      <select class="form-control" name="memory" disabled>
+                      <select class="form-control" name="memory">
                         <option value="${ combo.memory }">${ combo.memory_str }</option>
+                        % for memory_value in [s for s in ('256MiB', '512MiB', '1GiB', '2GiB', '4GiB', '8GiB', '16GiB') if parse_size(s, binary=True) != combo.memory]:
+                          <option value="${ memory_value }">${ memory_value }</option>
+                        % endfor
                       </select>
                     </div>
                   </div>
                   <div class="form-group collapse advance-form-group">
                     <label class="col-sm-2 control-label" for="">Extra Env</label>
                     <div class="col-sm-10">
-                      <input class="form-control" type="text" name="extra_env" value="${ combo.env_string }" disabled>
+                      <input class="form-control" type="text" name="extra_env" value="${ combo.env_string }">
                     </div>
                   </div>
                   <div class="form-group">
@@ -171,7 +176,7 @@
                     <div class="col-sm-10">
                       % for name in combo.networks:
                         <label class="checkbox" for="">
-                          <input type="checkbox" name="network" value="${ name }" checked="checked" disabled>${ name }
+                          <input type="checkbox" name="network" value="${ name }" checked="checked">${ name }
                         </label>
                       % endfor
                     </div>
@@ -211,12 +216,6 @@
               <label class="col-sm-2 control-label" for="">Node</label>
               <div class="col-sm-10">
                 <select class="form-control" name="node">
-                  % if len(nodes) > 1:
-                    <option value="">随便</option>
-                  % endif
-                  % for n in nodes:
-                    <option value="${ n.name }">${ n.name }</option>
-                  % endfor
                 </select>
               </div>
             </div>
@@ -260,7 +259,7 @@
               <label class="col-sm-2 control-label" for="">Memory</label>
               <div class="col-sm-10">
                 <select class="form-control" name="memory">
-                  % for memory_value in ('512MiB', '1GiB', '2GiB', '4GiB', '8GiB', '16GiB'):
+                  % for memory_value in ('256MiB', '512MiB', '1GiB', '2GiB', '4GiB', '8GiB', '16GiB'):
                     <option value="${ memory_value }">${ memory_value }</option>
                   % endfor
                 </select>
@@ -297,18 +296,6 @@
 
         <%def name="footer()">
           <button class="btn btn-warning pull-left" data-toggle="collapse" data-target=".advance-form-group">老子搞点高级的</button>
-          % if g.user.privilege and combos_list:
-            <button class="btn btn-info pull-left" id="toggle-combos">切换部署模式</button>
-            <script>
-              $('#toggle-combos').click(function(){
-              if (window.location.search.includes("draw_combos=0")) {
-                window.location.search = "draw_combos=1"
-              } else {
-                window.location.search = "draw_combos=0"
-              }
-              });
-            </script>
-          % endif
           <button class="btn btn-warning" id="close-modal" data-dismiss="modal"><span class="fui-cross"></span>Close</button>
           <button class="btn btn-info" id="add-container-button"><span class="fui-plus"></span>Go</button>
         </%def>

@@ -57,9 +57,6 @@ combos:
     networks:
       - "release"
     extra_env: "FOO=bar;"
-    permitted_users:
-      - "tonic"
-      - "liuyifu"
   prod:
     cpu: 0.5
     memory: "512MB"
@@ -67,9 +64,6 @@ combos:
     entrypoint: "web"
     networks:
       - "release"
-    permitted_users:
-      - "liuyifu"
-      - "tonic"
   cron:
     cpu: 1
     memory: "512MB"
@@ -106,18 +100,16 @@ def test_specs():
     assert specs.base == 'hub.ricebook.net/base/centos:python-latest'
 
     combos = specs.combos
-    combo_data = {'count': 1, 'memory': 536870912, 'cpu': 1.2, 'entrypoint': 'web', 'podname': 'develop', 'permitted_users': ['tonic', 'liuyifu'], 'networks': ['release'], 'zone': DEFAULT_ZONE, 'extra_env': {'FOO': 'bar'}, 'envname': ''}
+    combo_data = {'count': 1, 'memory': 536870912, 'cpu': 1.2, 'entrypoint': 'web', 'podname': 'develop', 'networks': ['release'], 'zone': DEFAULT_ZONE, 'extra_env': {'FOO': 'bar'}, 'envname': ''}
     left_combo = combos['test']
     right_combo = Combo(_raw=combo_data, **combo_data)
     assert left_combo == right_combo
     assert left_combo.env_string == 'FOO=bar'
-    assert left_combo.allow('tonic') is True
-    assert left_combo.allow('cmgs') is False
 
     cron_combo = combos['cron']
     assert cron_combo.networks == []
 
-    assert specs.permitted_users == {'tonic', 'liuyifu', 'cmgs', 'zhangye'}
+    assert specs.permitted_users == {'cmgs', 'zhangye'}
     assert specs.subscribers == '#platform'
     assert specs.erection_timeout == FIVE_MINUTES
     # TODO: test crontab, wait for
