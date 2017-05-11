@@ -76,10 +76,11 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
 
         env_set = app.get_env_set(envname)
         env_vars = env_set.to_env_vars()
-        if isinstance(extra_env, str):
-            env_vars.extend(extra_env.strip().split(';'))
-        elif isinstance(extra_env, list):
-            env_vars.extend(extra_env)
+        if extra_env:
+            if isinstance(extra_env, str):
+                env_vars.extend(extra_env.strip().split(';'))
+            elif isinstance(extra_env, list):
+                env_vars.extend(extra_env)
 
     if isinstance(networks, str):
         networks ={networks: ''}
