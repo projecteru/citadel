@@ -274,14 +274,6 @@
             <div class="form-group">
               <label class="col-sm-2 control-label" for="">Network</label>
               <div class="col-sm-10" id="network-checkbox">
-                % for network in networks:
-                  <label class="checkbox" for="">
-                    <input type="checkbox" name="network" value="${ network.name }" checked>${ network.name } -
-                    % for cidr in network.subnets:
-                      <span class="label label-info">${ cidr }</span>
-                    % endfor
-                  </label>
-                % endfor
               </div>
             </div>
             <div class="form-group collapse advance-form-group">
