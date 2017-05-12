@@ -38,4 +38,4 @@ sso = oauth.remote_app(
 cache = Cache(config={'CACHE_TYPE': 'redis'})
 gitlab = Gitlab(GITLAB_URL, private_token=GITLAB_PRIVATE_TOKEN)
 sess = Session()
-hub = mapi.MapiClient(HUB_ADDRESS)
+hub = mapi.MapiClient(HUB_ADDRESS, use_tls=True)
