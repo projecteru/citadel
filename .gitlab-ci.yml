@@ -20,6 +20,9 @@ test_job:
 pages:
   image: "hub.ricebook.net/base/centos:F2E-2017.03.31"
   stage: deploy
+  cache:
+    paths:
+      - node_modules/
   script:
     - "npm install -g gitbook-cli"
     - "gitbook install"
