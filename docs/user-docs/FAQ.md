@@ -44,10 +44,4 @@ pip install -U -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.
 
 #### 我真的很想把玩一下各种镜像
 
-在 Mac 上[安装 Docker](https://docs.docker.com/docker-for-mac/install/), 然后在高级设置里加入 `insecure-registry` 这个参数就可以了:
-
-```json
-{
-	"insecure-registries": ["hub.ricebook.net"],
-}
-```
+在 Mac 上[安装 Docker](https://docs.docker.com/docker-for-mac/install/), 然后 `docker pull` 拉镜像下来就可以玩了, 为了方便调试, 在 Citadel 点击进入 release 详情以后, 页面上就会显示镜像的 tag.
