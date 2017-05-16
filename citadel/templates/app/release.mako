@@ -134,6 +134,9 @@
                     <div class="col-sm-10">
                       <select class="form-control" name="envname">
                         <option value="${ combo.envname }">${ combo.envname }</option>
+                        % for envname in [e for e in app.get_env_sets() if e != combo.envname]:
+                          <option value="${ envname }">${ envname }</option>
+                        % endfor
                       </select>
                     </div>
                   </div>
