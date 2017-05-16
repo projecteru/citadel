@@ -7,6 +7,10 @@ Citadel 是容器平台的各种功能的一个集合, 它负责调用 [`eru-cor
 Changelog
 ==========
 
+__2017-05-13__
+
+  + corecli 不再对 private repo 的 build 失败做特殊处理, 参考 [FAQ](docs/user-docs/FAQ.md#fork-项目到自己的仓库以后就无法在-citadel-上-build-了?)
+
 __2017-05-12__
 
   + 移除部署套餐的权限, 实现粗糙, 业务也用不到

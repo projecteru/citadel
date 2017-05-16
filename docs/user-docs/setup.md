@@ -41,9 +41,10 @@ build_job:
 # 在 Core 中生成 Docker 镜像
 core_build_job:
   stage: "core_build"
+  allow_failure: true
   script:
     - "corecli register"
-    - "corecli --debug build --with-artifacts"
+    - "corecli build --with-artifacts"
 
 ```
 
@@ -62,11 +63,12 @@ stages:
 
 build_job:
   stage: "build"
+  allow_failure: true
   only:
     - master
   script:
-    - "corecli --debug register"
-    - "corecli --debug build"
+    - "corecli register"
+    - "corecli build"
 ```
 
 base 镜像基本都是基于 Alpine 做的了, [这里](http://hub.ricebook.net/v2/base/alpine/tags/list) 是所有可用的 alpine 镜像.如果对 base 镜像有要求, 请探索 [footstone](http://gitlab.ricebook.net/footstone/), 如果没有符合要求的镜像, 请在 #sa-online 讨论.
