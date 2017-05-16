@@ -41,8 +41,7 @@ build:
   - "pip install -r requirements.txt"
 base: "hub.ricebook.net/base/alpine:python-2016.04.24"
 volumes:
-  - "/var/ahost:/var/acontainer:ro"
-  - "/var/bhost:/var/bcontainer"
+  - "$PERMDIR/bar:$APPDIR/bar"
 dns:
   - "8.8.8.8"
   - "8.8.4.4"
@@ -95,7 +94,13 @@ combos:
 * `build`: list, 打包镜像阶段的 shell 命令, 如果缺省, 则不为该 app 打包镜像, 部署的似乎直接用 `base` 作为镜像.
 * `binds`: 不再支持, 见 `volumes`.
 * `mount_path`: 不再支持, 见 `volumes`.
-* `volumes`: 符合 docker volume 格式的挂载方式, 一行一个, 格式是 `{宿主机目录}:{容器目录}:rw` 或者 `{宿主机目录}:{容器目录}`, 不写 rw 就默认只读. 在书写 `volumes` 的时候, 支持展开 `$PERMDIR` 和 `$APPDIR` 两个变量, 对于用 citadel 管理的 app 来说, 只能挂载 `$PERMDIR` 及其下边的目录, 这是为了防止用户挂载宿主机的目录, 或者挂载其他应用的目录.
+* `volumes`: 符合 docker volume 格式的挂载方式, 默认读写权限. 格式是 `{宿主机目录}:{容器目录}` 或者 `{宿主机目录}:{容器目录}:ro` 如果需要挂载成一个只读文件系统, 在书写 `volumes` 的时候, 左边支持展开 `$PERMDIR`, 右边支持展开 `$APPDIR`, 对于用 citadel 管理的 app 来说, 只能挂载 `$PERMDIR` 及其下边的目录, 这是为了防止用户乱搞.
+	```
+	volumes:
+	  - "$PERMDIR/bar:$APPDIR/bar"
+	  - "$PERMDIR/egg:/data/egg"
+	  - "$PERMDIR/foo:$APPDIR/foo:ro"
+	```
 * `dns`: 有时候你可能不想用我们默认给的 DNS, 这里可以指定外部 DNS, 一行一个, 但是, 还是那句话, 不作死就不会死.
 * `meta`: 用处不大, key-value 结构, 数据会被丢到容器的 labels 里去.
 * `permitted_user`: 会被加到 citade 的权限里, 这里列出的人才可以对 app 进行操作. 列出的名字是 sso.ricebook.com 里的用户名.
