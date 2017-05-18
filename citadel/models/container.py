@@ -79,6 +79,11 @@ class Container(BaseModelMixin, PropsMixin):
             return None
         return c.inspect()
 
+    @classmethod
+    def get_by_container_ids(cls, container_ids):
+        containers = [cls.get_by_container_id(cid) for cid in container_ids]
+        return [c for c in containers if c]
+
     @property
     def app(self):
         from .app import App
