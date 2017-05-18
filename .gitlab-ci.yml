@@ -18,7 +18,7 @@ test_job:
     - "bin/run-tests"
 
 pages:
-  image: "hub.ricebook.net/base/centos:F2E-2017.03.31"
+  image: "hub.ricebook.net/base/centos:F2E-2017.05.17"
   stage: deploy
   cache:
     paths:

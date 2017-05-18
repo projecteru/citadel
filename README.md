@@ -7,6 +7,10 @@ Citadel 是容器平台的各种功能的一个集合, 它负责调用 [`eru-cor
 Changelog
 ==========
 
+__2017-05-18__
+
+  + 增加迁移节点功能: 在 node 页面可以一键迁移所有容器到其他 node
+
 __2017-05-16__
 
   + 用 volumes 关键字挂载目录默认给读写权限, 详见 [MR](http://gitlab.ricebook.net/platform/core/merge_requests/96)

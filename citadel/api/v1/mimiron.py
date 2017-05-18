@@ -11,5 +11,5 @@ bp = create_api_blueprint('mimiron', __name__, 'mimiron')
 @bp.route('/container/<username>')
 def get_containers(username):
     ids = get_mimiron_containers_for_user(username)
-    containers = [Container.get_by_container_id(i) for i in ids]
+    containers = Container.get_by_container_ids(ids)
     return [{'cid': c.container_id, 'appname': c.appname, 'entrypoint': c.entrypoint} for c in containers if c]

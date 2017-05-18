@@ -147,7 +147,7 @@ def upgrade_containers():
     payload = request.get_json()
     container_ids = payload['container_ids']
     sha = payload['sha']
-    containers = [Container.get_by_container_id(cid) for cid in container_ids]
+    containers = Container.get_by_container_ids(container_ids)
     appnames = set(c.appname for c in containers if c)
     if not appnames:
         abort(400, 'No containers to upgrade')
@@ -166,7 +166,25 @@ def upgrade_containers():
     if ELB_APP_NAME in appnames:
         abort(400, 'Do not upgrade {} through this API'.format(ELB_APP_NAME))
 
-    async_results = [upgrade_container.delay(cid, sha, user_id=g.user.id) for cid in [c.container_id for c in containers if c]]
+    async_results = [upgrade_container.delay(c.container_id, sha, user_id=g.user.id) for c in containers]
+    task_ids = [r.task_id for r in async_results]
+    messages = chain(celery_task_stream_response(task_ids), celery_task_stream_traceback(task_ids))
+    return Response(messages, mimetype='application/json')
+
+
+@bp.route('/replace-containers', methods=['POST'])
+def replace_containers():
+    payload = request.get_json()
+    container_ids = payload['container_ids']
+    containers = Container.get_by_container_ids(container_ids)
+    appnames = set(c.appname for c in containers if c)
+    if not appnames:
+        abort(400, 'No containers to upgrade')
+
+    if ELB_APP_NAME in appnames:
+        abort(400, 'Do not upgrade {} through this API'.format(ELB_APP_NAME))
+
+    async_results = [upgrade_container.delay(c.container_id, c.sha, user_id=g.user.id) for c in containers]
     task_ids = [r.task_id for r in async_results]
     messages = chain(celery_task_stream_response(task_ids), celery_task_stream_traceback(task_ids))
     return Response(messages, mimetype='application/json')
