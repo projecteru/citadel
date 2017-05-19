@@ -18,9 +18,6 @@ Java 项目在 Gitlab-CI build 阶段会打包成 `.jar` 文件生成 Gitlab art
 ```
 # .gitlab-ci.yml
 image: "hub.ricebook.net/base/alpine:java-2017.03.17"
-variables:
-  CITADEL_URL: "http://citadel.ricebook.net"
-  SSO_URL: "http://sso.ricebook.net"
 stages:
   - "build"
   - "core_build"
@@ -55,9 +52,6 @@ Python 不需要编译出二进制文件, 所以这样写就可以了：
 ```
 # .gitlab-ci.yml
 image: "hub.ricebook.net/base/centos:python-latest"
-variables:
-  CITADEL_URL: "http://citadel.ricebook.net"
-  SSO_URL: "http://sso.ricebook.net"
 stages:
   - "build"
 

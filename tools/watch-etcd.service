@@ -5,7 +5,7 @@ After=network.target
 
 [Service]
 Type=simple
-Environment="OAUTHLIB_INSECURE_TRANSPORT=1" "GRPC_VERBOSITY=INFO"
+Environment="GRPC_VERBOSITY=INFO"
 WorkingDirectory=/opt/citadel
 ExecStart=/opt/citadel/bin/run-etcd-watcher c1
 LimitNOFILE=10485760

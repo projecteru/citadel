@@ -5,7 +5,7 @@ After=network.target
 
 [Service]
 Type=simple
-Environment="OAUTHLIB_INSECURE_TRANSPORT=1" "GRPC_VERBOSITY=INFO"
+Environment="GRPC_VERBOSITY=INFO"
 WorkingDirectory=/opt/citadel
 ExecStart=/root/.pyenv/versions/3.6.1/envs/citadel/bin/gunicorn citadel.app:app -c gunicorn_config.py
 LimitNOFILE=10485760
