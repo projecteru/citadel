@@ -77,9 +77,11 @@ class App(BaseModelMixin):
             Publisher.add_container(c)
 
         publish_path = self.entrypoints[entrypoint_name].publish_path
-        nodes = set(Publisher.list_addrs(zone, publish_path))
+        nodes = Publisher.list_addrs(zone, publish_path)
+        if not nodes:
+            return
         actual_nodes = set(chain.from_iterable(c.get_backends() for c in containers))
-        nonexists = nodes - actual_nodes
+        nonexists = set(nodes) - actual_nodes
         for addr in nonexists:
             path = os.path.join(publish_path, addr)
             Publisher.delete(zone, path)
