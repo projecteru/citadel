@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import json
+import os
 from collections import defaultdict
+from itertools import chain
 
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
@@ -16,6 +18,7 @@ from citadel.models.gitlab import get_project_name, get_file_content, get_commit
 from citadel.models.loadbalance import ELBRule
 from citadel.models.specs import Specs
 from citadel.models.user import User
+from citadel.publisher import Publisher
 
 
 class EnvSet(dict):
@@ -67,6 +70,20 @@ class App(BaseModelMixin):
     def get_apps_with_tackle_rule(cls):
         return cls.query.filter(cls.tackle_rule != {}).all()
 
+    def refresh_publisher(self, zone, entrypoint_name):
+        from .container import Container
+        containers = [c for c in Container.get_by(zone=zone, entrypoint=entrypoint_name) if not c.override_status]
+        for c in containers:
+            Publisher.add_container(c)
+
+        publish_path = self.entrypoints[entrypoint_name].publish_path
+        nodes = set(Publisher.list_addrs(zone, publish_path))
+        actual_nodes = set(chain.from_iterable(c.get_backends() for c in containers))
+        nonexists = nodes - actual_nodes
+        for addr in nonexists:
+            path = os.path.join(publish_path, addr)
+            Publisher.delete(zone, path)
+
     def get_env_sets(self):
         return self.env_sets or {}
 
@@ -99,6 +116,11 @@ class App(BaseModelMixin):
     @property
     def latest_release(self):
         return Release.query.filter_by(app_id=self.id).order_by(Release.id.desc()).limit(1).first()
+
+    @property
+    def entrypoints(self):
+        release = self.latest_release
+        return release and release.entrypoints
 
     @property
     def specs(self):

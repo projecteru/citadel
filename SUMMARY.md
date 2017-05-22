@@ -17,4 +17,5 @@
 	* [容器内环境变量](docs/user-docs/env.md)
 	* [FAQ](docs/user-docs/FAQ.md)
 
-* [开发者文档](docs/dev-docs/deploy.md)
+* 开发者文档
+	* [开发与部署](docs/dev-docs/deploy.md)
