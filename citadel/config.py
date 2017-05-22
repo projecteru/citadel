@@ -8,6 +8,16 @@ from smart_getenv import getenv
 
 
 DEBUG = getenv('DEBUG', default=False, type=bool)
+FAKE_USER = {
+    'id': 10056,
+    'name': 'liuyifu',
+    'real_name': 'timfeirg',
+    'email': 'test@test.com',
+    'privilege': 1,
+    'token': 'token',
+    'pubkey': '',
+}
+
 PROJECT_NAME = LOGGER_NAME = 'citadel'
 SERVER_NAME = getenv('SERVER_NAME')
 SENTRY_DSN = getenv('SENTRY_DSN', default='')
@@ -117,6 +127,11 @@ beat_schedule = {
     'backup': {
         'task': 'citadel.tasks.trigger_backup',
         'schedule': crontab(minute=0, hour=6),
+    },
+    'refresh-publisher': {
+        'task': 'citadel.tasks.refresh_publisher',
+        'schedule': timedelta(seconds=10),
+        'options': {'expires': 1},
     },
 }
 

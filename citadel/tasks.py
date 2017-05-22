@@ -276,6 +276,20 @@ def upgrade_container(self, old_container_id, sha, user_id=None, erection_timeou
 
 
 @current_app.task(bind=True)
+def refresh_publisher(self):
+    """publisher 这块不太对头, 万一 etcd event 处理失败, etcd 里就会数据不一致,
+    java rpc 框架就会报错, 所以只好先用这种办法临时兜底"""
+    for zone in ZONE_CONFIG:
+        for app in App.get_all(limit=None):
+            if not app.entrypoints:
+                continue
+            for entrypoint_name, entrypoint in app.entrypoints.items():
+                if not entrypoint.publish_path:
+                    continue
+                app.refresh_publisher(zone, entrypoint_name)
+
+
+@current_app.task(bind=True)
 def clean_images(self):
     hub_eru_apps = [n for n in hub.get_all_repos() if n.startswith('eruapp')]
     for repo_name in hub_eru_apps:

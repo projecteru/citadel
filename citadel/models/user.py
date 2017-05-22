@@ -3,21 +3,10 @@ import requests
 from flask import abort, session, request
 from requests.exceptions import ConnectTimeout, ReadTimeout, ConnectionError
 
-from citadel.config import DEBUG, AUTH_AUTHORIZE_URL, AUTH_GET_USER_URL
+from citadel.config import FAKE_USER, DEBUG, AUTH_AUTHORIZE_URL, AUTH_GET_USER_URL
 from citadel.ext import sso
 from citadel.libs.cache import cache, ONE_DAY
 from citadel.libs.utils import memoize, logger
-
-
-_DEBUG_USER_DICT = {
-    'id': 10056,
-    'name': 'liuyifu',
-    'real_name': 'timfeirg',
-    'email': 'test@test.com',
-    'privilege': 1,
-    'token': 'token',
-    'pubkey': '',
-}
 
 
 @cache(ttl=ONE_DAY)
@@ -71,7 +60,7 @@ def get_user(identifier):
     if not identifier:
         return None
     if DEBUG:
-        return User.from_dict(_DEBUG_USER_DICT)
+        return User.from_dict(FAKE_USER)
     token = request.headers.get('X-Neptulon-Token') or request.values.get('X-Neptulon-Token')
     if token:
         return get_user_via_auth(token, identifier)
@@ -81,7 +70,7 @@ def get_user(identifier):
 
 def get_users(start=0, limit=20, q=None):
     if DEBUG:
-        return [User.from_dict(_DEBUG_USER_DICT)]
+        return [User.from_dict(FAKE_USER)]
 
     data = {'start': start, 'limit': limit}
     if q:

@@ -6,17 +6,22 @@ from flask import g, abort, session, Flask, request
 from raven.contrib.flask import Sentry
 from werkzeug.utils import import_string
 
-from citadel.config import DEBUG, SENTRY_DSN, TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF, DEFAULT_ZONE
+from citadel.config import DEBUG, SENTRY_DSN, TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF, DEFAULT_ZONE, FAKE_USER
 from citadel.ext import sess, rds, db, mako, cache
 from citadel.libs.datastructure import DateConverter
 from citadel.libs.utils import notbot_sendmsg
-from citadel.models.user import get_current_user
+from citadel.models.user import get_current_user, User
 
 
-logging.getLogger('requests').setLevel(logging.CRITICAL)
-logging.getLogger('urllib3').setLevel(logging.CRITICAL)
-logging.getLogger('etcd').setLevel(logging.CRITICAL)
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s] [%(process)d] [%(levelname)s] [%(filename)s @ %(lineno)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S %z')
+if DEBUG:
+    loglevel = logging.DEBUG
+else:
+    logging.getLogger('requests').setLevel(logging.CRITICAL)
+    logging.getLogger('urllib3').setLevel(logging.CRITICAL)
+    logging.getLogger('etcd').setLevel(logging.CRITICAL)
+    loglevel = logging.INFO
+
+logging.basicConfig(level=loglevel, format='[%(asctime)s] [%(process)d] [%(levelname)s] [%(filename)s @ %(lineno)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S %z')
 
 blueprints = [
     'index',
@@ -80,7 +85,6 @@ def create_app():
     app.url_map.converters['date'] = DateConverter
     app.config.from_object('citadel.config')
     app.secret_key = app.config['SECRET_KEY']
-    logger = logging.getLogger(app.config['LOGGER_NAME'])
 
     app.url_map.strict_slashes = False
 
@@ -90,9 +94,7 @@ def create_app():
     cache.init_app(app)
     sess.init_app(app)
 
-    if DEBUG:
-        logger.setLevel(logging.DEBUG)
-    else:
+    if not DEBUG:
         sentry = Sentry(dsn=SENTRY_DSN)
         sentry.init_app(app)
 
@@ -111,7 +113,7 @@ def create_app():
         g.zone = session.get('zone') or request.values.get('zone') or DEFAULT_ZONE
 
         if DEBUG:
-            g.user = User.from_dict(_DEBUG_USER_DICT)
+            g.user = User.from_dict(FAKE_USER)
         else:
             g.user = get_current_user()
 

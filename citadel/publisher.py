@@ -6,7 +6,7 @@ from citadel.ext import get_etcd
 from citadel.libs.utils import handle_etcd_exception
 
 
-class Publisher(object):
+class Publisher:
 
     """publish container to etcd if publish_path is defined in app.yaml"""
 
@@ -17,9 +17,10 @@ class Publisher(object):
 
     @classmethod
     @handle_etcd_exception()
-    def read(cls, zone, path):
+    def list_addrs(cls, zone, path):
         res = get_etcd(zone).read(path)
-        return res and json.loads(res)
+        nodes = [leave.key.rsplit('/', 1)[-1] for leave in res.leaves]
+        return nodes
 
     @classmethod
     @handle_etcd_exception()
@@ -28,7 +29,7 @@ class Publisher(object):
 
     @classmethod
     def add_container(cls, container):
-        publish_path = container.release.entrypoints[container.entrypoint].publish_path
+        publish_path = container.publish_path
         if not publish_path:
             return
         for addr in container.get_backends():
@@ -38,7 +39,7 @@ class Publisher(object):
     @classmethod
     def remove_container(cls, container):
         try:
-            publish_path = container.release.entrypoints[container.entrypoint].publish_path
+            publish_path = container.publish_path
         except KeyError:
             return
         if not publish_path:

@@ -127,6 +127,10 @@ class Container(BaseModelMixin, PropsMixin):
         return self.release.specs.entrypoints[self.entrypoint]
 
     @property
+    def publish_path(self):
+        return self.release.entrypoints[self.entrypoint].publish_path
+
+    @property
     def backup_path(self):
         return self.specs_entrypoint.backup_path
 

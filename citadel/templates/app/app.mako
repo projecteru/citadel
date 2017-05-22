@@ -34,7 +34,7 @@
     <h5>日志 & 监控</h5>
     <ul class="list-group">
       % if releases:
-        % for entry in releases[0].entrypoints.keys():
+        % for entrypoint_name, entrypoint in releases[0].entrypoints.items():
           <li class="list-group-item">
             <a href='javascript://'
               data-placement='right'
@@ -42,10 +42,13 @@
               rel='popover'
               data-html='true'
               data-content="
-              <a href='${ make_kibana_url(appname=app.name, entrypoint=entry) }' target='_blank'><span class='label label-info'>日志</span></a>
-              <a href='http://dashboard.ricebook.net/dashboard/db/eru-apps-aggregation?var-app=${ app.name }&var-entry=${ entry }' target='_blank'><span class='label label-info'>监控</span></a>
+              <a href='${ make_kibana_url(appname=app.name, entrypoint=entrypoint_name) }' target='_blank'><span class='label label-info'>日志</span></a>
+              <a href='http://dashboard.ricebook.net/dashboard/db/eru-apps-aggregation?var-app=${ app.name }&var-entrypoint_name=${ entrypoint_name }' target='_blank'><span class='label label-info'>监控</span></a>
+              % if entrypoint.publish_path:
+                <a href='http://${ WHEREAMI }.ricebook.link:2379/v2/keys${ entrypoint.publish_path }' target='_blank'><span class='label label-info'>Publisher 节点</span></a>
+              % endif
               ">
-              ${ entry }
+              ${ entrypoint_name }
             </a>
           </li>
         % endfor
