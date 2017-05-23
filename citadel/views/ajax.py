@@ -124,7 +124,7 @@ def remove_containers():
     if isinstance(container_ids, str):
         container_ids = [container_ids]
 
-    containers = [Container.get_by_container_id(i) for i in container_ids]
+    containers = Container.get_by_container_ids(container_ids)
     # mark removing so that users would see some changes, but the actual
     # removing happends in celery tasks
     should_remove = []
@@ -133,7 +133,6 @@ def remove_containers():
             continue
         if c.appname == ELB_APP_NAME:
             return {'error': 'Cannot delete ELB container here'}, 400
-        c.mark_removing()
         should_remove.append(c.container_id)
 
     if should_remove:
