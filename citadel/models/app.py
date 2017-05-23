@@ -73,15 +73,16 @@ class App(BaseModelMixin):
     def refresh_publisher(self, zone, entrypoint_name):
         from .container import Container
         containers = [c for c in Container.get_by(zone=zone, entrypoint=entrypoint_name) if not c.override_status]
-        for c in containers:
-            Publisher.add_container(c)
 
         publish_path = self.entrypoints[entrypoint_name].publish_path
-        nodes = Publisher.list_addrs(zone, publish_path)
-        if not nodes:
-            return
+        nodes = set(Publisher.list_addrs(zone, publish_path) or [])
         actual_nodes = set(chain.from_iterable(c.get_backends() for c in containers))
-        nonexists = set(nodes) - actual_nodes
+        missing = actual_nodes - nodes
+        for addr in missing:
+            path = os.path.join(publish_path, addr)
+            Publisher.write(zone, path, 'true')
+
+        nonexists = nodes - actual_nodes
         for addr in nonexists:
             path = os.path.join(publish_path, addr)
             Publisher.delete(zone, path)
@@ -403,8 +404,7 @@ class Release(BaseModelMixin, PropsMixin):
             db.session.add(self)
             db.session.commit()
         except StaleDataError:
-            # release may already gone
-            return
+            db.session.rollback()
 
     def to_dict(self):
         d = super(Release, self).to_dict()

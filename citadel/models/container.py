@@ -198,7 +198,7 @@ class Container(BaseModelMixin, PropsMixin):
         try:
             db.session.commit()
         except StaleDataError:
-            return
+            db.session.rollback()
 
     def mark_removing(self):
         Publisher.remove_container(self)
@@ -206,7 +206,7 @@ class Container(BaseModelMixin, PropsMixin):
         try:
             db.session.commit()
         except StaleDataError:
-            return
+            db.session.rollback()
 
     def mark_initialized(self):
         self.initialized = 1
