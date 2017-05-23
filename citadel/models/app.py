@@ -72,7 +72,7 @@ class App(BaseModelMixin):
 
     def refresh_publisher(self, zone, entrypoint_name):
         from .container import Container
-        containers = [c for c in Container.get_by(zone=zone, entrypoint=entrypoint_name) if not c.override_status]
+        containers = [c for c in Container.get_by(zone=zone, appname=self.name, entrypoint=entrypoint_name) if not c.override_status]
 
         publish_path = self.entrypoints[entrypoint_name].publish_path
         nodes = set(Publisher.list_addrs(zone, publish_path) or [])
