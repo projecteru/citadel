@@ -277,6 +277,12 @@ class Release(BaseModelMixin, PropsMixin):
             logger.debug('Revoke %s to app %s', u, appname)
             AppUserRelation.delete(appname, u.id)
 
+        # further specs validation
+        for entrypoint in new_release.specs.entrypoints.values():
+            if entrypoint.restart == 'always':
+                new_release.delete()
+                raise ModelCreateError('Citadel does not support restart:always, please use restart:on-failure')
+
         # create ELB routes, if there's any
         for combo in new_release.specs.combos.values():
             if not combo.elb:

@@ -7,6 +7,10 @@ Citadel 是容器平台的各种功能的一个集合, 它负责调用 [`eru-cor
 Changelog
 ==========
 
+__2017-05-26__
+
+  + 不支持 restart: always 了, 要写就写 restart: on-failure
+
 __2017-05-18__
 
   + 增加迁移节点功能: 在 node 页面可以一键迁移所有容器到其他 node

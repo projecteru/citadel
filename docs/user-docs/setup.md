@@ -117,7 +117,7 @@ entrypoints:
     cmd: "gunicorn -c gunicorn_config.py app:app"
     ports:
       - "5000/tcp"
-    restart: "always"
+    restart: "on-failure"
 build:
   - "pip install -U -r requirements.txt"
 base: "hub.ricebook.net/base/centos:python-latest"

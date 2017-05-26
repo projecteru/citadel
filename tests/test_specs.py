@@ -10,7 +10,7 @@ entrypoints:
     cmd: "python rsyslog_test.py"
     ports:
       - "5000/tcp"
-    restart: "always"
+    restart: "on-failure"
     healthcheck_url: "/healthcheck"
     healthcheck_expected_code: 200
   test:
@@ -23,7 +23,7 @@ entrypoints:
     cmd: "python run.py"
     ports:
       - "5000/tcp"
-    restart: "always"
+    restart: "on-failure"
     healthcheck_url: "/healthcheck"
     healthcheck_expected_code: 200
     publish_path: "/rhllor/service/com.platform.test"
@@ -84,7 +84,7 @@ def test_specs():
     rsyslog_entrypoint_data = {
         'command': 'python rsyslog_test.py',
         'ports': [{'protocol': 'tcp', 'port': 5000}],
-        'restart': 'always',
+        'restart': 'on-failure',
         'backup_path': [],
         'network_mode': 'bridge',
         'healthcheck_url': '/healthcheck',
