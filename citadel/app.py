@@ -2,7 +2,7 @@
 import logging
 
 from celery import Celery, Task
-from flask import g, abort, session, Flask, request
+from flask import g, session, Flask, request, redirect, url_for
 from raven.contrib.flask import Sentry
 from werkzeug.utils import import_string
 
@@ -119,7 +119,7 @@ def create_app():
 
         if not g.user and not anonymous_path(request.path):
             session.pop('sso', None)
-            abort(401, 'Not authenticated')
+            return redirect(url_for('user.login'))
 
     return app
 
