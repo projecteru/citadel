@@ -42,9 +42,6 @@ def app(name):
                 return jsonify({'message': '容器删干净之后才能删除应用'}), 400
 
     releases = Release.get_by_app(app.name, limit=8)
-    if len(releases) == 8:
-        flash('你的版本太多了，清理一下好不好！')
-
     containers = Container.get_by(appname=app.name, zone=g.zone)
     return render_template('/app/app.mako', app=app, releases=releases, containers=containers)
 

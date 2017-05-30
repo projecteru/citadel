@@ -17,6 +17,7 @@ from citadel.libs.jsonutils import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg, logger, make_sentence_json
 from citadel.models import Container, Release
 from citadel.models.app import App
+from citadel.models.base import ModelDeleteError
 from citadel.models.container import ContainerOverrideStatus
 from citadel.models.gitlab import get_project_name, get_file_content, get_build_artifact
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction, ELBInstance
@@ -290,7 +291,21 @@ def refresh_publisher(self):
 
 
 @current_app.task(bind=True)
-def clean_images(self):
+def clean_stuff(self):
+    # clean unused releases
+    now = datetime.now()
+    window = now - timedelta(days=30), now
+    last_week_oplogs = OPLog.get_by(time_window=window)
+    last_week_sha = set(oplog.sha for oplog in last_week_oplogs if oplog.sha)
+    for r in Release.query.filter(Release.created<now - timedelta(days=30)).all():
+        if r.sha in last_week_sha:
+            continue
+        try:
+            r.delete()
+        except ModelDeleteError:
+            continue
+
+    # clean detached images
     hub_eru_apps = [n for n in hub.get_all_repos() if n.startswith('eruapp')]
     for repo_name in hub_eru_apps:
         appname = repo_name.split('/', 1)[-1]
@@ -299,9 +314,7 @@ def clean_images(self):
                 if hub.delete_repo(repo_name, short_sha):
                     logger.warn('Delete image %s:%s', appname, short_sha)
 
-
-@current_app.task(bind=True)
-def clean_oplog(self):
+    # clean oplogs
     threshold = datetime.now() - timedelta(days=7)
     OPLog.query.filter(OPLog.created < threshold).delete()
 

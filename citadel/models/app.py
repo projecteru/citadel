@@ -303,6 +303,7 @@ class Release(BaseModelMixin, PropsMixin):
         container_list = self.get_container_list()
         if container_list:
             raise ModelDeleteError('Release {} is still running, delete containers {} before deleting this release'.format(self.short_sha, container_list))
+        logger.warn('Deleting release %s', self)
         return super(Release, self).delete()
 
     def get_permitted_users(self):
