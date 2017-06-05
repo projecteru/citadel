@@ -43,10 +43,8 @@ class ActionError(Exception):
 def _peek_grpc(call):
     """peek一下stream的返回, 不next一次他是不会raise exception的"""
     try:
-        logger.debug('Peek grpc call %s', call)
         ms = peekable(call)
         ms.peek()
-        logger.debug('Peek grpc call %s done', call)
     except (face.RemoteError, face.RemoteShutdownError) as e:
         raise ActionError(500, e.details)
     except face.AbortionError as e:
@@ -119,7 +117,6 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
     app = App.get_by_name(appname)
     entrypoint = deploy_options['entrypoint']
     zone = deploy_options.pop('zone')
-    logger.debug('Call grpc create_container with argument: %s', deploy_options)
     ms = _peek_grpc(get_core(zone).create_container(deploy_options))
 
     containers = []
@@ -133,13 +130,12 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
         res.append(m.to_dict())
 
         if m.success:
-            logger.debug('Creating %s:%s got grpc message %s', appname, entrypoint, m)
+            logger.debug('Creating container %s:%s got grpc message %s', appname, entrypoint, m)
             override_status = ContainerOverrideStatus.DEBUG if deploy_options.get('debug', False) else ContainerOverrideStatus.NONE
             container = Container.create(appname, sha, m.id, entrypoint, envname, deploy_options['cpu_quota'], deploy_options['memory'], zone, m.podname, m.nodename, override_status=override_status)
-            logger.debug('Container [%s] created', m.id)
             if not container:
-                # TODO: can't just continue here, must create container
-                logger.error('Create [%s] created failed', m.id)
+                # failing to create container means it's already created,
+                # probably safe to continue
                 continue
             containers.append(container)
 
@@ -153,7 +149,6 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
                          zone=zone,
                          content=op_content)
         else:
-            logger.error('Error when creating container: %s', m.error)
             bad_news.append(content)
 
     if bad_news:
@@ -230,7 +225,6 @@ def remove_container(self, ids, user_id=None):
                          sha=container.sha,
                          zone=container.zone,
                          content=op_content)
-            logger.debug('Container [%s] deleted', m.id)
         elif 'Key not found' in m.message or 'No such container' in m.message:
             container.delete()
         elif 'Container ID must be length of' in m.message:
@@ -312,7 +306,7 @@ def clean_stuff(self):
         for short_sha in hub.get_tags(repo_name) or []:
             if not Release.get_by_app_and_sha(appname, short_sha):
                 if hub.delete_repo(repo_name, short_sha):
-                    logger.warn('Delete image %s:%s', appname, short_sha)
+                    logger.info('Delete image %s:%s', appname, short_sha)
 
     # clean oplogs
     threshold = datetime.now() - timedelta(days=7)

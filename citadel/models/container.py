@@ -299,8 +299,9 @@ class Container(BaseModelMixin, PropsMixin):
         try:
             del_mimiron_route(self.container_id)
             self.destroy_props()
+            logger.debug('Delete container %s, name %s', self.container_id, self.name)
         except ObjectDeletedError:
-            logger.warn('Error during deleting: Object %s already deleted', self)
+            logger.debug('Error during deleting: Object %s already deleted', self)
             return None
         return super(Container, self).delete()
 
