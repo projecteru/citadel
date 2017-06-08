@@ -7,6 +7,10 @@ Citadel 是容器平台的各种功能的一个集合, 它负责调用 [`eru-cor
 Changelog
 ==========
 
+__2017-06-08__
+
+  + Citadel 移除 publisher 功能, 如果要用 etcd 记录 rpc 节点, 需要应用自己起线程去 etcd 上续命, 而不是由 Citadel 来管理
+
 __2017-05-26__
 
   + 不支持 restart: always 了, 要写就写 restart: on-failure

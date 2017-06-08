@@ -124,11 +124,6 @@ beat_schedule = {
         'task': 'citadel.tasks.trigger_backup',
         'schedule': crontab(minute=0, hour=6),
     },
-    'refresh-publisher': {
-        'task': 'citadel.tasks.refresh_publisher',
-        'schedule': timedelta(seconds=10),
-        'options': {'expires': 1},
-    },
 }
 
 try:

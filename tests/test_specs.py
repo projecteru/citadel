@@ -26,7 +26,6 @@ entrypoints:
     restart: "on-failure"
     healthcheck_url: "/healthcheck"
     healthcheck_expected_code: 200
-    publish_path: "/rhllor/service/com.platform.test"
     backup_path:
         - "/home/test-ci"
   web-bad-health-no-check:
