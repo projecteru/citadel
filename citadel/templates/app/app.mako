@@ -202,12 +202,9 @@ ssh ${ WHEREAMI } -t 'sudo chown ${ app.id }:${ app.id } /mnt/mfs/permdirs/${ ap
         type: 'DELETE',
         success: function(r) {
           console.log(r);
-          if (r.status == 200) {
-            location.href = "${ url_for('app.index') }";
-          }
+          location.href = "${ url_for('app.index') }";
         },
         error: function(r) {
-          console.log(r);
           alert(JSON.stringify(r.responseJSON));
         }
       })
