@@ -194,7 +194,6 @@ class EntrypointSchema(Schema):
     privileged = fields.Bool(missing=False)
     log_config = fields.Str(validate=validate_log_config)
     working_dir = fields.Str()
-    publish_path = fields.Str()
     backup_path = fields.List(fields.Str(), missing=[])
 
 
@@ -202,8 +201,8 @@ class Entrypoint(Jsonized):
     def __init__(self, command=None, ports=None, network_mode=None,
                  restart=None, healthcheck_url=None, healthcheck_port=None,
                  healthcheck_expected_code=None, hosts=None, privileged=None,
-                 log_config=None, working_dir=None, publish_path=None,
-                 backup_path=None, _raw=None):
+                 log_config=None, working_dir=None, backup_path=None,
+                 _raw=None):
         self.command = command
         self.ports = [Port(_raw=_raw, **data) for data in ports]
         self.network_mode = network_mode
@@ -212,7 +211,6 @@ class Entrypoint(Jsonized):
         self.privileged = privileged
         self.log_config = log_config
         self.working_dir = working_dir
-        self.publish_path = publish_path
         self.backup_path = backup_path
 
 

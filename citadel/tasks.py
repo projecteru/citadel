@@ -22,7 +22,6 @@ from citadel.models.container import ContainerOverrideStatus
 from citadel.models.gitlab import get_project_name, get_file_content, get_build_artifact
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction, ELBInstance
 from citadel.models.oplog import OPType, OPLog
-from citadel.publisher import Publisher
 from citadel.rpc import get_core
 from citadel.views.helper import make_deploy_options, make_kibana_url
 
@@ -271,20 +270,6 @@ def upgrade_container(self, old_container_id, sha, user_id=None, erection_timeou
 
 
 @current_app.task(bind=True)
-def refresh_publisher(self):
-    """publisher 这块不太对头, 万一 etcd event 处理失败, etcd 里就会数据不一致,
-    java rpc 框架就会报错, 所以只好先用这种办法临时兜底"""
-    for zone in ZONE_CONFIG:
-        for app in App.get_all(limit=None):
-            if not app.entrypoints:
-                continue
-            for entrypoint_name, entrypoint in app.entrypoints.items():
-                if not entrypoint.publish_path:
-                    continue
-                app.refresh_publisher(zone, entrypoint_name)
-
-
-@current_app.task(bind=True)
 def clean_stuff(self):
     # clean unused releases
     now = datetime.now()
@@ -330,7 +315,6 @@ def deal_with_agent_etcd_change(self, key, data):
     if not alive:
         logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
-        Publisher.remove_container(container)
 
         exitcode = container.info.get('State', {}).get('ExitCode', None)
         # remove cronjob container
@@ -347,12 +331,10 @@ def deal_with_agent_etcd_change(self, key, data):
                 make_kibana_url(appname=appname, ident=container.ident),
             )
     elif healthy:
-        Publisher.add_container(container)
         container.mark_initialized()
         update_elb_for_containers(container)
         logger.debug('Healthy condition: [%s, %s, %s] ADD [%s, %s] [%s]', container.appname, container.podname, container.entrypoint, container_id, container.ident, ','.join(container.get_backends()))
     else:
-        Publisher.remove_container(container)
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
         if container.initialized and not container.is_removing():
             logger.debug('Sick condition: [%s, %s, %s] DEL [%s, %s] [%s]', container.appname, container.podname, container.entrypoint, container_id, container.ident, ','.join(container.get_backends()))

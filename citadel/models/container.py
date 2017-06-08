@@ -14,7 +14,6 @@ from citadel.libs.datastructure import purge_none_val_from_dict
 from citadel.libs.mimiron import set_mimiron_route, del_mimiron_route
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
-from citadel.publisher import Publisher
 from citadel.rpc import get_core
 
 
@@ -127,10 +126,6 @@ class Container(BaseModelMixin, PropsMixin):
         return self.release.specs.entrypoints[self.entrypoint]
 
     @property
-    def publish_path(self):
-        return self.release.entrypoints[self.entrypoint].publish_path
-
-    @property
     def backup_path(self):
         return self.specs_entrypoint.backup_path
 
@@ -193,7 +188,6 @@ class Container(BaseModelMixin, PropsMixin):
         return self.override_status == ContainerOverrideStatus.DEBUG
 
     def mark_debug(self):
-        Publisher.remove_container(self)
         self.override_status = ContainerOverrideStatus.DEBUG
         try:
             db.session.commit()
@@ -201,7 +195,6 @@ class Container(BaseModelMixin, PropsMixin):
             db.session.rollback()
 
     def mark_removing(self):
-        Publisher.remove_container(self)
         self.override_status = ContainerOverrideStatus.REMOVING
         try:
             db.session.commit()
