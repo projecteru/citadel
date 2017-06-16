@@ -103,31 +103,6 @@ def upgrade():
     return Response(celery_task_stream_response(async_result.task_id), mimetype='application/json')
 
 
-@bp.route('/log', methods=['POST'])
-def get_log():
-    data = AbortDict(request.get_json())
-    appname = data['appname']
-    podname = data['podname']
-    nodename = data['nodename']
-
-    node = get_core(g.zone).get_node(podname, nodename)
-    if not node:
-        raise ActionError(400, 'Node %s not found' % nodename)
-
-    # use ActionError instead of EruAgentError to client
-    client = EruAgentClient(node.ip)
-    try:
-        resp = client.log(appname)
-    except EruAgentError as e:
-        raise ActionError(400, str(e))
-
-    def log_producer():
-        for data in resp:
-            yield json.dumps(data) + '\n'
-
-    return Response(log_producer(), mimetype='application/json')
-
-
 @bp.errorhandler(ActionError)
 def error_handler(e):
     return jsonify({'error': str(e)}), e.code

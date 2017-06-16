@@ -35,14 +35,11 @@ def handle_grpc_exception(default=None):
 _STREAM_TIMEOUT = 3600
 _UNARY_TIMEOUT = 5
 
-_LIST_PODS_KEY = 'citadel:listpods'
-_GET_POD = 'citadel:getpod:{name}'
-_GET_POD_NODES = 'citadel:getpodnodes:{name}'
 _GET_POD_NETWORKS = 'citadel:getpodnetworks:{name}'
 _GET_NODE = 'citadel:getnode:{podname}:{nodename}'
 
 
-class CoreRPC(object):
+class CoreRPC:
 
     def __init__(self, grpc_address):
         self.grpc_address = grpc_address
@@ -62,9 +59,6 @@ class CoreRPC(object):
         stub = self._get_stub()
         opts = AddPodOptions(name=name, desc=desc)
         p = stub.AddPod(opts, _UNARY_TIMEOUT)
-
-        clean_cache(_LIST_PODS_KEY)
-        clean_cache(_GET_POD.format(name=name))
         return p and JSONMessage(p)
 
     @handle_grpc_exception(default=None)
@@ -118,7 +112,6 @@ class CoreRPC(object):
 
         n = stub.AddNode(opts, _UNARY_TIMEOUT)
 
-        clean_cache(_GET_POD_NODES.format(name=podname))
         clean_cache(_GET_NODE.format(podname=podname, nodename=nodename))
         return n and Node(n)
 
@@ -129,7 +122,6 @@ class CoreRPC(object):
 
         p = stub.RemoveNode(opts, _UNARY_TIMEOUT)
 
-        clean_cache(_GET_POD_NODES.format(name=podname))
         clean_cache(_GET_NODE.format(podname=podname, nodename=nodename))
         return p and JSONMessage(p)
 
