@@ -255,7 +255,11 @@ def upgrade_container(self, old_container_id, sha, user_id=None, erection_timeou
                                     sha=release.sha,
                                     user_id=user_id,
                                     envname='SAME')[0]
+
     rds.publish(channel_name, json.dumps(grpc_message, cls=JSONEncoder) + '\n')
+    if not grpc_message['success']:
+        rds.publish(channel_name, make_sentence_json('Create new container for {} failed'.format(old_container)))
+        return
 
     new_container_id = grpc_message['id']
     new_container = Container.get_by_container_id(new_container_id)
