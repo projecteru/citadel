@@ -238,38 +238,68 @@ def remove_container(self, ids, user_id=None):
 
 
 @current_app.task(bind=True)
-def upgrade_container(self, old_container_id, sha, user_id=None, erection_timeout=None):
-    """this task will not be called synchronously, thus do not return anything"""
-    old_container = Container.get_by_container_id(old_container_id)
-    release = old_container.app.get_release(sha)
+def upgrade_container_dispatch(self, container_id, sha, user_id=None):
+    container = Container.get_by_container_id(container_id)
+    release = container.release
     if not release or not release.image:
         raise ActionError(400, 'Release %s not found or not built' % sha)
 
-    erection_timeout = erection_timeout or release.erection_timeout
-    deploy_options = old_container.deploy_options
-    # update image, and use random node
+    deploy_options = container.deploy_options
     deploy_options.update({'image': release.image, 'nodename': ''})
-    task_id = self.request.id
-    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
+    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
+
+    if release.smooth_upgrade:
+        smooth_upgrade_container(container_id,
+                                 sha,
+                                 deploy_options,
+                                 channel_name,
+                                 user_id=user_id)
+    else:
+        upgrade_container(container_id,
+                          sha,
+                          deploy_options,
+                          channel_name,
+                          user_id=user_id)
+
+
+def upgrade_container(container_id, sha, deploy_options, channel_name, user_id=None):
+    """Remove old container, and then start new one only after the old one's removed"""
+    rds.publish(channel_name, make_sentence_json('Removing old container {} ...'.format(container_id)))
+    remove_container(container_id, user_id=user_id)
+
+    rds.publish(channel_name, make_sentence_json('Starting new container to replace {} ...'.format(container_id)))
     grpc_message = create_container(deploy_options,
-                                    sha=release.sha,
+                                    sha=sha,
                                     user_id=user_id,
                                     envname='SAME')[0]
+    new_container_id = grpc_message['id']
+    new_container = Container.get_by_container_id(new_container_id)
+    rds.publish(channel_name, make_sentence_json('New container created: {}'.format(new_container)))
 
+
+def smooth_upgrade_container(container_id, sha, deploy_options, channel_name, user_id=None):
+    """Start new container, wait for it to become healthy, then remove the old one"""
+    container = Container.get_by_container_id(container_id)
+    erection_timeout = container.release.erection_timeout
+    rds.publish(channel_name, make_sentence_json('Starting new container to replace {} ...'.format(container_id)))
+    grpc_message = create_container(deploy_options,
+                                    sha=sha,
+                                    user_id=user_id,
+                                    envname='SAME')[0]
     rds.publish(channel_name, json.dumps(grpc_message, cls=JSONEncoder) + '\n')
     if not grpc_message['success']:
-        rds.publish(channel_name, make_sentence_json('Create new container for {} failed'.format(old_container)))
+        rds.publish(channel_name, make_sentence_json('Create new container for {} failed'.format(container)))
         return
 
     new_container_id = grpc_message['id']
     new_container = Container.get_by_container_id(new_container_id)
-    rds.publish(channel_name, make_sentence_json('Wait for container {} to erect...'.format(new_container.short_id)))
-    healthy = new_container.wait_for_erection(timeout=erection_timeout)
+    rds.publish(channel_name, make_sentence_json('Wait for new container {} to erect...'.format(new_container)))
+    healthy = new_container.wait_for_erection(erection_timeout)
     if healthy:
-        rds.publish(channel_name, make_sentence_json('New container {} OK, remove old container {}'.format(new_container_id, old_container_id)))
-        remove_container(old_container_id, user_id=user_id)
+        rds.publish(channel_name, make_sentence_json('New container {} OK, remove old container {}'.format(new_container_id, container_id)))
+        remove_container(container_id, user_id=user_id)
     else:
-        rds.publish(channel_name, make_sentence_json('New container {} SO SICK, have to remove...'.format(new_container_id)))
+        rds.publish(channel_name, make_sentence_json('New container {} still sick, have to remove ...'.format(new_container_id)))
         remove_container(new_container_id, user_id=user_id)
 
 
@@ -515,7 +545,7 @@ def respawn_container(self, container_status, dangers, **kwargs):
         msg = '*Container Respawn*\n```\ncid: {}\nsha: {}\nreason: {}\n```'.format(cid, sha, dangers)
         notbot_sendmsg(container.app.subscribers, msg)
 
-    upgrade_container(cid, sha, erection_timeout=0)
+    upgrade_container(cid, sha)
 
 
 @current_app.task(bind=True, base=TackleTask)
