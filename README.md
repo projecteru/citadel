@@ -7,6 +7,10 @@ Citadel 是容器平台的各种功能的一个集合, 它负责调用 [`eru-cor
 Changelog
 ==========
 
+__2017-06-29__
+
+  + 在 app.yaml 增加 smooth_upgrade 选项, 允许禁用平滑升级, 详见[app.yaml 说明](docs/user-docs/specs.md#卧槽好长啊快解释一下) [app specs 文档](docs/)
+
 __2017-06-08__
 
   + Citadel 移除 publisher 功能, 如果要用 etcd 记录 rpc 节点, 需要应用自己起线程去 etcd 上续命, 而不是由 Citadel 来管理
