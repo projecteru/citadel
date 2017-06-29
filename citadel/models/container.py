@@ -204,7 +204,7 @@ class Container(BaseModelMixin, PropsMixin):
     def mark_initialized(self):
         self.initialized = 1
 
-    def wait_for_erection(self, timeout=timedelta(minutes=5), period=timedelta(seconds=5)):
+    def wait_for_erection(self, timeout=timedelta(minutes=5), period=timedelta(seconds=2)):
         """wait until this container is healthy, timeout can be timedelta or
         seconds, if timeout is 0, don't even wait and just report healthy"""
         if not timeout:

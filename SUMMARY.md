@@ -8,7 +8,6 @@
 	* [`app.yaml` 文档](docs/user-docs/specs.md)
 	* [权限控制](docs/user-docs/security-and-permissions.md)
 	* [部署套餐](docs/user-docs/combos.md)
-	* [平滑升级](docs/user-docs/rolling-update.md)
 	* [订阅容器状态](docs/user-docs/subscribers.md)
 	* [健康检查](docs/user-docs/healthcheck.md)
 	* [多机房支持](docs/user-docs/zone.md)

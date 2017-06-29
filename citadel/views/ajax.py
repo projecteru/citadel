@@ -13,7 +13,7 @@ from citadel.models.app import AppUserRelation, Release
 from citadel.models.loadbalance import ELBRule, update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import get_core
-from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback
+from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container_dispatch, celery_task_stream_response, celery_task_stream_traceback
 from citadel.views.helper import bp_get_app, bp_get_balancer, make_deploy_options
 
 
@@ -165,7 +165,7 @@ def upgrade_containers():
     if ELB_APP_NAME in appnames:
         abort(400, 'Do not upgrade {} through this API'.format(ELB_APP_NAME))
 
-    async_results = [upgrade_container.delay(c.container_id, sha, user_id=g.user.id) for c in containers]
+    async_results = [upgrade_container_dispatch.delay(c.container_id, sha, user_id=g.user.id) for c in containers]
     task_ids = [r.task_id for r in async_results]
     messages = chain(celery_task_stream_response(task_ids), celery_task_stream_traceback(task_ids))
     return Response(messages, mimetype='application/json')
@@ -183,7 +183,7 @@ def replace_containers():
     if ELB_APP_NAME in appnames:
         abort(400, 'Do not upgrade {} through this API'.format(ELB_APP_NAME))
 
-    async_results = [upgrade_container.delay(c.container_id, c.sha, user_id=g.user.id) for c in containers]
+    async_results = [upgrade_container_dispatch.delay(c.container_id, c.sha, user_id=g.user.id) for c in containers]
     task_ids = [r.task_id for r in async_results]
     messages = chain(celery_task_stream_response(task_ids), celery_task_stream_traceback(task_ids))
     return Response(messages, mimetype='application/json')

@@ -11,7 +11,7 @@ from citadel.libs.view import create_api_blueprint
 from citadel.models.app import Release
 from citadel.models.gitlab import get_project_name, get_file_content, get_project_group, get_gitlab_groups
 from citadel.rpc import get_core
-from citadel.tasks import ActionError, create_container, remove_container, upgrade_container, celery_task_stream_response, celery_task_stream_traceback, build_image
+from citadel.tasks import ActionError, create_container, remove_container, upgrade_container_dispatch, celery_task_stream_response, celery_task_stream_traceback, build_image
 from citadel.views.helper import make_deploy_options
 
 
@@ -99,7 +99,7 @@ def upgrade():
     repo = data['repo']
     sha = data['sha']
 
-    async_result = upgrade_container.delay(ids, repo, sha, user_id=g.user.id)
+    async_result = upgrade_container_dispatch.delay(ids, repo, sha, user_id=g.user.id)
     return Response(celery_task_stream_response(async_result.task_id), mimetype='application/json')
 
 
