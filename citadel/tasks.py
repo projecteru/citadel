@@ -240,7 +240,7 @@ def remove_container(self, ids, user_id=None):
 @current_app.task(bind=True)
 def upgrade_container_dispatch(self, container_id, sha, user_id=None):
     container = Container.get_by_container_id(container_id)
-    release = container.release
+    release = container.app.get_release(sha)
     if not release or not release.image:
         raise ActionError(400, 'Release %s not found or not built' % sha)
 
@@ -280,7 +280,6 @@ def upgrade_container(container_id, sha, deploy_options, channel_name, user_id=N
 def smooth_upgrade_container(container_id, sha, deploy_options, channel_name, user_id=None):
     """Start new container, wait for it to become healthy, then remove the old one"""
     container = Container.get_by_container_id(container_id)
-    erection_timeout = container.release.erection_timeout
     rds.publish(channel_name, make_sentence_json('Starting new container to replace {} ...'.format(container_id)))
     grpc_message = create_container(deploy_options,
                                     sha=sha,
@@ -294,7 +293,7 @@ def smooth_upgrade_container(container_id, sha, deploy_options, channel_name, us
     new_container_id = grpc_message['id']
     new_container = Container.get_by_container_id(new_container_id)
     rds.publish(channel_name, make_sentence_json('Wait for new container {} to erect...'.format(new_container)))
-    healthy = new_container.wait_for_erection(erection_timeout)
+    healthy = new_container.wait_for_erection(new_container.release.erection_timeout)
     if healthy:
         rds.publish(channel_name, make_sentence_json('New container {} OK, remove old container {}'.format(new_container_id, container_id)))
         remove_container(container_id, user_id=user_id)
