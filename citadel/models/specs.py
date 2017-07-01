@@ -269,8 +269,10 @@ class SpecsSchema(Schema):
     permitted_users = fields.List(fields.Str(validate=validate_user), missing=[])
     subscribers = fields.Str(required=True)
     erection_timeout = fields.Function(deserialize=better_parse_timespan, missing=FIVE_MINUTES)
+    freeze_node = fields.Bool(missing=False)
     smooth_upgrade = fields.Bool(missing=True)
     crontab = fields.Function(deserialize=parse_crontab, missing=[])
+
 
 class Specs(Jsonized):
 
@@ -283,8 +285,8 @@ class Specs(Jsonized):
 
     def __init__(self, appname=None, entrypoints=None, build=None, volumes=None,
                  base=None, combos={}, permitted_users=None, subscribers=None,
-                 erection_timeout=None, smooth_upgrade=None, crontab=None,
-                 _raw=None):
+                 erection_timeout=None, freeze_node=None, smooth_upgrade=None,
+                 crontab=None, _raw=None):
         self.appname = appname
         self.entrypoints = {entrypoint_name: Entrypoint(_raw=data, **data) for entrypoint_name, data in entrypoints.items()}
         self.build = build
@@ -294,6 +296,7 @@ class Specs(Jsonized):
         self.permitted_users = set(permitted_users)
         self.subscribers = subscribers
         self.erection_timeout = erection_timeout
+        self.freeze_node = freeze_node
         self.smooth_upgrade = smooth_upgrade
         self.crontab = crontab
         self._raw = _raw

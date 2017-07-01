@@ -245,7 +245,10 @@ def upgrade_container_dispatch(self, container_id, sha, user_id=None):
         raise ActionError(400, 'Release %s not found or not built' % sha)
 
     deploy_options = container.deploy_options
-    deploy_options.update({'image': release.image, 'nodename': ''})
+    deploy_options['image'] = release.image
+    if not release.specs.freeze_node:
+        deploy_options['nodename'] = ''
+
     channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
 
     if release.smooth_upgrade:

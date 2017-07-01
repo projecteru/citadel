@@ -7,9 +7,13 @@ Citadel 是容器平台的各种功能的一个集合, 它负责调用 [`eru-cor
 Changelog
 ==========
 
+__2017-07-01__
+
+  + 在 app.yaml 增加 feeze_node 选项, 详见[app.yaml 说明](docs/user-docs/specs.md#卧槽好长啊快解释一下)
+
 __2017-06-29__
 
-  + 在 app.yaml 增加 smooth_upgrade 选项, 允许禁用平滑升级, 详见[app.yaml 说明](docs/user-docs/specs.md#卧槽好长啊快解释一下) [app specs 文档](docs/)
+  + 在 app.yaml 增加 smooth_upgrade 选项, 允许禁用平滑升级, 详见[app.yaml 说明](docs/user-docs/specs.md#卧槽好长啊快解释一下)
 
 __2017-06-08__
 
