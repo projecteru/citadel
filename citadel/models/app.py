@@ -319,8 +319,6 @@ class Release(BaseModelMixin, PropsMixin):
     @property
     def raw(self):
         """if no build clause in app.yaml, this release is considered raw"""
-        if not self.specs:
-            return True
         return not self.specs.build
 
     @cached_property
@@ -348,13 +346,13 @@ class Release(BaseModelMixin, PropsMixin):
     def commit_message(self):
         if self.gitlab_commit:
             return self.gitlab_commit.message
-        return ''
+        return 'commit not found'
 
     @property
     def author(self):
         if self.gitlab_commit:
             return self.gitlab_commit.author_name
-        return ''
+        return 'commit not found'
 
     @property
     def specs_text(self):
@@ -371,11 +369,19 @@ class Release(BaseModelMixin, PropsMixin):
     def combos(self):
         return self.specs and self.specs.combos
 
+    def describe_entrypoint_image(self, entrypoint_name):
+        if not self.specs:
+            return self.image, self.raw
+        image = self.specs.entrypoints[entrypoint_name].image
+        if image:
+            return image, True
+        return self.image, self.raw
+
     @property
     def entrypoints(self):
-        if self.specs:
-            return self.specs.entrypoints
-        return {}
+        if not self.specs:
+            return {}
+        return self.specs.entrypoints
 
     @property
     def smooth_upgrade(self):

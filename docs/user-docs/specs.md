@@ -80,6 +80,7 @@ combos:
 	* `after_start`: 启动容器之后执行的命令, 可以当做一个 hook 使用. 比如你想看看到底进程有没有起起来啦, 就可以写一个脚本每秒钟去尝试连接, 连接成功就去啪啪啪, 然后这个脚本就可以写在这里 `after_start: "sh my_script.sh"`. 这个东西现在的用例是, apollo-mq 需要在启动之后往 start 的 API POST 一个请求过去. 然后这个 Java 进程要起起来又不知道到底要等多久, 所以写了一个脚本, 每秒尝试去 POST 那个 start 的 API, 如果成功就停止. 那么 apollo-mq 的容器起来之后就会去执行这个操作, 保证 mq 确实是 start 过的. 在这里我想严正吐槽一下 apollo-mq, 为什么一定要这样搞幺蛾子!!!
 	* `before_stop`: 停止容器之前执行的命令, 也是一个 hook. 现在的用例也还是给 apollo-mq 的, 这个 mq 啊, 幺蛾子啊, 在停止容器之前得先把进程停掉, 确保不再接收任务. 所以在 stop 之前就会去 POST stop 的 API 来停掉容器, 保证先停服务, 再下容器.
 	* `ports`: 是一个端口列表, 实际上只是用来告诉 citadel 和 core, 程序用了哪些端口的. 你可以选择不告诉, 但是那样自动的 ELB 绑定, health check, 都无法使用. 因为 core 不知道你跑哪里了啊! 难道你还期待 core 去帮你一个一个的 `lsof` 然后看端口查进程名字来对应么... 乖, 把你占用的端口和协议写在这里吧. 比如你在这里列出了 `5000/tcp`, 那么上一个容器时, 会自动帮你把 `{容器IP}:5000` 这个地址发布到 etcd 里去, 并且去注册到 ELB 中, 如果你有设置健康检查, 还会定时往这个地址去测试看看进程还有没有响应. 那如果你不写... 这些就都没了, 手动再见.
+	* `image`: docker 镜像, 允许各个 entrypoint 用不同的 image 部署 (比 app 镜像拥有更高优先级).
 	* `restart`: 标准的 docker restart policy, 但是 Citadel 不支持 restart:always, 你只能写 restart:on-failure.
 	* `healthcheck_url`: 只要声明了 `ports` 就会免费送你 tcp 健康检查的, 但是写了这个健康检查 url 的话, 应用可以做更灵活准确的健康检查.tcp 健康检查的原理很简单：agent 会去尝试连接 `{容器IP}:{容器端口}` 这个地址, 连接失败认为是挂了, 修改 etcd 里容器的健康状态, 其余工作交给 citadel 来完成. http 的话 agent 会去尝试 GET `http://[IP]:[PORT]/[healthcheck_url]`, 你还可以声明请求 `healthcheck_url` 所期待的状态码, 见 `healthcheck_expected_code`.
 	* `healthcheck_port`: 如果用来做健康检查的端口和暴露给 ELB 的端口不一样, 需要在这里声明.
