@@ -245,6 +245,7 @@ def upgrade_container_dispatch(self, container_id, sha, user_id=None):
         raise ActionError(400, 'Release %s not found or not built' % sha)
 
     deploy_options = container.deploy_options
+    image, _ = release.describe_entrypoint_image(container.entrypoint)
     deploy_options['image'] = release.image
     if not release.specs.freeze_node:
         deploy_options['nodename'] = ''
