@@ -136,7 +136,7 @@ class Container(BaseModelMixin, PropsMixin):
     @property
     def deploy_options(self):
         release = self.release
-        image, raw = release.describe_entrypoint_image(entrypoint)
+        image, raw = release.describe_entrypoint_image(self.entrypoint)
         deploy_options = {
             'specs': release.specs_text,
             'appname': self.appname,
