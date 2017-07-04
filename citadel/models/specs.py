@@ -184,6 +184,7 @@ class Port(Jsonized):
 
 class EntrypointSchema(Schema):
     cmd = fields.Str(attribute='command', required=True)
+    image = fields.Str()
     ports = fields.Function(deserialize=parse_port_list, missing=[])
     network_mode = fields.Str(validate=validate_network_mode, missing='bridge')
     restart = fields.Str(validate=validate_restart)
@@ -198,12 +199,13 @@ class EntrypointSchema(Schema):
 
 
 class Entrypoint(Jsonized):
-    def __init__(self, command=None, ports=None, network_mode=None,
+    def __init__(self, command=None, image=None, ports=None, network_mode=None,
                  restart=None, healthcheck_url=None, healthcheck_port=None,
                  healthcheck_expected_code=None, hosts=None, privileged=None,
                  log_config=None, working_dir=None, backup_path=None,
                  _raw=None):
         self.command = command
+        self.image = image
         self.ports = [Port(_raw=_raw, **data) for data in ports]
         self.network_mode = network_mode
         self.restart = restart

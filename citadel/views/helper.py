@@ -90,10 +90,11 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
     if isinstance(memory, str):
         memory = parse_size(memory, binary=True)
 
+    image, raw = release.describe_entrypoint_image(entrypoint)
     deploy_options = {
         'specs': release.specs_text,
         'appname': appname,
-        'image': release.image,
+        'image': image,
         'zone': zone,
         'podname': podname,
         'nodename': nodename,
@@ -103,7 +104,7 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
         'memory': memory,
         'networks': networks,
         'env': env_vars,
-        'raw': release.raw,
+        'raw': raw,
         'extra_args': extra_args,
         'debug': debug,
     }

@@ -136,10 +136,11 @@ class Container(BaseModelMixin, PropsMixin):
     @property
     def deploy_options(self):
         release = self.release
+        image, raw = release.describe_entrypoint_image(entrypoint)
         deploy_options = {
             'specs': release.specs_text,
             'appname': self.appname,
-            'image': release.image,
+            'image': image,
             'zone': self.zone,
             'podname': self.podname,
             'nodename': self.nodename,
@@ -149,7 +150,7 @@ class Container(BaseModelMixin, PropsMixin):
             'memory': self.memory,
             'networks': {network_name: '' for network_name in self.networks},
             'env': [e for e in self.info['Config']['Env'] if not e.split('=', 1)[0] in UPGRADE_CONTAINER_IGNORE_ENV],
-            'raw': release.raw,
+            'raw': raw,
         }
         return deploy_options
 

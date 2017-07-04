@@ -7,6 +7,10 @@ Citadel 是容器平台的各种功能的一个集合, 它负责调用 [`eru-cor
 Changelog
 ==========
 
+__2017-07-03__
+
+  + 在 entrypoint 添加 image, 允许各个 entrypoint 用不同的镜像进行部署, 详见[app.yaml 说明](docs/user-docs/specs.md#卧槽好长啊快解释一下)
+
 __2017-07-01__
 
   + 在 app.yaml 增加 feeze_node 选项, 详见[app.yaml 说明](docs/user-docs/specs.md#卧槽好长啊快解释一下)
