@@ -75,6 +75,7 @@ base 镜像基本都是基于 Alpine 做的了, [这里](http://hub.ricebook.net
 
 ```
 appname: "pisces_search"
+subscribers: "#platform@timfeirg"
 entrypoints:
   prod:
     cmd: "/opt/jdk/bin/java -Xms1g -Xmx2g  -Xmn1g -DServer=pisces-search -XX:+UseConcMarkSweepGC -XX:+CMSParallelRemarkEnabled -server -XX:SurvivorRatio=5 -XX:CMSInitiatingOccupancyFraction=80 -XX:+PrintTenuringDistribution -jar pisces-search.jar --spring.profiles.active=production"
@@ -112,6 +113,7 @@ combos:
 
 ```
 appname: "neptulon"
+subscribers: "#platform;@timfeirg"
 entrypoints:
   web:
     cmd: "gunicorn -c gunicorn_config.py app:app"
