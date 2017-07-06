@@ -118,7 +118,6 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
     zone = deploy_options.pop('zone')
     ms = _peek_grpc(get_core(zone).create_container(deploy_options))
 
-    containers = []
     task_id = self.request.id
     channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
     bad_news = []
@@ -131,12 +130,17 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
         if m.success:
             logger.debug('Creating container %s:%s got grpc message %s', appname, entrypoint, m)
             override_status = ContainerOverrideStatus.DEBUG if deploy_options.get('debug', False) else ContainerOverrideStatus.NONE
-            container = Container.create(appname, sha, m.id, entrypoint, envname, deploy_options['cpu_quota'], deploy_options['memory'], zone, m.podname, m.nodename, override_status=override_status)
-            if not container:
-                # failing to create container means it's already created,
-                # probably safe to continue
-                continue
-            containers.append(container)
+            container = Container.create(appname,
+                                         sha,
+                                         m.id,
+                                         entrypoint,
+                                         envname,
+                                         deploy_options['cpu_quota'],
+                                         deploy_options['memory'],
+                                         zone,
+                                         m.podname,
+                                         m.nodename,
+                                         override_status=override_status)
 
             op_content = {'entrypoint': deploy_options['entrypoint'], 'envname': envname, 'networks': deploy_options['networks']}
             op_content.update(m.to_dict())
@@ -250,6 +254,7 @@ def upgrade_container_dispatch(self, container_id, sha, user_id=None):
         deploy_options['nodename'] = ''
 
     channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
+    rds.publish(channel_name, make_sentence_json('Upgrading container using options {}'.format(deploy_options)))
 
     if release.smooth_upgrade:
         smooth_upgrade_container(container_id,
@@ -276,8 +281,7 @@ def upgrade_container(container_id, sha, deploy_options, channel_name, user_id=N
                                     user_id=user_id,
                                     envname='SAME')[0]
     new_container_id = grpc_message['id']
-    new_container = Container.get_by_container_id(new_container_id)
-    rds.publish(channel_name, make_sentence_json('New container created: {}'.format(new_container)))
+    rds.publish(channel_name, make_sentence_json('New container created: {}'.format(new_container_id)))
 
 
 def smooth_upgrade_container(container_id, sha, deploy_options, channel_name, user_id=None):
