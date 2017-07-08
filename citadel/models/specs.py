@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from numbers import Number
-
 import yaml
 from crontab import CronTab
 from humanfriendly import InvalidTimespan, parse_timespan, parse_size
 from humanize import naturalsize
-from marshmallow import Schema, fields, ValidationError
+from marshmallow import Schema, fields, validates_schema, ValidationError
+from numbers import Number
 
 from citadel.config import ZONE_CONFIG, DEFAULT_ZONE
 from citadel.libs.jsonutils import Jsonized
@@ -13,6 +12,15 @@ from citadel.libs.utils import memoize
 
 
 FIVE_MINUTES = parse_timespan('5m')
+
+
+class StrictSchema(Schema):
+
+    @validates_schema(pass_original=True)
+    def check_unknown_fields(self, data, original_data):
+        unknown = set(original_data) - set(self.fields)
+        if unknown:
+            raise ValidationError('Unknown fields: {}, please check the docs'.format(unknown))
 
 
 def validate_protocol(s):
@@ -170,7 +178,7 @@ def parse_crontab(cron_list):
     return cron_settings
 
 
-class PortSchema(Schema):
+class PortSchema(StrictSchema):
     protocol = fields.Str(validate=validate_protocol, missing='tcp')
     port = fields.Int(validate=validate_port, required=True)
 
@@ -182,7 +190,7 @@ class Port(Jsonized):
         self._raw = _raw
 
 
-class EntrypointSchema(Schema):
+class EntrypointSchema(StrictSchema):
     cmd = fields.Str(attribute='command', required=True)
     image = fields.Str()
     ports = fields.Function(deserialize=parse_port_list, missing=[])
@@ -195,6 +203,8 @@ class EntrypointSchema(Schema):
     privileged = fields.Bool(missing=False)
     log_config = fields.Str(validate=validate_log_config)
     working_dir = fields.Str()
+    after_start = fields.Str()
+    before_stop = fields.Str()
     backup_path = fields.List(fields.Str(), missing=[])
 
 
@@ -202,8 +212,8 @@ class Entrypoint(Jsonized):
     def __init__(self, command=None, image=None, ports=None, network_mode=None,
                  restart=None, healthcheck_url=None, healthcheck_port=None,
                  healthcheck_expected_code=None, hosts=None, privileged=None,
-                 log_config=None, working_dir=None, backup_path=None,
-                 _raw=None):
+                 log_config=None, working_dir=None, after_start=None,
+                 before_stop=None, backup_path=None, _raw=None):
         self.command = command
         self.image = image
         self.ports = [Port(_raw=_raw, **data) for data in ports]
@@ -213,13 +223,15 @@ class Entrypoint(Jsonized):
         self.privileged = privileged
         self.log_config = log_config
         self.working_dir = working_dir
+        self.after_start = after_start
+        self.before_stop = before_stop
         self.backup_path = backup_path
 
 
 entrypoint_schema = EntrypointSchema()
 
 
-class ComboSchema(Schema):
+class ComboSchema(StrictSchema):
     zone = fields.Str(validate=validate_zone, missing=DEFAULT_ZONE)
     podname = fields.Str(required=True)
     nodename = fields.Str()
@@ -261,7 +273,7 @@ class Combo(Jsonized):
 combo_schema = ComboSchema()
 
 
-class SpecsSchema(Schema):
+class SpecsSchema(StrictSchema):
     appname = fields.Str(required=True)
     entrypoints = fields.Function(deserialize=parse_entrypoints, required=True)
     build = fields.List(fields.Str())
@@ -285,7 +297,7 @@ class Specs(Jsonized):
 
     exclude_from_dump = ['crontab']
 
-    def __init__(self, appname=None, entrypoints=None, build=None, volumes=None,
+    def __init__(self, appname=None, entrypoints={}, build=None, volumes=None,
                  base=None, combos={}, permitted_users=None, subscribers=None,
                  erection_timeout=None, freeze_node=None, smooth_upgrade=None,
                  crontab=None, _raw=None):
@@ -316,9 +328,13 @@ class Specs(Jsonized):
             raise ValidationError('mount_paths, permdir, binds are no longer supported, use volumes instead, see http://platform.docs.ricebook.net/citadel/docs/user-docs/specs.html')
 
     @classmethod
-    @memoize
-    def from_string(cls, s):
-        dic = yaml.load(s)
+    def from_dict(cls, dic):
         unmarshal_result = SpecsSchema().load(dic)
         data = unmarshal_result.data
         return cls(_raw=data, **data)
+
+    @classmethod
+    @memoize
+    def from_string(cls, s):
+        dic = yaml.load(s)
+        return cls.from_dict(dic)
