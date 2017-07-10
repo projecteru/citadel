@@ -190,7 +190,7 @@ class Port(Jsonized):
         self._raw = _raw
 
 
-class EntrypointSchema(StrictSchema):
+class EntrypointSchema(Schema):
     cmd = fields.Str(attribute='command', required=True)
     image = fields.Str()
     ports = fields.Function(deserialize=parse_port_list, missing=[])
