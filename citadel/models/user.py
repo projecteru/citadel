@@ -1,4 +1,4 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 import requests
 from flask import abort, session, request
 from requests.exceptions import ConnectTimeout, ReadTimeout, ConnectionError
@@ -6,7 +6,7 @@ from requests.exceptions import ConnectTimeout, ReadTimeout, ConnectionError
 from citadel.config import FAKE_USER, DEBUG, AUTH_AUTHORIZE_URL, AUTH_GET_USER_URL
 from citadel.ext import sso
 from citadel.libs.cache import cache, ONE_DAY
-from citadel.libs.utils import memoize, logger
+from citadel.libs.utils import logger
 
 
 @cache(ttl=ONE_DAY)
@@ -55,7 +55,7 @@ def get_current_user():
     return None
 
 
-@memoize
+@cache(ttl=ONE_DAY)
 def get_user(identifier):
     if not identifier:
         return None
