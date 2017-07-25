@@ -68,15 +68,6 @@ def validate_cpu(n):
         raise ValidationError('CPU must >=0')
 
 
-def validate_user(username):
-    from citadel.models.user import User
-    try:
-        if not User.get(username):
-            raise ValidationError('Bad username in permitted_users: {}'.format(username))
-    except RuntimeError:
-        pass
-
-
 def validate_elb_domain(s):
     if not len(s.split()) == 2:
         raise ValidationError('Bad ELB domain record, should be \'$ELB_NAME $DOMAIN\'')
@@ -280,7 +271,7 @@ class SpecsSchema(StrictSchema):
     volumes = fields.List(fields.Str())
     base = fields.Str(required=True)
     combos = fields.Function(deserialize=parse_combos, missing={})
-    permitted_users = fields.List(fields.Str(validate=validate_user), missing=[])
+    permitted_users = fields.List(fields.Str(), missing=[])
     subscribers = fields.Str(required=True)
     erection_timeout = fields.Function(deserialize=better_parse_timespan, missing=FIVE_MINUTES)
     freeze_node = fields.Bool(missing=False)
