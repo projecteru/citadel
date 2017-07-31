@@ -35,7 +35,7 @@ class Container(BaseModelMixin, PropsMixin):
     entrypoint = db.Column(db.String(50), nullable=False)
     env = db.Column(db.String(50), nullable=False)
     cpu_quota = db.Column(db.Numeric(12, 3), nullable=False)
-    memory = db.Column(db.Integer, nullable=False)
+    memory = db.Column(db.BigInteger, nullable=False)
     zone = db.Column(db.String(50), nullable=False)
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
