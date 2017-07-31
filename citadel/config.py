@@ -60,7 +60,7 @@ OAUTH2_CLIENT_SECRET = getenv('OAUTH2_CLIENT_SECRET', default='')
 AUTH_AUTHORIZE_URL = getenv('AUTH_AUTHORIZE_URL', default='https://sso.ricebook.net/auth/profile')
 AUTH_GET_USER_URL = getenv('AUTH_GET_USER_URL', default='https://sso.ricebook.net/auth/user')
 
-ELB_APP_NAME = getenv('ELB_APP_NAME', default='erulb')
+ELB_APP_NAME = getenv('ELB_APP_NAME', default='erulb3')
 ELB_BACKEND_NAME_DELIMITER = getenv('ELB_BACKEND_NAME_DELIMITER', default='___')
 ELB_POD_NAME = getenv('ELB_POD_NAME', default='elb')
 CITADEL_HEALTH_CHECK_STATS_KEY = 'citadel:health'
