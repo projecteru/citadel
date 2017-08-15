@@ -81,7 +81,7 @@ def make_celery(app):
 
 
 def create_app():
-    app = Flask(__name__, static_url_path='/citadel/static')
+    app = Flask(__name__, static_url_path='/static', static_folder='static')
     app.url_map.converters['date'] = DateConverter
     app.config.from_object('citadel.config')
     app.secret_key = app.config['SECRET_KEY']

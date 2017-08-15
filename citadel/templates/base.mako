@@ -5,13 +5,13 @@
     <title>${ self.title() } · ${ g.zone } · citadel </title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link href="/citadel/static/img/favicon.jpg" rel="shortcut icon">
+    <link href="/static/img/favicon.jpg" rel="shortcut icon">
     <link href="https://staticfile.qnssl.com/flat-ui/2.3.0/css/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css">
     <link href="https://staticfile.qnssl.com/flat-ui/2.3.0/css/flat-ui.min.css" rel="stylesheet" type="text/css">
     <script src="https://staticfile.qnssl.com/flat-ui/2.3.0/js/vendor/jquery.min.js"></script>
     <script src="https://staticfile.qnssl.com/flat-ui/2.3.0/js/flat-ui.min.js"></script>
     <script src="https://cdn.staticfile.org/oboe.js/2.1.2/oboe-browser.min.js"></script>
-    <script src="/citadel/static/js/common.js"></script>
+    <script src="/static/js/common.js"></script>
     ${ self.more_header() }
     <style>
       ${ self.more_css() }
