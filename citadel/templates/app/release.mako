@@ -311,7 +311,7 @@
 </%def>
 
 <%def name="bottom_script()">
-  <script src="/citadel/static/js/deploy.js" type="text/javascript"></script>
+  <script src="/static/js/deploy.js" type="text/javascript"></script>
   <script>
     $(function(){
       $('[data-toggle="tooltip"]').tooltip();

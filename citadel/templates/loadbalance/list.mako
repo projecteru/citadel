@@ -127,5 +127,5 @@
 </%block>
 
 <%def name="bottom_script()">
-  <script src="/citadel/static/js/add-loadbalance.js" type="text/javascript"></script>
+  <script src="/static/js/add-loadbalance.js" type="text/javascript"></script>
 </%def>

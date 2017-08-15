@@ -170,6 +170,6 @@
       $('[data-toggle="tooltip"]').tooltip();
     });
   </script>
-  <script src="/citadel/static/js/balancer.js" type="text/javascript"></script>
-  <script src="/citadel/static/js/add-loadbalance.js" type="text/javascript"></script>
+  <script src="/static/js/balancer.js" type="text/javascript"></script>
+  <script src="/static/js/add-loadbalance.js" type="text/javascript"></script>
 </%def>

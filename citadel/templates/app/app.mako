@@ -144,7 +144,7 @@ ssh ${ WHEREAMI } -t 'sudo chown ${ app.id }:${ app.id } /mnt/mfs/permdirs/${ ap
 
   </%call>
 
-  <script src="/citadel/static/js/balancer.js" type="text/javascript"></script>
+  <script src="/static/js/balancer.js" type="text/javascript"></script>
   <script>
     $('button[id=upgrade-container-button]').click(function(e){
       e.preventDefault();
