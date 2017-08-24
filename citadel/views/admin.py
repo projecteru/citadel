@@ -67,15 +67,11 @@ def users():
     return render_template('/admin/users.mako', users=users)
 
 
-@bp.route('/user/<identifier>', methods=['GET', 'POST'])
+@bp.route('/user/<identifier>')
 def user_info(identifier):
     user = get_user(identifier)
     if not user:
         abort(404)
-
-    if request.method == 'POST':
-        appname = request.form['name']
-        AppUserRelation.add(appname, user.id)
 
     apps = App.get_by_user(user.id, limit=100)
     all_apps = App.get_all(limit=100)

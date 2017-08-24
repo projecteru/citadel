@@ -103,7 +103,7 @@ from humanize import naturalsize
         type: 'DELETE',
         success: function(r) {
           console.log(r);
-          self.parent().parent().remove();
+          location.reload();
         },
         error: function(r) {
           console.log(r);

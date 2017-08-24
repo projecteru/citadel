@@ -151,7 +151,7 @@
           location.reload();
         },
         error: function(jqXhr, textStatus, errorThrown){
-          console.log('Remove container got error: ', jqXhr, textStatus, errorThrown);
+          console.log('Debug container got error: ', jqXhr, textStatus, errorThrown);
           alert(jqXhr.responseText);
         }
       })
@@ -174,7 +174,7 @@
         data: JSON.stringify(data),
         success: function(data, textStatus, jQxhr){
           console.log('Remove container got response: ', data);
-          self.parent().parent().remove();
+          location.reload();
         },
         error: function(jqXhr, textStatus, errorThrown){
           console.log('Remove container got error: ', jqXhr, textStatus, errorThrown);
@@ -207,9 +207,7 @@
         data: JSON.stringify(data),
         success: function(data, textStatus, jQxhr){
           console.log('Remove container got response: ', data);
-          $.each($('input[name=container-id]:checked'), function(){
-            $(this).parent().parent().remove();
-          });
+          location.reload();
         },
         error: function(jqXhr, textStatus, errorThrown){
           console.log('Remove container got error: ', jqXhr, textStatus, errorThrown);
