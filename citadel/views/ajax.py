@@ -280,15 +280,6 @@ def delete_rule(name):
     return DEFAULT_RETURN_VALUE
 
 
-@bp.route('/admin/revoke-app', methods=['POST'])
-@jsonize
-def revoke_app():
-    user_id = request.form['user_id']
-    name = request.form['name']
-    AppUserRelation.delete(name, user_id)
-    return DEFAULT_RETURN_VALUE
-
-
 @bp.route('/switch-zone', methods=['POST'])
 @jsonize
 def switch_zone():
