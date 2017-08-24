@@ -9,7 +9,7 @@ from functools import wraps
 from flask import Response
 
 
-class Jsonized(object):
+class Jsonized:
 
     _raw = {}
 

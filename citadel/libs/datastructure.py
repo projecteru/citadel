@@ -46,7 +46,7 @@ def purge_none_val_from_dict(dic):
     return remap(dic, visit=lambda path, key, val: val is not None)
 
 
-class SmartStatus(object):
+class SmartStatus:
 
     """
     I have a dict of data, and I can evaluate DSL upon my data

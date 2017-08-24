@@ -447,7 +447,7 @@ class AppUserRelation(BaseModelMixin):
         return bool(cls.query.filter_by(user_id=user_id, appname=appname).first())
 
 
-class AppStatusAssembler(object):
+class AppStatusAssembler:
 
     """
     a class that contains app status and its container status

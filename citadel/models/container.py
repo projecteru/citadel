@@ -17,7 +17,7 @@ from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
 from citadel.rpc import get_core
 
 
-class ContainerOverrideStatus(object):
+class ContainerOverrideStatus:
     NONE = 0
     DEBUG = 1
     REMOVING = 2

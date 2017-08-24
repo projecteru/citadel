@@ -11,7 +11,7 @@ class EruAgentError(Exception):
     pass
 
 
-class EruAgentClient(object):
+class EruAgentClient:
 
     def __init__(self, addr, port=AGENT_PORT):
         self.addr = addr

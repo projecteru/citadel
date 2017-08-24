@@ -58,7 +58,7 @@ class BaseModelMixin(db.Model, Jsonized):
         }
 
 
-class PropsMixin(object):
+class PropsMixin:
     """丢redis里"""
 
     def get_uuid(self):
@@ -105,7 +105,7 @@ class PropsMixin(object):
         self.props = props
 
 
-class PropsItem(object):
+class PropsItem:
 
     def __init__(self, name, default=None, type=None):
         self.name = name

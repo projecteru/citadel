@@ -80,7 +80,7 @@ def get_users(start=0, limit=20, q=None):
     return [User.from_dict(d) for d in resp.data if d]
 
 
-class User(object):
+class User:
 
     def __init__(self, id, name, email, real_name, privilege, token='', pubkey=''):
         self.id = id
