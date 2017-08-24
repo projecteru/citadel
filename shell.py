@@ -37,17 +37,11 @@ def get_banner():
 
 
 def pre_imports():
-    import citadel.models as module
-    from citadel.models import __all__
+    from citadel.models import User, App, Release, AppUserRelation, Container, ELBInstance, OPLog, ELBRule
+    from citadel.tasks import remove_container
     from citadel.ext import db, rds, gitlab, get_etcd
     from citadel.rpc import core
-
-    imports = {'db': db, 'rds': rds, 'gitlab': gitlab, 'core': core, 'get_etcd': get_etcd}
-    for name in __all__:
-        m = module.__dict__.get(name, None)
-        if m:
-            imports[name] = m
-    return imports
+    return locals()
 
 
 def ipython_shell(user_ns):
