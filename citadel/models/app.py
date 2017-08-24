@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
 from collections import defaultdict
-
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
@@ -58,9 +57,9 @@ class App(BaseModelMixin):
         return cls.query.filter_by(name=name).first()
 
     @classmethod
-    def get_by_user(cls, user_id, start=0, limit=20):
+    def get_by_user(cls, user_id):
         """拿这个user可以有的app, 跟app自己的user_id没关系."""
-        names = AppUserRelation.get_appname_by_user_id(user_id, start, limit)
+        names = AppUserRelation.get_appname_by_user_id(user_id)
         return [cls.get_by_name(n) for n in names]
 
     @classmethod
@@ -431,19 +430,14 @@ class AppUserRelation(BaseModelMixin):
         db.session.commit()
 
     @classmethod
-    def get_user_id_by_appname(cls, appname, start=0, limit=20):
-        rs = cls.query.filter_by(appname=appname)
-        return [r.user_id for r in rs[start:start + limit] if r]
+    def get_user_id_by_appname(cls, appname):
+        rs = cls.query.filter_by(appname=appname).all()
+        return [r.user_id for r in rs]
 
     @classmethod
-    def get_appname_by_user_id(cls, user_id, start=0, limit=20):
-        rs = cls.query.filter_by(user_id=user_id)
-        if limit:
-            res = rs[start:start + limit]
-        else:
-            res = rs.all()
-
-        return [r.appname for r in res if r]
+    def get_appname_by_user_id(cls, user_id):
+        rs = cls.query.filter_by(user_id=user_id).all()
+        return [r.appname for r in rs]
 
     @classmethod
     def user_permitted_to_app(cls, user_id, appname):
