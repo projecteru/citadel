@@ -73,7 +73,7 @@ def user_info(identifier):
     if not user:
         abort(404)
 
-    apps = App.get_by_user(user.id, limit=100)
+    apps = App.get_by_user(user.id)
     all_apps = App.get_all(limit=100)
     all_apps = [app for app in all_apps if app not in apps]
     return render_template('/admin/user_info.mako',

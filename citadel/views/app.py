@@ -23,7 +23,7 @@ def index():
     if g.user.privilege and request.values.get('all', type=int):
         apps = [a for a in App.get_all(limit=None) if a.name != ELB_APP_NAME]
     else:
-        apps = App.get_by_user(g.user.id, limit=None)
+        apps = App.get_by_user(g.user.id)
 
     return render_template('/app/list.mako', apps=apps)
 
