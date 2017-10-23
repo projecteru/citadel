@@ -4,8 +4,8 @@ variables:
   MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
   REDIS_URL: "redis://:@hub.ricebook.net__ci__redis:6379/0"
   SQLALCHEMY_DATABASE_URI: "mysql+pymysql://root:@hub.ricebook.net__ci__mysql:3306/citadel?charset=utf8mb4"
-  OAUTH2_CLIENT_ID: "***REMOVED***"
-  OAUTH2_CLIENT_SECRET: "***REMOVED***"
+  OAUTH2_CLIENT_ID: "LwILilupn61xW50Nfg3zIzdccYeRFbftztr4VFfT"
+  OAUTH2_CLIENT_SECRET: "ixfwsY8p4B8mFDAdWSeEYzByymN6oFRzJmdZsGk0SmYyARc1gnmaMKdLHFzG"
   OAUTHLIB_INSECURE_TRANSPORT: "1"
 
 test_job:

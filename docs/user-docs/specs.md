@@ -1,11 +1,6 @@
-App Specs
-=========
+## App Specs
 
-## 是做啥的
-
-告诉 citadel / core 怎么处理你的这个代码仓库.
-
-## 举个例子?
+`app.yaml` 的作用不外乎告诉 Citadel / core 怎么部署你的应用, 包括分配资源, 在 ELB 上绑定域名转发规则, 等等. 用以下例子进行说明:
 
 ```yaml
 appname: "test-ci"
@@ -71,12 +66,10 @@ combos:
 ```
 
 ## 卧槽好长啊快解释一下
-好的我们现在一行一行的来看这些是几个意思.
 
-* `appname`: 这个就是在告诉 citadel 这个应用叫啥, 名字不允许重复, 也不允许使用下划线(其实现在允许, 但是我觉得应该砍掉). 之后不管是监控数据, 还是域名, 还是日志收集, 都跟这个名字息息相关, 请用一个能让大家知道是什么意思的名字, 或者给一个对应表出来, 不要叫一个 `fuckxxxx` 的名字然后并不知道这个应用是做什么的.
+* `appname`: 这个就是在告诉 Citadel 这个应用叫啥, 名字不允许重复, 也不允许使用下划线. 之后不管是监控数据, 还是域名, 还是日志收集, 都跟这个名字息息相关, 请用一个能让大家知道是什么意思的名字.
 * `entrypoints`: 这是一个列表, 里面标记了多个程序的入口. 啥是入口呢? 就是你怎么样启动这个程序啊! 每个程序的入口都可以负责一些单独的功能, 同时有各种参数可以选择.
 	* `cmd`: 程序启动的命令, 不同于 shell 命令, 这里无法使用 `&&` 这样的符号. 也就是说没有办法做到 `cd xxx && ./start` 这样来启动. 那如果一定要这样怎么办呢, 很简单, 你可以先写个脚本 `start`, 里面的内容就是 `cd xxx && ./start-program`, 然后在这里写 `sh start`. 另外一些环境变量也是没有办法这样使用的, 因为我们前面说了, **不同于 shell 命令**. 那么如果我要写 `./start --pid $PID_FILE` 这样的命令怎么办呢? 很简单啊, 你可以写 `sh -c './start --pid $PID_FILE'`, 用 `sh` 来启动, 可以帮你把 shell 里的一些符号先转换, 然后变成普通的命令启动. 再次重复一次, 这里**不是 shell**, 在 shell 里写的命令需要用 `sh -c 'your shell command'` 包裹起来.
-	* `permdir`: 不再支持, 请用 `volumes` 关键字实现相同功能.
 	* `after_start`: 启动容器之后执行的命令, 可以当做一个 hook 使用. 比如你想看看到底进程有没有起起来啦, 就可以写一个脚本每秒钟去尝试连接, 连接成功就去啪啪啪, 然后这个脚本就可以写在这里 `after_start: "sh my_script.sh"`. 这个东西现在的用例是, apollo-mq 需要在启动之后往 start 的 API POST 一个请求过去. 然后这个 Java 进程要起起来又不知道到底要等多久, 所以写了一个脚本, 每秒尝试去 POST 那个 start 的 API, 如果成功就停止. 那么 apollo-mq 的容器起来之后就会去执行这个操作, 保证 mq 确实是 start 过的. 在这里我想严正吐槽一下 apollo-mq, 为什么一定要这样搞幺蛾子!!!
 	* `before_stop`: 停止容器之前执行的命令, 也是一个 hook. 现在的用例也还是给 apollo-mq 的, 这个 mq 啊, 幺蛾子啊, 在停止容器之前得先把进程停掉, 确保不再接收任务. 所以在 stop 之前就会去 POST stop 的 API 来停掉容器, 保证先停服务, 再下容器.
 	* `ports`: 是一个端口列表, 实际上只是用来告诉 citadel 和 core, 程序用了哪些端口的. 你可以选择不告诉, 但是那样自动的 ELB 绑定, health check, 都无法使用. 因为 core 不知道你跑哪里了啊! 难道你还期待 core 去帮你一个一个的 `lsof` 然后看端口查进程名字来对应么... 乖, 把你占用的端口和协议写在这里吧. 比如你在这里列出了 `5000/tcp`, 那么上一个容器时, 会自动帮你把 `{容器IP}:5000` 这个地址发布到 etcd 里去, 并且去注册到 ELB 中, 如果你有设置健康检查, 还会定时往这个地址去测试看看进程还有没有响应. 那如果你不写... 这些就都没了, 手动再见.
@@ -94,16 +87,16 @@ combos:
 * `build`: list, 打包镜像阶段的 shell 命令, 如果缺省, 则不为该 app 打包镜像, 部署的似乎直接用 `base` 作为镜像.
 * `binds`: 不再支持, 见 `volumes`.
 * `mount_path`: 不再支持, 见 `volumes`.
-* `volumes`: 符合 docker volume 格式的挂载方式, 默认读写权限. 格式是 `{宿主机目录}:{容器目录}` 或者 `{宿主机目录}:{容器目录}:ro` 如果需要挂载成一个只读文件系统, 在书写 `volumes` 的时候, 左边支持展开 `$PERMDIR`, 右边支持展开 `$APPDIR`, 对于用 citadel 管理的 app 来说, 只能挂载 `$PERMDIR` 及其下边的目录, 这是为了防止用户乱搞.
+* `volumes`: 符合 docker volume 格式的挂载方式, 默认读写权限. 格式是 `{宿主机目录}:{容器目录}` 或者 `{宿主机目录}:{容器目录}:ro` 如果需要挂载成一个只读文件系统, 在书写 `volumes` 的时候, 右边支持展开 `$APPDIR`.
 	```
 	volumes:
-	  - "$PERMDIR/bar:$APPDIR/bar"
-	  - "$PERMDIR/egg:/data/egg"
-	  - "$PERMDIR/foo:$APPDIR/foo:ro"
+	  - "/bar:$APPDIR/bar"
+	  - "/egg:/data/egg"
+	  - "/foo:$APPDIR/foo:ro"
 	```
 * `dns`: 有时候你可能不想用我们默认给的 DNS, 这里可以指定外部 DNS, 一行一个, 但是, 还是那句话, 不作死就不会死.
 * `meta`: 用处不大, key-value 结构, 数据会被丢到容器的 labels 里去.
-* `subscribers`: str, 用来发送 notbot 报警消息的接收方, 例如 `#platform;sa@ricebook.com`, 具体参考 [notbot 文档](http://gitlab.ricebook.net/platform/notbot)
+* `subscribers`: str, 用来发送 notbot 报警消息的接收方, 例如 `#platform;sa@ricebook.com`, 具体参考 notbot 文档, notbot 将于近期开源.
 * `erection_timeout`: str/int, 如果你启用了平滑升级, 那么 Citadel 在进行容器升级或者换新的时候, 会先启动新的容器, 等待新的容器健康以后, 再删除老的容器, 默认会等待5m, 这个参数就是来控制等待时间的. 写数字的话, 单位为秒, 也可以写 [humanfriendly](https://humanfriendly.readthedocs.io/en/latest/#humanfriendly.parse_timespan) 的时间.
 * `freeze_node`: bool, 如果为 true, 对容器进行升级/换新操作的时候, 会在原来的 node 上启动新容器, 否则由 eru-core 决定 node 分配. 默认为 false.
 * `smooth_upgrade`: bool, 默认为 true, 也就是启用平滑升级, 有些特殊的应用不允许同一个实例有两个实例同时存活, 那么就需要禁用掉平滑升级.
@@ -111,7 +104,7 @@ combos:
 * `combos`: 套餐, 其实是一个自由的组合. citadel 上线的时候要选的东西太多太累了, 于是有了这么个东西. 可以直接选几号套餐然后按照套餐预先设定好的参数来部署. 是一个 key-value 结构, key 就是套餐的名字, value 就是套餐的详细参数.
 	* `cpu`: float, 要多少 CPU, 注意, eru 是超售 CPU 的, 但是依然建议用多少写多少.
 	* `memory`: 要多少内存, 支持单位写法, MB, GB, KB, mb, gb, kb 都可以, 但是你要是不写那个 b, 就要死了, m, g, k 都不是单位, 只是一个放大倍率而已, b 那才是单位啊, bytes 啊! 所以你要是因为没写那个 b 挂了... 不要怪我不宽容, 怪自己没文化去...
-	* `podname`: 部署的区域, c2 机房里这里可选的是 intra 和 release, 如果是对外发布的应用, 选择 release.
+	* `podname`: 部署的区域.
 	* `entrypoint`: 用上面列出的哪个 entrypoint 来部署, 如果没在里面出现那就不要怪我了...
-	* `networks`: 是一个列表, 需要绑定的 calico SDN 的网络名字, c2 机房只有一个 release 网络.
-	* `elb`: 一行一个, 告诉 citadel 这个 combo 上线之后, 要去更新哪个 ELB 的哪个域名. 格式是 `ELB 域名`, c2 可用的 ELB 有两个, internal 和 public.
+	* `networks`: 是一个列表, 需要绑定的 calico SDN 的网络名字.
+	* `elb`: 一行一个, 告诉 citadel 这个 combo 上线之后, 要去更新哪个 ELB 的哪个域名. 格式是 `[ELB Name] [域名]`.
