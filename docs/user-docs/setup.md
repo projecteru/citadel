@@ -1,8 +1,8 @@
-# 操作步骤
+## 上线操作步骤
 
-1. 去 sso 上获取 auth token, 然后去 gitlab 项目设置 - CI/CD Pipelines, 把 token 定义成 `CITADEL_AUTH_TOKEN` 这个变量.
-2. 在项目根目录添加 `.gitlab-ci.yml`, 让 Gitlab-CI build 你的项目, build 结束以后会将该版本注册进 citadel.
-3. 将项目根目录添加 `app.yaml`, 让 Citadel 知道如何部署你的项目, 以及绑定什么域名.
+1. 去 sso 上获取 auth token, 然后去 gitlab 项目设置 - CI/CD Pipelines, 把 token 定义成 `CITADEL_AUTH_TOKEN` 这个变量
+2. 在项目根目录添加 `.gitlab-ci.yml`, 让 Gitlab-CI build 你的项目, build 结束以后会将该版本注册进 citadel
+3. 将项目根目录添加 `app.yaml`, 让 Citadel 知道如何部署你的项目, 以及绑定什么域名
 4. 在 citadel 上部署容器, 跑起来
 
 ## 1. 添加 `.gitlab-ci.yml`
@@ -13,7 +13,7 @@
 
 #### Java 项目
 
-Java 项目在 Gitlab-CI build 阶段会打包成 `.jar` 文件生成 Gitlab artifacts, 将直接用来制作镜像, 以 [pisces-search](http://gitlab.ricebook.net/data_analysis_and_search/pisces-search/) 项目为例, 可以这样写：
+Java 项目运行时只需要 `.jar` 文件即可, 而这个 `.jar` 文件就在 GitLab CI build 阶段生成, 在 `app.yaml` 里声明 `artifacts` 即可.
 
 ```
 # .gitlab-ci.yml
@@ -33,12 +33,10 @@ build_job:
   artifacts:
     paths:
       - "pisces-search.jar"
-    expire_in: "1 week"
 
-# 在 Core 中生成 Docker 镜像
+# 在 Core 中构建 Docker 镜像
 core_build_job:
   stage: "core_build"
-  allow_failure: true
   script:
     - "corecli register"
     - "corecli build --with-artifacts"
@@ -64,8 +62,6 @@ build_job:
     - "corecli register"
     - "corecli build"
 ```
-
-base 镜像基本都是基于 Alpine 做的了, [这里](http://hub.ricebook.net/v2/base/alpine/tags/list) 是所有可用的 alpine 镜像.如果对 base 镜像有要求, 请探索 [footstone](http://gitlab.ricebook.net/footstone/), 如果没有符合要求的镜像, 请在 #sa-online 讨论.
 
 ## 2. 添加 `app.yaml`
 
@@ -139,7 +135,7 @@ combos:
 
 ## 3. 添加容器
 
-访问 [Citadel](http://citadel.ricebook.net).
+访问 Citadel WEB UI.
 
 ## 4. 绑定域名
 
