@@ -7,7 +7,6 @@ from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import App, Release
 from citadel.models.base import ModelCreateError
 from citadel.models.container import Container
-from citadel.models.gitlab import get_project_group, get_gitlab_groups
 
 
 bp = create_api_blueprint('app', __name__, 'app')
@@ -89,22 +88,19 @@ def register_release():
     name = data['name']
     git = data['git']
     sha = data['sha']
+    specs_text = data['specs_text']
     branch = data.get('branch')
-
-    group = get_project_group(git)
-    all_groups = get_gitlab_groups()
-    if not group or group not in all_groups:
-        abort(400, 'Only project under a group can be registered, your git repo is %s' % git)
+    git_tag = data.get('git_tag')
+    commit_message = data.get('commit_message')
+    author = data.get('author')
 
     app = App.get_or_create(name, git)
     if not app:
         abort(400, 'Error during create an app (%s, %s, %s)' % (name, git, sha))
 
-    if not app.gitlab_project.as_dict().get('description'):
-        abort(400, 'Must write gitlab project description, we want to know what this app does, and how important it is')
-
     try:
-        release = Release.create(app, sha, branch=branch)
+        release = Release.create(app, sha, specs_text, branch=branch, git_tag=git_tag,
+                                 author=author, commit_message=commit_message)
     except (ModelCreateError, ValidationError) as e:
         abort(400, str(e))
 

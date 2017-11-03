@@ -23,6 +23,25 @@ default_combos = {
 }
 
 
+def make_specs_text(appname='test-ci',
+                    entrypoints=default_entrypoints,
+                    build=['echo hello'],
+                    volumes=[],
+                    base='hub.ricebook.net',
+                    subscribers='#platform',
+                    permitted_users=['liuyifu'],
+                    combos=default_combos,
+                    crontab=[],
+                    **kwargs):
+    specs_dict = locals()
+    kwargs = specs_dict.pop('kwargs')
+    for k, v in kwargs.items():
+        specs_dict[k] = v
+
+    specs_string = yaml.dump(specs_dict)
+    return specs_string
+
+
 def make_specs(appname='test-ci',
                entrypoints=default_entrypoints,
                build=['echo hello'],

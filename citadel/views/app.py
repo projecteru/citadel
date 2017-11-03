@@ -95,13 +95,3 @@ def app_permitted_users(name):
     users = [User.get(id_) for id_ in user_ids]
     users = [u for u in users if u]
     return render_template('/app/permitted-users.mako', users=users)
-
-
-@bp.route('/<name>/version/<sha>/gitlab')
-@cache.cached(timeout=50)
-def gitlab_url(name, sha):
-    release = bp_get_release(name, sha)
-    commit = release.gitlab_commit
-    commit_info = commit.as_dict()
-    full_sha = commit_info['id']
-    return redirect(make_commit_url(commit_info['project_id'], full_sha))
