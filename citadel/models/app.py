@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 import json
 from collections import defaultdict
+
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
 from werkzeug.utils import cached_property
 
 from citadel.config import DEFAULT_ZONE
-from citadel.ext import db, gitlab
+from citadel.ext import db
 from citadel.libs.datastructure import SmartStatus
 from citadel.libs.utils import logger
-from citadel.models.base import BaseModelMixin, PropsItem, ModelDeleteError, PropsMixin, ModelCreateError
-from citadel.models.gitlab import get_project_name, get_file_content, get_commit
+from citadel.models.base import BaseModelMixin, ModelDeleteError, ModelCreateError
 from citadel.models.loadbalance import ELBRule
 from citadel.models.specs import Specs
 from citadel.models.user import User
@@ -92,10 +92,6 @@ class App(BaseModelMixin):
         return bool(env)
 
     @property
-    def project_name(self):
-        return get_project_name(self.git)
-
-    @property
     def latest_release(self):
         return Release.query.filter_by(app_id=self.id).order_by(Release.id.desc()).limit(1).first()
 
@@ -128,11 +124,6 @@ class App(BaseModelMixin):
         if not containers or {c.status() for c in containers} == {'running'}:
             return False
         return True
-
-    @property
-    def gitlab_project(self):
-        gitlab_project_name = get_project_name(self.git)
-        return gitlab.projects.get(gitlab_project_name)
 
     @property
     def app_status_assembler(self):
@@ -196,7 +187,7 @@ class App(BaseModelMixin):
         return d
 
 
-class Release(BaseModelMixin, PropsMixin):
+class Release(BaseModelMixin):
     __tablename__ = 'release'
     __table_args__ = (
         db.UniqueConstraint('app_id', 'sha'),
@@ -205,38 +196,32 @@ class Release(BaseModelMixin, PropsMixin):
     sha = db.Column(db.CHAR(64), nullable=False, index=True)
     app_id = db.Column(db.Integer, nullable=False)
     image = db.Column(db.String(255), nullable=False, default='')
-
-    branch = PropsItem('branch', default='')
+    specs_text = db.Column(db.JSON)
+    # store trivial info like branch, author, git tag, commit messages
+    misc = db.Column(db.JSON)
 
     def __str__(self):
         return '<{r.name}:{r.short_sha}>'.format(r=self)
 
-    def get_uuid(self):
-        return 'citadel:release:%s' % self.id
-
     @classmethod
-    def create(cls, app, sha, branch=None):
+    def create(cls, app, sha, specs_text=None, branch='', git_tag='', author='', commit_message='', git=''):
         """app must be an App instance"""
         appname = app.name
-        gitlab_project_name = app.project_name
-        commit = get_commit(gitlab_project_name, sha)
-        if not commit:
-            raise ModelCreateError('Cannot find gitlab commit for {}:{}'.format(gitlab_project_name, sha))
-
-        specs_text = get_file_content(app.project_name, 'app.yaml', sha)
         Specs.validate(specs_text)
+        misc = {
+            'git_tag': git_tag,
+            'author': author,
+            'commit_message': commit_message,
+        }
 
         try:
-            new_release = cls(sha=commit.id, app_id=app.id)
+            new_release = cls(sha=sha, app_id=app.id, specs_text=specs_text, misc=misc)
             db.session.add(new_release)
             db.session.commit()
         except IntegrityError:
             logger.warn('Fail to create Release %s %s, duplicate', appname, sha)
             db.session.rollback()
             return cls.get_by_app_and_sha(appname, sha)
-
-        if branch:
-            new_release.branch = branch
 
         # after the instance is created, manage app permission through combo
         # permitted_users
@@ -331,40 +316,30 @@ class Release(BaseModelMixin, PropsMixin):
         return Container.get_by(appname=self.name, sha=self.sha, zone=zone)
 
     @property
-    def gitlab_commit(self):
-        commit = get_commit(self.app.project_name, self.sha)
-        return commit
+    def git_tag(self):
+        return self.misc.get('git_tag')
 
     @property
     def commit_message(self):
-        if self.gitlab_commit:
-            return self.gitlab_commit.message
-        return 'commit not found'
+        return self.misc.get('commit_message')
 
     @property
     def author(self):
-        if self.gitlab_commit:
-            return self.gitlab_commit.author_name
-        return 'commit not found'
+        return self.misc.get('author')
 
     @property
-    def specs_text(self):
-        specs_text = get_file_content(self.app.project_name, 'app.yaml', self.sha)
-        return specs_text
+    def git(self):
+        return self.misc.get('git')
 
-    @property
+    @cached_property
     def specs(self):
-        """load app.yaml from GitLab"""
-        specs_text = self.specs_text
-        return specs_text and Specs.from_string(specs_text) or None
+        return Specs.from_string(self.specs_text)
 
     @property
     def combos(self):
-        return self.specs and self.specs.combos
+        return self.specs.combos
 
     def describe_entrypoint_image(self, entrypoint_name):
-        if not self.specs:
-            return self.image, self.raw
         image = self.specs.entrypoints[entrypoint_name].image
         if image:
             return image, True
@@ -372,8 +347,6 @@ class Release(BaseModelMixin, PropsMixin):
 
     @property
     def entrypoints(self):
-        if not self.specs:
-            return {}
         return self.specs.entrypoints
 
     @property

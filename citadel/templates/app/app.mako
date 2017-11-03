@@ -30,7 +30,6 @@
       </h3>
     </%def>
     <h4>${ app.name }</h4>
-    <p>${ app.gitlab_project.as_dict()['description'] }</p>
     <h5>日志 & 监控</h5>
     <ul class="list-group">
       % if releases:

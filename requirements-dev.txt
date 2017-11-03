@@ -2,3 +2,4 @@
 -i https://pypi.doubanio.com/simple/
 pytest
 ipython
+pdbpp

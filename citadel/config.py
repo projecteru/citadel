@@ -7,7 +7,7 @@ from kombu import Queue
 from smart_getenv import getenv
 
 
-DEBUG = getenv('DEBUG', default=False, type=bool)
+DEBUG = getenv('DEBUG', default=True, type=bool)
 FAKE_USER = {
     'id': 10056,
     'name': 'liuyifu',
@@ -19,7 +19,7 @@ FAKE_USER = {
 }
 
 PROJECT_NAME = LOGGER_NAME = 'citadel'
-SERVER_NAME = getenv('SERVER_NAME')
+SERVER_NAME = getenv('SERVER_NAME', default='citadel.ricebook.net')
 SENTRY_DSN = getenv('SENTRY_DSN', default='')
 SECRET_KEY = getenv('SECRET_KEY', default='testsecretkey')
 
@@ -55,8 +55,8 @@ GITLAB_PRIVATE_TOKEN = getenv('GITLAB_PRIVATE_TOKEN', default='')
 OAUTH2_BASE_URL = getenv('OAUTH2_BASE_URL', default='https://sso.ricebook.net/oauth/api/')
 OAUTH2_ACCESS_TOKEN_URL = getenv('OAUTH2_ACCESS_TOKEN_URL', default='https://sso.ricebook.net/oauth/token')
 OAUTH2_AUTHORIZE_URL = getenv('OAUTH2_AUTHORIZE_URL', default='https://sso.ricebook.net/oauth/authorize')
-OAUTH2_CLIENT_ID = getenv('OAUTH2_CLIENT_ID', default='')
-OAUTH2_CLIENT_SECRET = getenv('OAUTH2_CLIENT_SECRET', default='')
+OAUTH2_CLIENT_ID = getenv('OAUTH2_CLIENT_ID', default='whatever')
+OAUTH2_CLIENT_SECRET = getenv('OAUTH2_CLIENT_SECRET', default='whatever')
 AUTH_AUTHORIZE_URL = getenv('AUTH_AUTHORIZE_URL', default='https://sso.ricebook.net/auth/profile')
 AUTH_GET_USER_URL = getenv('AUTH_GET_USER_URL', default='https://sso.ricebook.net/auth/user')
 
