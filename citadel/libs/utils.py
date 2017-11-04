@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
-from functools import wraps, partial
-
 import requests
 from etcd import EtcdException
 from flask import session
-from gitlab import GitlabError
+from functools import wraps, partial
 
 from citadel.config import NOTBOT_SENDMSG_URL, LOGGER_NAME, DEBUG
 from citadel.libs.jsonutils import JSONEncoder
@@ -41,7 +39,6 @@ def handle_exception(exceptions, default=None):
 
 
 handle_etcd_exception = partial(handle_exception, (EtcdException, ValueError, KeyError))
-handle_gitlab_exception = partial(handle_exception, (GitlabError,))
 
 
 def login_user(user):

@@ -1,6 +1,5 @@
 #-i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 -i https://pypi.doubanio.com/simple/
-python-gitlab
 Flask
 Flask_OAuthlib
 Flask_SQLAlchemy

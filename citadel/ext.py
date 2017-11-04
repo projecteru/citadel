@@ -6,10 +6,9 @@ from flask_mako import MakoTemplates
 from flask_oauthlib.client import OAuth
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
-from gitlab import Gitlab
 from redis import Redis
 
-from citadel.config import ZONE_CONFIG, HUB_ADDRESS, REDIS_URL, OAUTH2_BASE_URL, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_ACCESS_TOKEN_URL, OAUTH2_AUTHORIZE_URL, GITLAB_URL, GITLAB_PRIVATE_TOKEN
+from citadel.config import ZONE_CONFIG, HUB_ADDRESS, REDIS_URL, OAUTH2_BASE_URL, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_ACCESS_TOKEN_URL, OAUTH2_AUTHORIZE_URL
 from citadel.libs.utils import memoize
 
 
@@ -36,6 +35,5 @@ sso = oauth.remote_app(
 )
 
 cache = Cache(config={'CACHE_TYPE': 'redis'})
-gitlab = Gitlab(GITLAB_URL, private_token=GITLAB_PRIVATE_TOKEN)
 sess = Session()
 hub = mapi.MapiClient(HUB_ADDRESS, use_tls=True)

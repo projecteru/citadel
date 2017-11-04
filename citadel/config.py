@@ -48,10 +48,6 @@ ZONE_CONFIG = {
 SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', default='mysql+pymysql://root:@localhost:3306/citadel')
 SQLALCHEMY_TRACK_MODIFICATIONS = getenv('SQLALCHEMY_TRACK_MODIFICATIONS', default=True, type=bool)
 
-GITLAB_URL = getenv('GITLAB_URL', default='http://gitlab.ricebook.net')
-GITLAB_API_URL = getenv('GITLAB_API_URL', default='http://gitlab.ricebook.net/api/v3')
-GITLAB_PRIVATE_TOKEN = getenv('GITLAB_PRIVATE_TOKEN', default='')
-
 OAUTH2_BASE_URL = getenv('OAUTH2_BASE_URL', default='https://sso.ricebook.net/oauth/api/')
 OAUTH2_ACCESS_TOKEN_URL = getenv('OAUTH2_ACCESS_TOKEN_URL', default='https://sso.ricebook.net/oauth/token')
 OAUTH2_AUTHORIZE_URL = getenv('OAUTH2_AUTHORIZE_URL', default='https://sso.ricebook.net/oauth/authorize')
