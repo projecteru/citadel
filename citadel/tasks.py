@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 import json
-from datetime import datetime, timedelta
-
-import yaml
 from celery import current_app
 from celery.result import AsyncResult
+from datetime import datetime, timedelta
 from flask import url_for
 from grpc import RpcError, StatusCode
 from grpc.framework.interfaces.face import face
@@ -19,7 +17,6 @@ from citadel.models import Container, Release
 from citadel.models.app import App
 from citadel.models.base import ModelDeleteError
 from citadel.models.container import ContainerOverrideStatus
-from citadel.models.gitlab import get_project_name, get_file_content, get_build_artifact
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction, ELBInstance
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import get_core
@@ -72,27 +69,13 @@ def record_health_status(self):
 
 
 @current_app.task(bind=True)
-def build_image(self, repo, sha, uid='', artifact='', gitlab_build_id=''):
-    project_name = get_project_name(repo)
-    specs_text = get_file_content(project_name, 'app.yaml', sha)
-    if not specs_text:
-        raise ActionError(400, 'repo %s does not have app.yaml in root directory' % repo)
-
-    specs = yaml.load(specs_text)
-    appname = specs.get('appname', '')
-    if not appname:
-        raise ActionError(400, 'repo %s does not have appname in app.yaml' % repo)
-
+def build_image(self, appname, repo, sha, uid='', artifact=''):
     release = Release.get_by_app_and_sha(appname, sha)
     if not release:
         raise ActionError(400, 'release %s, %s not found, maybe not registered yet?' % (repo, sha))
     if release.raw:
         release.update_image(release.specs.base)
         return
-
-    # 尝试通过gitlab_build_id去取最近成功的一次artifact
-    if not artifact:
-        artifact = get_build_artifact(project_name, sha, gitlab_build_id)
 
     app = App.get_by_name(appname)
     uid = str(uid or app.id)

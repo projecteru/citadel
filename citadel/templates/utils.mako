@@ -1,5 +1,4 @@
 <%!
-  from citadel.models.gitlab import get_project
   from humanize import naturaltime, naturalsize
   from citadel.views.helper import make_kibana_url
 %>
@@ -220,9 +219,6 @@
 </%def>
 
 <%def name="release_list(releases, app)">
-  <%
-    project = get_project(app.project_name)
-  %>
   <table class="table">
     <thead>
       <tr>
@@ -244,8 +240,6 @@
               data-html='true'
               data-content="
               <a href='${ url_for('app.release', name=release.name, sha=release.sha) }'>详情</a>
-              <br>
-              <a href='${ url_for('app.gitlab_url', name=release.name, sha=release.sha) }'>GitLab</a>
               ">
               ${ release.sha[:7] }
             </a>
@@ -265,11 +259,9 @@
                 <span class="fui-plus"></span> Add Raw Container
               </a>
             % elif not release.image:
-              <span title="去gitlab pipelines上盯着看，它好我也好，不行的话先重试">
-                <a class="btn btn-xs btn-default" href="${ url_for('app.gitlab_url', name=release.name, sha=release.sha) }" data-toggle="tooltip" data-html="true" data-placement="top" title="<p>去gitlab pipelines上盯着看，它好我也好</p><p>不行的话先重试</p>" >
-                  <span class="fui-time" ></span> Building...
-                </a>
-              </span>
+              <a class="btn btn-xs btn-success disabled" href="#">
+                <span class="fui-time" ></span> Building...
+              </a>
             % else:
               <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
                 <span class="fui-plus"></span> Add Container

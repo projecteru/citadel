@@ -29,7 +29,6 @@
             <td>${ naturaltime(oplog.created) }</td>
             <td>${ oplog.user_real_name }</td>
             <td><a href="${ url_for("app.app", name=oplog.appname) }" target="_blank">${ oplog.appname }</a></td>
-            <td><a href="${ url_for('app.gitlab_url', name=oplog.appname, sha=oplog.sha) }" target="_blank">${ oplog.short_sha }</a></td>
             <td>${ oplog.action.name }</td>
           </tr>
         % endfor

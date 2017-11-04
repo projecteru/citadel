@@ -8,7 +8,6 @@ from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release, AppUserRelation
 from citadel.models.base import ModelDeleteError
 from citadel.models.container import Container
-from citadel.models.gitlab import make_commit_url
 from citadel.models.oplog import OPLog, OPType
 from citadel.models.user import User
 from citadel.rpc import get_core
