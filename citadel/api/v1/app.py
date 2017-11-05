@@ -5,7 +5,7 @@ from marshmallow import ValidationError
 from citadel.libs.datastructure import AbortDict
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import App, Release
-from citadel.models.base import ModelCreateError
+from citadel.libs.exceptions import ModelCreateError
 from citadel.models.container import Container
 
 

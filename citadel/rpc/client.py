@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-from operator import attrgetter
-
 import grpc
 import wrapt
 from grpc import RpcError, StatusCode
+from grpc.framework.interfaces.face import face
+from more_itertools import peekable
+from operator import attrgetter
 
 from citadel.libs.cache import cache, clean_cache, ONE_DAY
 from citadel.libs.utils import logger
@@ -14,8 +15,7 @@ from citadel.rpc.core_pb2 import (CoreRPCStub, Empty, NodeAvailable,
                                   ListNodesOptions, GetNodeOptions,
                                   AddNodeOptions, BuildImageOptions,
                                   RemoveNodeOptions, DeployOptions,
-                                  UpgradeOptions, ContainerID, ContainerIDs,
-                                  BackupOptions)
+                                  ContainerID, ContainerIDs, BackupOptions)
 
 
 def handle_grpc_exception(default=None):
@@ -47,6 +47,18 @@ class CoreRPC:
     def _get_stub(self):
         channel = grpc.insecure_channel(self.grpc_address)
         return CoreRPCStub(channel)
+
+    @staticmethod
+    def _peek_grpc(call):
+        """peek一下stream的返回, 不next一次他是不会raise exception的"""
+        try:
+            ms = peekable(call)
+            ms.peek()
+        except (face.RemoteError, face.RemoteShutdownError) as e:
+            raise ActionError(500, e.details)
+        except face.AbortionError as e:
+            raise ActionError(500, 'gRPC remote server not available')
+        return ms
 
     @handle_grpc_exception(default=list)
     def list_pods(self):
@@ -126,11 +138,13 @@ class CoreRPC:
         return p and JSONMessage(p)
 
     @handle_grpc_exception(default=list)
-    def build_image(self, repo, version, uid, artifact=''):
+    def build_image(self, opts):
+        """
+        BuildImageOptions is so complicated man, had to assemble else where
+        """
         stub = self._get_stub()
-        opts = BuildImageOptions(repo=repo, version=version, uid=uid, artifact=artifact)
-
-        for m in stub.BuildImage(opts, _STREAM_TIMEOUT):
+        grpc_call = self._peek_grpc(stub.BuildImage(opts, _STREAM_TIMEOUT))
+        for m in grpc_call:
             yield BuildImageMessage(m)
 
     @handle_grpc_exception(default=list)
@@ -138,15 +152,16 @@ class CoreRPC:
         stub = self._get_stub()
         deploy_options.pop('zone', None)
         opts = DeployOptions(**deploy_options)
-        for m in stub.CreateContainer(opts, _STREAM_TIMEOUT):
+        grpc_call = self._peek_grpc(stub.CreateContainer(opts, _STREAM_TIMEOUT))
+        for m in grpc_call:
             yield CreateContainerMessage(m)
 
     @handle_grpc_exception(default=list)
     def remove_container(self, ids):
         stub = self._get_stub()
         ids = ContainerIDs(ids=[ContainerID(id=i) for i in ids])
-
-        for m in stub.RemoveContainer(ids, _STREAM_TIMEOUT):
+        grpc_call = self._peek_grpc(stub.RemoveContainer(ids, _STREAM_TIMEOUT))
+        for m in grpc_call:
             yield JSONMessage(m)
 
     def backup(self, id_, src_path):
@@ -154,14 +169,6 @@ class CoreRPC:
         opts = BackupOptions(id=id_, src_path=src_path)
         msg = stub.Backup(opts, _STREAM_TIMEOUT)
         return msg and JSONMessage(msg)
-
-    @handle_grpc_exception(default=list)
-    def upgrade_container(self, ids, image):
-        stub = self._get_stub()
-        opts = UpgradeOptions(ids=[ContainerID(id=i) for i in ids], image=image)
-
-        for m in stub.UpgradeContainer(opts, _STREAM_TIMEOUT):
-            yield JSONMessage(m)
 
     @handle_grpc_exception(default=list)
     def get_containers(self, ids):
