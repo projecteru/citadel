@@ -6,5 +6,5 @@ from citadel.libs.utils import memoize
 
 @memoize
 def get_core(zone):
-    grpc_url = ZONE_CONFIG[zone]['GRPC_URL']
+    grpc_url = ZONE_CONFIG[zone]['CORE_URL']
     return CoreRPC(grpc_url)

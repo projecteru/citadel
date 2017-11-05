@@ -23,12 +23,11 @@ def build():
     data = AbortDict(request.get_json())
 
     # TODO 参数需要类型校验
-    repo = data['repo']
+    appname = data['appname']
     sha = data['sha']
-    artifact = data.get('artifact', '')
     uid = data.get('uid', '')
 
-    async_result = build_image.delay(repo, sha, uid, artifact)
+    async_result = build_image.delay(appname, sha, uid)
     task_id = async_result.task_id
     messages = chain(celery_task_stream_response(task_id), celery_task_stream_traceback(task_id))
     return Response(messages, mimetype='application/json')
