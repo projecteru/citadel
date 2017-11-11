@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 from flask import g, request, abort, flash, jsonify, url_for, redirect
 from flask_mako import render_template
-from citadel.ext import cache
 
 from citadel.config import IGNORE_PODS, ELB_APP_NAME
+from citadel.libs.exceptions import ModelDeleteError
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release, AppUserRelation
-from citadel.models.base import ModelDeleteError
 from citadel.models.container import Container
 from citadel.models.oplog import OPLog, OPType
 from citadel.models.user import User
 from citadel.rpc import get_core
-from citadel.views.helper import bp_get_app, bp_get_release
+from citadel.views.helper import bp_get_app
 
 
 bp = create_page_blueprint('app', __name__, url_prefix='/app')

@@ -11,29 +11,16 @@ from more_itertools import peekable
 
 from citadel.config import ZONE_CONFIG, CITADEL_TACKLE_TASK_THROTTLING_KEY, ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
 from citadel.ext import rds, hub
+from citadel.libs.exceptions import ActionError, ModelDeleteError
 from citadel.libs.jsonutils import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg, logger, make_sentence_json
 from citadel.models import Container, Release
 from citadel.models.app import App
-from citadel.models.base import ModelDeleteError
 from citadel.models.container import ContainerOverrideStatus
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction, ELBInstance
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import get_core
 from citadel.views.helper import make_deploy_options, make_kibana_url
-
-
-class ActionError(Exception):
-
-    def __init__(self, code, message):
-        self.code = code
-        self.message = message
-        # required by
-        # http://docs.celeryproject.org/en/latest/userguide/tasks.html#creating-pickleable-exceptions
-        super(ActionError, self).__init__(code, message)
-
-    def __str__(self):
-        return self.message
 
 
 def _peek_grpc(call):
