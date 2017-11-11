@@ -144,11 +144,3 @@ class Enum34(types.TypeDecorator):
         if value is not None:
             return self.enum_class(value)
         return None
-
-
-class ModelDeleteError(Exception):
-    pass
-
-
-class ModelCreateError(Exception):
-    pass
