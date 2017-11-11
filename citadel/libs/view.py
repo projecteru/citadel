@@ -1,10 +1,10 @@
 # coding: utf-8
 import os
-from functools import partial
-
 from flask import Blueprint, jsonify
 from flask_mako import render_template
+from functools import partial
 
+from citadel.libs.exceptions import URLPrefixError
 from citadel.libs.jsonutils import jsonize
 
 
@@ -46,10 +46,6 @@ def create_page_blueprint(name, import_name, url_prefix=None):
         bp.errorhandler(code)(_error_hanlder)
 
     return bp
-
-
-class URLPrefixError(Exception):
-    pass
 
 
 def create_api_blueprint(name, import_name, url_prefix=None, version='v1', jsonize=True):

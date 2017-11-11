@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
 from collections import defaultdict
-
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
@@ -10,8 +9,9 @@ from werkzeug.utils import cached_property
 from citadel.config import DEFAULT_ZONE
 from citadel.ext import db
 from citadel.libs.datastructure import SmartStatus
+from citadel.libs.exceptions import ModelCreateError, ModelDeleteError
 from citadel.libs.utils import logger
-from citadel.models.base import BaseModelMixin, ModelDeleteError, ModelCreateError
+from citadel.models.base import BaseModelMixin
 from citadel.models.loadbalance import ELBRule
 from citadel.models.specs import Specs
 from citadel.models.user import User
