@@ -13,7 +13,6 @@
   from datetime import datetime
   from citadel.libs.utils import shorten_sentence
   from citadel.views.helper import make_kibana_url
-  from citadel.config import WHEREAMI
 %>
 
 <%block name="main">
@@ -71,16 +70,6 @@
         </li>
       % endfor
     </ul>
-    % if g.user.privilege:
-      <h5>工具箱</h5>
-      <pre>
-        <code>
-# create permdir
-ssh ${ WHEREAMI } -t 'sudo mkdir /mnt/mfs/permdirs/${ app.name }'
-ssh ${ WHEREAMI } -t 'sudo chown ${ app.id }:${ app.id } /mnt/mfs/permdirs/${ app.name }'
-        </code>
-      </pre>
-    % endif
     <button id="delete-app" class="btn btn-warning pull-right" data-appname="${ app.name }"><span class="fui-trash"></span> Delete App</button>
   </%utils:panel>
 
