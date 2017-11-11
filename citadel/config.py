@@ -29,7 +29,6 @@ MAKO_TRANSLATE_EXCEPTIONS = False
 AGENT_PORT = getenv('AGENT_PORT', default=12345, type=int)
 REDIS_URL = getenv('REDIS_URL', default='redis://127.0.0.1:6379/0')
 
-WHEREAMI = getenv('WHEREAMI', default='c2-eru-1')
 DEFAULT_ZONE = 'c2'
 BUILD_ZONE = 'c1'
 ZONE_CONFIG = {
