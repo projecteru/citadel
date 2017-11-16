@@ -5,9 +5,7 @@ from celery.result import AsyncResult
 from datetime import datetime, timedelta
 from flask import url_for
 from grpc import RpcError, StatusCode
-from grpc.framework.interfaces.face import face
 from humanfriendly import parse_timespan
-from more_itertools import peekable
 
 from citadel.config import ZONE_CONFIG, CITADEL_TACKLE_TASK_THROTTLING_KEY, ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
 from citadel.ext import rds, hub
@@ -21,18 +19,6 @@ from citadel.models.loadbalance import update_elb_for_containers, UpdateELBActio
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc import get_core
 from citadel.views.helper import make_deploy_options, make_kibana_url
-
-
-def _peek_grpc(call):
-    """peek一下stream的返回, 不next一次他是不会raise exception的"""
-    try:
-        ms = peekable(call)
-        ms.peek()
-    except (face.RemoteError, face.RemoteShutdownError) as e:
-        raise ActionError(500, e.details)
-    except face.AbortionError as e:
-        raise ActionError(500, 'gRPC remote server not available')
-    return ms
 
 
 @current_app.task(bind=True)
@@ -56,21 +42,22 @@ def record_health_status(self):
 
 
 @current_app.task(bind=True)
-def build_image(self, appname, repo, sha, uid='', artifact=''):
+def build_image(self, appname, sha, uid='',):
     release = Release.get_by_app_and_sha(appname, sha)
     if not release:
-        raise ActionError(400, 'release %s, %s not found, maybe not registered yet?' % (repo, sha))
+        raise ActionError(400, 'release %s, %s not found, maybe not registered yet?' % (sha, ))
+    specs = release.specs
     if release.raw:
-        release.update_image(release.specs.base)
+        release.update_image(specs.base)
         return
 
-    app = App.get_by_name(appname)
-    uid = str(uid or app.id)
-
+    uid = str(uid or release.app.id)
     image = ''
     task_id = self.request.id
     channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
-    ms = _peek_grpc(get_core(BUILD_ZONE).build_image(repo, sha, uid, artifact))
+    core = get_core(BUILD_ZONE)
+    opts = release.make_core_build_options()
+    ms = core.build_image(opts)
     for m in ms:
         rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
         if m.status == 'finished':
@@ -86,7 +73,7 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
     app = App.get_by_name(appname)
     entrypoint = deploy_options['entrypoint']
     zone = deploy_options.pop('zone')
-    ms = _peek_grpc(get_core(zone).create_container(deploy_options))
+    ms = get_core(zone).create_container(deploy_options)
 
     task_id = self.request.id
     channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
@@ -177,7 +164,7 @@ def remove_container(self, ids, user_id=None):
 
     task_id = self.request.id
     channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
-    ms = _peek_grpc(get_core(zone).remove_container(full_ids))
+    ms = get_core(zone).remove_container(full_ids)
     res = []
     for m in ms:
         rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')

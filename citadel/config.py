@@ -29,18 +29,13 @@ MAKO_TRANSLATE_EXCEPTIONS = False
 AGENT_PORT = getenv('AGENT_PORT', default=12345, type=int)
 REDIS_URL = getenv('REDIS_URL', default='redis://127.0.0.1:6379/0')
 
-DEFAULT_ZONE = 'c2'
-BUILD_ZONE = 'c1'
+DEFAULT_ZONE = 'test-zone'
+BUILD_ZONE = 'test-zone'
 ZONE_CONFIG = {
-    'c1': {
-        'ETCD_CLUSTER': (('10.10.70.***', 2379), ('10.10.65.***', 2379), ('10.10.145.***', 2379)),
-        'GRPC_URL': '10.10.89.***:5001',
-        'ELB_DB': 'redis://10.215.244.17:6379',
-    },
-    'c2': {
-        'ETCD_CLUSTER': (('10.215.242.***', 2379), ('10.215.242.***', 2379), ('10.215.242.***', 2379)),
-        'GRPC_URL': '10.215.244.***:5001',
-        'ELB_DB': 'redis://10.215.244.***:6379',
+    'test-zone': {
+        'ETCD_CLUSTER': (('127.0.0.1', 2379), ),
+        'CORE_URL': '127.0.0.1:5001',
+        'ELB_DB': 'redis://127.0.0.1:6379',
     },
 }
 

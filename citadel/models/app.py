@@ -15,6 +15,7 @@ from citadel.models.base import BaseModelMixin
 from citadel.models.loadbalance import ELBRule
 from citadel.models.specs import Specs
 from citadel.models.user import User
+from citadel.rpc import core_pb2 as pb
 
 
 class EnvSet(dict):
@@ -296,8 +297,8 @@ class Release(BaseModelMixin):
 
     @property
     def raw(self):
-        """if no build clause in app.yaml, this release is considered raw"""
-        return not self.specs.build
+        """if no builds clause in app.yaml, this release is considered raw"""
+        return not self.specs.stages
 
     @cached_property
     def short_sha(self):
@@ -375,6 +376,19 @@ class Release(BaseModelMixin):
             'specs': self.specs,
         })
         return d
+
+    def make_core_build_options(self):
+        specs = self.specs
+        app = self.app
+        builds_map = {stage_name: pb.Build(**build) for stage_name, build in specs.builds.items()}
+        core_builds = pb.Builds(stages=specs.stages, builds=builds_map)
+        container_user = specs.container_user if self.raw else app.name
+        opts = pb.BuildImageOptions(name=app.name,
+                                    user=container_user,
+                                    uid=app.id,
+                                    tag=self.short_sha,
+                                    builds=core_builds)
+        return opts
 
 
 class AppUserRelation(BaseModelMixin):

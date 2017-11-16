@@ -73,6 +73,21 @@ def validate_elb_domain(s):
         raise ValidationError('Bad ELB domain record, should be \'$ELB_NAME $DOMAIN\'')
 
 
+def parse_builds(dic):
+    '''
+    `builds` clause within app.yaml contains None or several build stages, this
+    function validates every stage within
+    '''
+    for stage_name, build in dic.items():
+        unmarshal_result = build_schema.load(build)
+        errors = unmarshal_result.errors
+        if errors:
+            raise ValidationError(str(errors))
+        dic[stage_name] = unmarshal_result.data
+
+    return dic
+
+
 def parse_single_port(port_string):
     parts = port_string.split('/')
     try:
@@ -181,6 +196,22 @@ class Port(Jsonized):
         self._raw = _raw
 
 
+class BuildSchema(Schema):
+    base = fields.Str(required=True)
+    repo = fields.Str()
+    version = fields.Str()
+    working_dir = fields.Str(attribute='dir')
+    commands = fields.List(fields.Str())
+    envs = fields.Dict()
+    args = fields.Dict()
+    labels = fields.Dict()
+    artifacts = fields.Dict()
+    cache = fields.Dict()
+
+
+build_schema = BuildSchema()
+
+
 class EntrypointSchema(Schema):
     cmd = fields.Str(attribute='command', required=True)
     image = fields.Str()
@@ -267,7 +298,9 @@ combo_schema = ComboSchema()
 class SpecsSchema(StrictSchema):
     appname = fields.Str(required=True)
     entrypoints = fields.Function(deserialize=parse_entrypoints, required=True)
-    build = fields.List(fields.Str())
+    stages = fields.List(fields.Str())
+    container_user = fields.Str()
+    builds = fields.Function(deserialize=parse_builds, missing={})
     volumes = fields.List(fields.Str())
     base = fields.Str(required=True)
     combos = fields.Function(deserialize=parse_combos, missing={})
@@ -277,6 +310,12 @@ class SpecsSchema(StrictSchema):
     freeze_node = fields.Bool(missing=False)
     smooth_upgrade = fields.Bool(missing=True)
     crontab = fields.Function(deserialize=parse_crontab, missing=[])
+
+    @validates_schema
+    def check_raw(self, data):
+        raw = False if data.get('stages') else True
+        if not raw and data.get('container_user'):
+            raise ValidationError('cannot specify container_user because this release is not raw')
 
 
 class Specs(Jsonized):
@@ -288,13 +327,16 @@ class Specs(Jsonized):
 
     exclude_from_dump = ['crontab']
 
-    def __init__(self, appname=None, entrypoints={}, build=None, volumes=None,
-                 base=None, combos={}, permitted_users=None, subscribers=None,
+    def __init__(self, appname=None, entrypoints={}, stages=None,
+                 container_user=None, builds={}, volumes=None, base=None,
+                 combos={}, permitted_users=None, subscribers=None,
                  erection_timeout=None, freeze_node=None, smooth_upgrade=None,
                  crontab=None, _raw=None):
         self.appname = appname
         self.entrypoints = {entrypoint_name: Entrypoint(_raw=data, **data) for entrypoint_name, data in entrypoints.items()}
-        self.build = build
+        self.stages = stages
+        self.container_user = container_user
+        self.builds = builds
         self.volumes = volumes
         self.base = base
         self.combos = {combo_name: Combo(_raw=data, **data) for combo_name, data in combos.items()}
@@ -315,8 +357,11 @@ class Specs(Jsonized):
         errors = unmarshal_result.errors
         if errors:
             raise ValidationError(str(errors))
-        if 'mount_paths' in dic or 'binds' in dic or any(['permdir' in entrypoint for entrypoint in dic.get('entrypoint', {}).values()]):
-            raise ValidationError('mount_paths, permdir, binds are no longer supported, use volumes instead, see http://platform.docs.ricebook.net/citadel/docs/user-docs/specs.html')
+        # validate build related clause
+        declared_stages = set(dic['stages'])
+        actual_build_stages = set(dic['builds'])
+        if declared_stages != actual_build_stages:
+            raise ValidationError('stages inconsistent with builds: {} vs {}'.format(declared_stages, actual_build_stages))
 
     @classmethod
     def from_dict(cls, dic):
