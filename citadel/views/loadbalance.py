@@ -5,7 +5,7 @@ from flask_mako import render_template
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
-from citadel.models.base import ModelCreateError
+from citadel.libs.exceptions import ModelCreateError
 from citadel.models.loadbalance import ELBInstance, ELBRule, get_elb_client
 from citadel.rpc import get_core
 from citadel.views.helper import need_admin

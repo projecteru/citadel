@@ -2,7 +2,6 @@
 import enum
 import json
 from collections import Iterable
-
 from erulbpy import ELBClient
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import cached_property
@@ -10,8 +9,9 @@ from werkzeug.utils import cached_property
 from citadel.config import ELB_BACKEND_NAME_DELIMITER, ZONE_CONFIG
 from citadel.ext import db, rds
 from citadel.libs.datastructure import purge_none_val_from_dict
+from citadel.libs.exceptions import ModelCreateError
 from citadel.libs.utils import logger, memoize
-from citadel.models.base import BaseModelMixin, ModelCreateError
+from citadel.models.base import BaseModelMixin
 from citadel.models.container import Container
 
 
