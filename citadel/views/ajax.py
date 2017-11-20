@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-from itertools import chain
-
 from flask import g, abort, session, request, Blueprint, jsonify, Response
 from humanfriendly import parse_size
+from itertools import chain
 
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME, DEFAULT_ZONE
 from citadel.libs.jsonutils import jsonize
@@ -12,7 +11,7 @@ from citadel.models import Container
 from citadel.models.app import AppUserRelation, Release
 from citadel.models.loadbalance import ELBRule, update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
-from citadel.rpc import get_core
+from citadel.rpc.client import get_core
 from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container_dispatch, celery_task_stream_response, celery_task_stream_traceback
 from citadel.views.helper import bp_get_app, bp_get_balancer, make_deploy_options
 
@@ -39,51 +38,6 @@ def delete_app_env(name):
         abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
 
     return DEFAULT_RETURN_VALUE
-
-
-@bp.route('/release/<release_id>/deploy', methods=['POST'])
-def deploy_release(release_id):
-    """部署的ajax接口, oplog在对应action里记录."""
-    release = Release.get(release_id)
-    if not release:
-        abort(404, 'Release %s not found' % release_id)
-
-    if release.name == ELB_APP_NAME:
-        abort(400, 'Do not deploy %s through this API' % ELB_APP_NAME)
-
-    specs = release.specs
-    if not (specs and specs.entrypoints):
-        abort(404, 'Release %s has no entrypoints')
-
-    payload = request.get_json()
-    envname = payload.get('envname', '')
-
-    deploy_options = make_deploy_options(
-        release,
-        podname=payload.get('podname'),
-        nodename=payload.get('nodename'),
-        entrypoint=payload.get('entrypoint'),
-        cpu_quota=payload.get('cpu'),
-        count=payload.get('count'),
-        memory=payload.get('memory'),
-        networks=payload.get('networks'),
-        envname=envname,
-        extra_env=payload.get('extra_env'),
-        debug=payload.get('debug'),
-        extra_args=payload.get('extra_args'),
-    )
-    async_result = create_container.delay(deploy_options=deploy_options,
-                                          sha=release.sha,
-                                          envname=envname,
-                                          user_id=g.user.id)
-    task_id = async_result.task_id
-
-    def generate_stream_response():
-        """relay grpc message, if in debug mode, stream logs as well"""
-        for msg in chain(celery_task_stream_response(task_id), celery_task_stream_traceback(task_id)):
-            yield msg
-
-    return Response(generate_stream_response(), mimetype='text/event-stream')
 
 
 @bp.route('/release/<release_id>/entrypoints')

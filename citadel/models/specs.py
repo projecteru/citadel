@@ -2,25 +2,16 @@
 import yaml
 from crontab import CronTab
 from humanfriendly import InvalidTimespan, parse_timespan, parse_size
-from humanize import naturalsize
-from marshmallow import Schema, fields, validates_schema, ValidationError
+from marshmallow import Schema, fields, validates_schema, ValidationError, post_load
 from numbers import Number
 
-from citadel.config import ZONE_CONFIG, DEFAULT_ZONE
+from citadel.config import ZONE_CONFIG
 from citadel.libs.jsonutils import Jsonized
 from citadel.libs.utils import memoize
+from citadel.models.base import StrictSchema
 
 
 FIVE_MINUTES = parse_timespan('5m')
-
-
-class StrictSchema(Schema):
-
-    @validates_schema(pass_original=True)
-    def check_unknown_fields(self, data, original_data):
-        unknown = set(original_data) - set(self.fields)
-        if unknown:
-            raise ValidationError('Unknown fields: {}, please check the docs'.format(unknown))
 
 
 def validate_protocol(s):
@@ -31,11 +22,6 @@ def validate_protocol(s):
 def validate_port(n):
     if not 0 < n <= 65535:
         raise ValidationError('Port must be 0-65,535')
-
-
-def validate_network_mode(s):
-    if s not in {'host', 'bridge'}:
-        raise ValidationError('Network mode must be host or bridge')
 
 
 def validate_restart(s):
@@ -89,18 +75,23 @@ def parse_builds(dic):
 
 
 def parse_single_port(port_string):
-    parts = port_string.split('/')
-    try:
-        port = int(parts[0])
-    except ValueError:
-        raise ValidationError('Bad port: {}'.format(port_string))
-    if len(parts) == 2:
-        protocol = parts[1]
-    elif len(parts) == 1:
-        protocol = 'tcp'
+    if isinstance(port_string, Number):
+        data = {'port': port_string, 'protocol': 'tcp'}
     else:
-        raise ValidationError('Multiple slashes in port: {}'.format(port_string))
-    unmarshal_result = PortSchema().load({'port': port, 'protocol': protocol})
+        parts = port_string.split('/')
+        try:
+            port = int(parts[0])
+        except ValueError:
+            raise ValidationError('Bad port: {}'.format(port_string))
+        if len(parts) == 2:
+            protocol = parts[1]
+        elif len(parts) == 1:
+            protocol = 'tcp'
+        else:
+            raise ValidationError('Multiple slashes in port: {}'.format(port_string))
+        data = {'port': port, 'protocol': protocol}
+
+    unmarshal_result = PortSchema().load(data)
     errors = unmarshal_result.errors
     if errors:
         raise ValidationError(str(errors))
@@ -126,21 +117,6 @@ def parse_extra_env(s):
             extra_env[k] = v
 
     return extra_env
-
-
-def parse_combos(dic):
-    """
-    should re-write once marshmallow supports nested schema
-    http://stackoverflow.com/questions/38048775/marshmallow-dict-of-nested-schema
-    """
-    for combo_name, combo_dic in dic.items():
-        unmarshal_result = combo_schema.load(combo_dic)
-        errors = unmarshal_result.errors
-        if errors:
-            raise ValidationError(str(errors))
-        dic[combo_name] = unmarshal_result.data
-
-    return dic
 
 
 def parse_entrypoints(dic):
@@ -216,12 +192,11 @@ class EntrypointSchema(Schema):
     cmd = fields.Str(attribute='command', required=True)
     image = fields.Str()
     ports = fields.Function(deserialize=parse_port_list, missing=[])
-    network_mode = fields.Str(validate=validate_network_mode, missing='bridge')
+    network_mode = fields.Str()
     restart = fields.Str(validate=validate_restart)
     healthcheck_url = fields.Str()
     healthcheck_port = fields.Int(validate=validate_port)
     healthcheck_expected_code = fields.Int(validate=validate_http_code)
-    hosts = fields.List(fields.Str())
     privileged = fields.Bool(missing=False)
     log_config = fields.Str(validate=validate_log_config)
     working_dir = fields.Str()
@@ -253,63 +228,28 @@ class Entrypoint(Jsonized):
 entrypoint_schema = EntrypointSchema()
 
 
-class ComboSchema(StrictSchema):
-    zone = fields.Str(validate=validate_zone, missing=DEFAULT_ZONE)
-    podname = fields.Str(required=True)
-    nodename = fields.Str()
-    entrypoint = fields.Str(validate=validate_entrypoint_name, required=True)
-    envname = fields.Str(missing='')
-    cpu = fields.Float(required=True, validate=validate_cpu)
-    memory = fields.Function(deserialize=parse_memory, required=True)
-    count = fields.Int(missing=1)
-    extra_env = fields.Function(deserialize=parse_extra_env, missing={})
-    networks = fields.List(fields.Str(), missing=[])
-    elb = fields.List(fields.Str())
-
-
-class Combo(Jsonized):
-    def __init__(self, zone=None, podname=None, nodename=None, entrypoint=None,
-                 envname=None, cpu=None, memory=None, count=None,
-                 extra_env=None, networks=None, elb=None, _raw=None):
-        self.zone = zone
-        self.podname = podname
-        self.nodename = nodename
-        self.entrypoint = entrypoint
-        self.envname = envname
-        self.cpu = cpu
-        self.memory = memory
-        self.count = count
-        self.extra_env = extra_env
-        self.networks = networks
-        self.elb = elb
-
-    @property
-    def memory_str(self):
-        return naturalsize(self.memory, binary=True)
-
-    @property
-    def env_string(self):
-        return ';'.join('%s=%s' % (k, v) for k, v in self.extra_env.items())
-
-
-combo_schema = ComboSchema()
-
-
 class SpecsSchema(StrictSchema):
     appname = fields.Str(required=True)
     entrypoints = fields.Function(deserialize=parse_entrypoints, required=True)
+    dns = fields.List(fields.Str())
+    hosts = fields.List(fields.Str())
     stages = fields.List(fields.Str())
     container_user = fields.Str()
     builds = fields.Function(deserialize=parse_builds, missing={})
     volumes = fields.List(fields.Str())
     base = fields.Str(required=True)
-    combos = fields.Function(deserialize=parse_combos, missing={})
     permitted_users = fields.List(fields.Str(), missing=[])
     subscribers = fields.Str(required=True)
     erection_timeout = fields.Function(deserialize=better_parse_timespan, missing=FIVE_MINUTES)
     freeze_node = fields.Bool(missing=False)
     smooth_upgrade = fields.Bool(missing=True)
     crontab = fields.Function(deserialize=parse_crontab, missing=[])
+
+    @post_load
+    def fix_defaults(self, data):
+        for _, entrypoint in data['entrypoints'].items():
+            if not entrypoint.get('working_dir'):
+                entrypoint['working_dir'] = '/home/{}'.format(data['appname'])
 
     @validates_schema
     def check_raw(self, data):
@@ -327,19 +267,20 @@ class Specs(Jsonized):
 
     exclude_from_dump = ['crontab']
 
-    def __init__(self, appname=None, entrypoints={}, stages=None,
-                 container_user=None, builds={}, volumes=None, base=None,
-                 combos={}, permitted_users=None, subscribers=None,
+    def __init__(self, appname=None, entrypoints={}, dns=None, hosts=None,
+                 stages=None, container_user=None, builds={}, volumes=None,
+                 base=None, permitted_users=None, subscribers=None,
                  erection_timeout=None, freeze_node=None, smooth_upgrade=None,
                  crontab=None, _raw=None):
         self.appname = appname
         self.entrypoints = {entrypoint_name: Entrypoint(_raw=data, **data) for entrypoint_name, data in entrypoints.items()}
+        self.dns = dns
+        self.hosts = hosts
         self.stages = stages
         self.container_user = container_user
         self.builds = builds
         self.volumes = volumes
         self.base = base
-        self.combos = {combo_name: Combo(_raw=data, **data) for combo_name, data in combos.items()}
         self.permitted_users = set(permitted_users)
         self.subscribers = subscribers
         self.erection_timeout = erection_timeout
