@@ -6,7 +6,7 @@ from citadel.libs.datastructure import AbortDict
 from citadel.libs.memcap import get_node_memcap, sync_node_memcap
 from citadel.libs.view import create_api_blueprint
 from citadel.models.container import Container
-from citadel.rpc import get_core
+from citadel.rpc.client import get_core
 
 
 bp = create_api_blueprint('pod', __name__, 'pod')

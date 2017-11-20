@@ -6,16 +6,15 @@ from grpc.framework.interfaces.face import face
 from more_itertools import peekable
 from operator import attrgetter
 
+from citadel.config import ZONE_CONFIG
 from citadel.libs.cache import cache, clean_cache, ONE_DAY
-from citadel.libs.utils import logger
+from citadel.libs.exceptions import ActionError
+from citadel.libs.utils import memoize, logger
+from citadel.rpc import core_pb2 as pb
 from citadel.rpc.core import (Node, Network, BuildImageMessage,
                               CreateContainerMessage, JSONMessage)
-from citadel.rpc.core_pb2 import (CoreRPCStub, Empty, NodeAvailable,
-                                  AddPodOptions, GetPodOptions,
-                                  ListNodesOptions, GetNodeOptions,
-                                  AddNodeOptions, BuildImageOptions,
-                                  RemoveNodeOptions, DeployOptions,
-                                  ContainerID, ContainerIDs, BackupOptions)
+from citadel.rpc.core_pb2 import Empty, NodeAvailable, AddPodOptions, GetPodOptions, ListNodesOptions, GetNodeOptions, AddNodeOptions, RemoveNodeOptions, ContainerID, ContainerIDs, BackupOptions
+from citadel.rpc.core_pb2_grpc import CoreRPCStub
 
 
 def handle_grpc_exception(default=None):
@@ -137,7 +136,6 @@ class CoreRPC:
         clean_cache(_GET_NODE.format(podname=podname, nodename=nodename))
         return p and JSONMessage(p)
 
-    @handle_grpc_exception(default=list)
     def build_image(self, opts):
         """
         BuildImageOptions is so complicated man, had to assemble else where
@@ -147,20 +145,19 @@ class CoreRPC:
         for m in grpc_call:
             yield BuildImageMessage(m)
 
-    @handle_grpc_exception(default=list)
     def create_container(self, deploy_options):
         stub = self._get_stub()
-        deploy_options.pop('zone', None)
-        opts = DeployOptions(**deploy_options)
-        grpc_call = self._peek_grpc(stub.CreateContainer(opts, _STREAM_TIMEOUT))
+        grpc_call = self._peek_grpc(stub.CreateContainer(deploy_options, _STREAM_TIMEOUT))
         for m in grpc_call:
             yield CreateContainerMessage(m)
 
-    @handle_grpc_exception(default=list)
-    def remove_container(self, ids):
+    def remove_container(self, ids, force=False):
+        if isinstance(ids, str):
+            ids = [ids]
+
         stub = self._get_stub()
-        ids = ContainerIDs(ids=[ContainerID(id=i) for i in ids])
-        grpc_call = self._peek_grpc(stub.RemoveContainer(ids, _STREAM_TIMEOUT))
+        opts = pb.RemoveContainerOptions(ids=ids, force=force)
+        grpc_call = self._peek_grpc(stub.RemoveContainer(opts, _STREAM_TIMEOUT))
         for m in grpc_call:
             yield JSONMessage(m)
 
@@ -183,3 +180,9 @@ class CoreRPC:
         stub = self._get_stub()
         id = ContainerID(id=id)
         return stub.GetContainer(id, _UNARY_TIMEOUT)
+
+
+@memoize
+def get_core(zone):
+    grpc_url = ZONE_CONFIG[zone]['CORE_URL']
+    return CoreRPC(grpc_url)
