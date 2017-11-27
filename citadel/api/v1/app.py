@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from flask import abort, request
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
+from webargs.flaskparser import use_args
 
 from citadel.libs.datastructure import AbortDict
-from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
-from citadel.models.app import App, Release
 from citadel.libs.exceptions import ModelCreateError
+from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
+from citadel.models.app import App, Release, Combo, ComboSchema
 from citadel.models.container import Container
 
 
@@ -69,6 +71,34 @@ def app_env_action(name, envname):
             abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
 
         return DEFAULT_RETURN_VALUE
+
+
+@bp.route('/<appname>/combo', methods=['GET'])
+def get_app_combos(appname):
+    app = _get_app(appname)
+    return app.get_combos()
+
+
+@bp.route('/<appname>/combo', methods=['POST'])
+@use_args(ComboSchema())
+def create_combo(args, appname):
+    args.update({'appname': appname})
+    try:
+        return Combo.create(**args)
+    except IntegrityError as e:
+        abort(400, str(e))
+
+
+@bp.route('/<appname>/combo', methods=['DELETE'])
+def delete_combo(appname):
+    combo_name = request.get_json()['name']
+    app = _get_app(appname)
+    combo = app.get_combo(combo_name)
+    if not combo:
+        abort(404)
+
+    combo.delete()
+    return DEFAULT_RETURN_VALUE
 
 
 @bp.route('/<name>/version/<sha>', methods=['GET'])

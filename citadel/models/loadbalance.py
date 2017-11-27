@@ -160,12 +160,6 @@ class ELBRule(BaseModelMixin):
         from .app import App
         return App.get_by_name(self.appname)
 
-    def to_dict(self):
-        return {
-            'elbname': self.elbname,
-            'domain': self.domain,
-        }
-
 
 class ELBInstance(BaseModelMixin):
     """name 相同的 ELBInstance 组成一个 ELB, ELB 是一个虚拟的概念"""

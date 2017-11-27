@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import string
+import random
 import pytest
 import yaml
 from marshmallow import ValidationError
@@ -6,43 +8,43 @@ from marshmallow import ValidationError
 from citadel.models.specs import Specs
 
 
+default_appname = 'test-app'
+default_sha = '651fe0a'
+default_port = ['8000']
+artifact_content = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+artifact_filename = '{}-data.txt'.format(default_appname)
 default_entrypoints = {
     'web': {
-        'cmd': './run.py',
-        'ports': ['8888/tcp'],
+        'cmd': 'python -m http.server',
+        'ports': default_port,
     },
-}
-default_combos = {
-    'prod-web': {
-        'cpu': 1.0,
-        'memory': '512MB',
-        'podname': 'develop',
-        'entrypoint': 'web',
-        'networks': ['release'],
-    }
+    'test-working-dir': {
+        'cmd': 'echo pass',
+        'working_dir': '/tmp',
+    },
 }
 default_builds = {
     'make-artifacts': {
-        'base': 'alpine:3.6',
-        'commands': ['touch this.jar'],
+        'base': 'python:latest',
+        'commands': ['echo {} > {}'.format(artifact_content, artifact_filename)],
+        'cache': {artifact_filename: '/home/{}/{}'.format(default_appname, artifact_filename)},
     },
     'pack': {
-        'base': 'alpine:3.6',
+        'base': 'python:latest',
         'commands': ['mkdir -p /etc/whatever'],
     },
 }
 
 
-def make_specs_text(appname='test-ci',
+def make_specs_text(appname=default_appname,
                     entrypoints=default_entrypoints,
                     stages=list(default_builds.keys()),
                     container_user=None,
                     builds=default_builds,
-                    volumes=[],
+                    volumes=['/tmp:/home/{}/tmp'.format(default_appname)],
                     base='hub.ricebook.net',
                     subscribers='#platform',
                     permitted_users=['liuyifu'],
-                    combos=default_combos,
                     crontab=[],
                     **kwargs):
     specs_dict = locals()
@@ -55,16 +57,15 @@ def make_specs_text(appname='test-ci',
     return specs_string
 
 
-def make_specs(appname='test-ci',
+def make_specs(appname=default_appname,
                entrypoints=default_entrypoints,
                stages=list(default_builds.keys()),
                container_user=None,
                builds=default_builds,
-               volumes=[],
+               volumes=['/tmp:/home/{}/tmp'.format(default_appname)],
                base='hub.ricebook.net',
                subscribers='#platform',
                permitted_users=['liuyifu'],
-               combos=default_combos,
                crontab=[],
                **kwargs):
     specs_dict = locals()
@@ -96,7 +97,9 @@ def test_entrypoints():
     specs = make_specs()
     port = specs.entrypoints['web'].ports[0]
     assert port.protocol == 'tcp'
-    assert port.port == 8888
+    assert port.port == int(default_port[0])
+    assert specs.entrypoints['web'].working_dir == '/home/{}'.format(default_appname)
+    assert specs.entrypoints['test-working-dir'].working_dir == '/tmp'
 
 
 def test_build():

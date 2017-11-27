@@ -1,10 +1,11 @@
 # coding: utf-8
 import json
-from datetime import datetime
-
 import sqlalchemy.orm.exc
 import sqlalchemy.types as types
+from datetime import datetime
 from flask_sqlalchemy import sqlalchemy as sa
+from marshmallow import Schema, validates_schema, ValidationError
+from sqlalchemy import inspect
 
 from citadel.ext import db, rds
 from citadel.libs.jsonutils import Jsonized
@@ -51,11 +52,7 @@ class BaseModelMixin(db.Model, Jsonized):
         return hash((self.__class__, self.id))
 
     def to_dict(self):
-        return {
-            'id': self.id,
-            'created': self.created,
-            'updated': self.updated,
-        }
+        return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
 
 
 class PropsMixin:
@@ -144,3 +141,15 @@ class Enum34(types.TypeDecorator):
         if value is not None:
             return self.enum_class(value)
         return None
+
+
+class StrictSchema(Schema):
+
+    @validates_schema(pass_original=True)
+    def check_unknown_fields(self, data, original_data):
+        unknown = set(original_data) - set(self.fields)
+        if unknown:
+            raise ValidationError('Unknown fields: {}, please check the docs'.format(unknown))
+
+    class Meta:
+        strict = True

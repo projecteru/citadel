@@ -40,7 +40,7 @@ def pre_imports():
     from citadel.models import User, App, Release, AppUserRelation, Container, ELBInstance, OPLog, ELBRule
     from citadel.tasks import remove_container
     from citadel.ext import db, rds, get_etcd
-    from citadel.rpc import core
+    from citadel.rpc.client import get_core
     return locals()
 
 

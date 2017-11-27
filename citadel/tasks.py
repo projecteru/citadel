@@ -17,7 +17,7 @@ from citadel.models.app import App
 from citadel.models.container import ContainerOverrideStatus
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction, ELBInstance
 from citadel.models.oplog import OPType, OPLog
-from citadel.rpc import get_core
+from citadel.rpc.client import get_core
 from citadel.views.helper import make_deploy_options, make_kibana_url
 
 
@@ -68,11 +68,22 @@ def build_image(self, appname, sha, uid='',):
 
 
 @current_app.task(bind=True)
-def create_container(self, deploy_options=None, sha=None, user_id=None, envname=None):
-    appname = deploy_options['appname']
-    app = App.get_by_name(appname)
-    entrypoint = deploy_options['entrypoint']
-    zone = deploy_options.pop('zone')
+def create_container(self, zone=None, user_id=None, appname=None, sha=None,
+                     combo_name=None, podname=None, nodename=None,
+                     extra_args=None, cpu_quota=None, memory=None, count=None,
+                     debug=False):
+    release = Release.get_by_app_and_sha(appname, sha)
+    app = release.app
+    combo = app.get_combo(combo_name)
+    deploy_options = release.make_core_deploy_options(combo_name,
+                                                      podname=podname,
+                                                      nodename=nodename,
+                                                      extra_args=extra_args,
+                                                      cpu_quota=cpu_quota,
+                                                      memory=memory,
+                                                      count=count, debug=debug)
+    cpu_quota = cpu_quota or combo.cpu_quota
+    memory = memory or combo.memory
     ms = get_core(zone).create_container(deploy_options)
 
     task_id = self.request.id
@@ -85,23 +96,25 @@ def create_container(self, deploy_options=None, sha=None, user_id=None, envname=
         res.append(m.to_dict())
 
         if m.success:
-            logger.debug('Creating container %s:%s got grpc message %s', appname, entrypoint, m)
-            override_status = ContainerOverrideStatus.DEBUG if deploy_options.get('debug', False) else ContainerOverrideStatus.NONE
-            container = Container.create(appname,
-                                         sha,
-                                         m.id,
-                                         entrypoint,
-                                         envname,
-                                         deploy_options['cpu_quota'],
-                                         deploy_options['memory'],
-                                         zone,
-                                         m.podname,
-                                         m.nodename,
-                                         override_status=override_status)
+            logger.debug('Creating container %s:%s got grpc message %s', appname, combo.entrypoint_name, m)
+            override_status = ContainerOverrideStatus.DEBUG if debug else ContainerOverrideStatus.NONE
+            Container.create(appname,
+                             sha,
+                             m.id,
+                             combo.entrypoint_name,
+                             combo.envname,
+                             cpu_quota,
+                             memory,
+                             zone,
+                             m.podname,
+                             m.nodename,
+                             override_status=override_status)
 
-            op_content = {'entrypoint': deploy_options['entrypoint'], 'envname': envname, 'networks': deploy_options['networks']}
+            op_content = {'entrypoint': combo.entrypoint_name,
+                          'envname': combo.envname,
+                          'networks': combo.networks}
             op_content.update(m.to_dict())
-            op_content['cpu'] = deploy_options['cpu_quota']
+            op_content['cpu'] = cpu_quota
             OPLog.create(user_id,
                          OPType.CREATE_CONTAINER,
                          appname=appname,
