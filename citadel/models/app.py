@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import json
 from collections import defaultdict
+from humanfriendly import parse_size
+from marshmallow import fields, ValidationError
+from numbers import Number
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
@@ -9,10 +12,9 @@ from werkzeug.utils import cached_property
 from citadel.config import DEFAULT_ZONE
 from citadel.ext import db
 from citadel.libs.datastructure import SmartStatus
-from citadel.libs.exceptions import ModelCreateError, ModelDeleteError
+from citadel.libs.exceptions import ModelDeleteError
 from citadel.libs.utils import logger
-from citadel.models.base import BaseModelMixin
-from citadel.models.loadbalance import ELBRule
+from citadel.models.base import StrictSchema, BaseModelMixin
 from citadel.models.specs import Specs
 from citadel.models.user import User
 from citadel.rpc import core_pb2 as pb
@@ -26,7 +28,6 @@ class EnvSet(dict):
 
 
 class App(BaseModelMixin):
-    __tablename__ = 'app'
     name = db.Column(db.CHAR(64), nullable=False, unique=True)
     # 形如 git@gitlab.ricebook.net:platform/apollo.git
     git = db.Column(db.String(255), nullable=False)
@@ -66,6 +67,14 @@ class App(BaseModelMixin):
     @classmethod
     def get_apps_with_tackle_rule(cls):
         return cls.query.filter(cls.tackle_rule != {}).all()
+
+    @classmethod
+    def get_combos(self):
+        return Combo.query.filter_by(appname=self.name).all()
+
+    @classmethod
+    def get_combo(self, combo_name):
+        return Combo.query.filter_by(appname=self.name, name=combo_name).first()
 
     def get_env_sets(self):
         return self.env_sets or {}
@@ -179,17 +188,8 @@ class App(BaseModelMixin):
     def get_permitted_user_ids(self):
         return AppUserRelation.get_user_id_by_appname(self.name)
 
-    def to_dict(self):
-        d = super(App, self).to_dict()
-        d.update({
-            'name': self.name,
-            'git': self.git,
-        })
-        return d
-
 
 class Release(BaseModelMixin):
-    __tablename__ = 'release'
     __table_args__ = (
         db.UniqueConstraint('app_id', 'sha'),
     )
@@ -241,20 +241,6 @@ class Release(BaseModelMixin):
                 continue
             logger.debug('Revoke %s to app %s', u, appname)
             AppUserRelation.delete(appname, u.id)
-
-        # create ELB routes, if there's any
-        for combo in new_release.specs.combos.values():
-            if not combo.elb:
-                continue
-            for elbname_and_domain in combo.elb:
-                elbname, domain = elbname_and_domain.split()
-                try:
-                    r = ELBRule.create(combo.zone, elbname, domain, appname, entrypoint=combo.entrypoint, podname=combo.podname)
-                except ModelCreateError:
-                    new_release.delete()
-                    raise
-                if r:
-                    logger.info('Auto create ELBRule %s for app %s', r, appname)
 
         return new_release
 
@@ -336,10 +322,6 @@ class Release(BaseModelMixin):
     def specs(self):
         return Specs.from_string(self.specs_text)
 
-    @property
-    def combos(self):
-        return self.specs.combos
-
     def describe_entrypoint_image(self, entrypoint_name):
         image = self.specs.entrypoints[entrypoint_name].image
         if image:
@@ -367,15 +349,46 @@ class Release(BaseModelMixin):
         except StaleDataError:
             db.session.rollback()
 
-    def to_dict(self):
-        d = super(Release, self).to_dict()
-        d.update({
-            'app_id': self.app_id,
-            'sha': self.sha,
-            'image': self.image,
-            'specs': self.specs,
-        })
-        return d
+    def make_core_deploy_options(self, combo_name, podname=None, nodename=None,
+                                 extra_args=None, cpu_quota=None, memory=None,
+                                 count=None, debug=False):
+        combo = Combo.query.filter_by(self.name, combo_name).first()
+        entrypoint_name = combo.entrypoint_name
+        specs = self.specs
+        entrypoint = specs.entrypoints[entrypoint_name]
+        # TODO: health check support
+        # TODO: hook support
+        # TODO: extra hosts support
+        # TODO: wtf is meta
+        # TODO: wtf is nodelabels
+        entrypoint_opt = pb.EntrypointOptions(name=entrypoint_name,
+                                              command=entrypoint.command,
+                                              privileged=entrypoint.privileged,
+                                              dir=entrypoint.working_dir,
+                                              log_config=entrypoint.log_config,
+                                              publish=[str(p.port) for p in entrypoint.ports],
+                                              restart_policy=entrypoint.restart)
+        app = self.app
+        env_set = app.get_env_set(combo.envname)
+        networks = {network_name: '' for network_name in combo.networks}
+        deploy_opt = pb.DeployOptions(name=app.name,
+                                      entrypoint=entrypoint_opt,
+                                      podname=podname or combo.podname,
+                                      nodename=nodename or combo.nodename,
+                                      image=self.image,
+                                      extra_args=extra_args,
+                                      cpu_quota=cpu_quota or combo.cpu_quota,
+                                      memory=memory or combo.memory,
+                                      count=count or combo.count,
+                                      env=env_set.to_env_vars(),
+                                      dns=specs.dns,
+                                      extra_hosts=specs.hosts,
+                                      volumes=specs.volumes,
+                                      networks=networks,
+                                      networkmode=entrypoint.network_mode,
+                                      user=specs.container_user,
+                                      debug=debug)
+        return deploy_opt
 
     def make_core_build_options(self):
         specs = self.specs
@@ -391,13 +404,85 @@ class Release(BaseModelMixin):
         return opts
 
 
+class Combo(BaseModelMixin):
+    __table_args__ = (
+        db.UniqueConstraint('appname', 'name'),
+    )
+
+    appname = db.Column(db.CHAR(64), nullable=False, index=True)
+    name = db.Column(db.CHAR(64), nullable=False, index=True)
+
+    entrypoint_name = db.Column(db.CHAR(64), nullable=False)
+    podname = db.Column(db.CHAR(64), nullable=False)
+    nodename = db.Column(db.CHAR(64))
+    networks = db.Column(db.JSON)  # List of network names
+    cpu_quota = db.Column(db.Float, nullable=False)
+    memory = db.Column(db.Integer, nullable=False)
+    count = db.Column(db.Integer, nullable=False)
+    envname = db.Column(db.CHAR(64))
+
+    def __str__(self):
+        return '<{} combo:{}>'.format(self.appname, self.name)
+
+    @classmethod
+    def create(cls, appname=None, name=None, entrypoint_name=None,
+               podname=None, nodename=None, networks=None, cpu_quota=None,
+               memory=None, count=None, envname=None):
+        try:
+            combo = cls(appname=appname, name=name,
+                        entrypoint_name=entrypoint_name, podname=podname,
+                        nodename=nodename, networks=networks, cpu_quota=cpu_quota,
+                        memory=memory, count=count, envname=envname)
+            db.session.add(combo)
+            db.session.commit()
+            return combo
+        except IntegrityError:
+            db.session.rollback()
+            raise
+
+
+def parse_memory(s):
+    if isinstance(s, Number):
+        return int(s)
+    return parse_size(s, binary=True)
+
+
+class ComboSchema(StrictSchema):
+    name = fields.Str(required=True)
+    entrypoint_name = fields.Str(required=True)
+    podname = fields.Str(required=True)
+    nodename = fields.Str()
+    networks = fields.List(fields.Str(), required=True)
+    cpu_quota = fields.Float(required=True)
+    memory = fields.Function(deserialize=parse_memory, required=True)
+    count = fields.Int(missing=1)
+    envname = fields.Str()
+
+
+def validate_sha(s):
+    if len(s) < 7:
+        raise ValidationError('sha must be longer than 7')
+
+
+class DeploySchema(StrictSchema):
+    appname = fields.Str(required=True)
+    sha = fields.Str(required=True, validate=validate_sha)
+    combo_name = fields.Str(required=True)
+    podname = fields.Str()
+    nodename = fields.Str()
+    extra_args = fields.Str()
+    cpu_quota = fields.Float()
+    memory = fields.Function(deserialize=parse_memory)
+    count = fields.Int()
+    debug = fields.Bool()
+
+
 class AppUserRelation(BaseModelMixin):
-    __tablename__ = 'app_user_relation'
     __table_args__ = (
         db.UniqueConstraint('user_id', 'appname'),
     )
 
-    appname = db.Column(db.String(255), nullable=False, index=True)
+    appname = db.Column(db.CHAR(64), nullable=False, index=True)
     user_id = db.Column(db.Integer, nullable=False)
 
     @classmethod

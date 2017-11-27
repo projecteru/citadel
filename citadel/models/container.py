@@ -2,11 +2,10 @@
 import itertools
 import json
 from datetime import timedelta, datetime
-from time import sleep
-
 from etcd import EtcdKeyNotFound
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError, ObjectDeletedError
+from time import sleep
 
 from citadel.config import UPGRADE_CONTAINER_IGNORE_ENV
 from citadel.ext import db, get_etcd
@@ -14,7 +13,7 @@ from citadel.libs.datastructure import purge_none_val_from_dict
 from citadel.libs.mimiron import set_mimiron_route, del_mimiron_route
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
-from citadel.rpc import get_core
+from citadel.rpc.client import get_core
 
 
 class ContainerOverrideStatus:
@@ -24,7 +23,6 @@ class ContainerOverrideStatus:
 
 
 class Container(BaseModelMixin, PropsMixin):
-    __tablename__ = 'container'
     __table_args__ = (
         db.Index('appname_sha', 'appname', 'sha'),
     )

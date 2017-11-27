@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
-from flask import g, jsonify, Response, request
+from flask import abort, request, g, jsonify, Response
 from itertools import chain
+from webargs.flaskparser import use_args
 
 from citadel.libs.datastructure import AbortDict
 from citadel.libs.view import create_api_blueprint
-from citadel.models.app import Release
-from citadel.tasks import ActionError, create_container, remove_container, upgrade_container_dispatch, celery_task_stream_response, celery_task_stream_traceback, build_image
-from citadel.views.helper import make_deploy_options
+from citadel.models.app import DeploySchema, Release
+from citadel.tasks import (ActionError, create_container, remove_container,
+                           upgrade_container_dispatch,
+                           celery_task_stream_response,
+                           celery_task_stream_traceback, build_image)
 
 
 # 把action都挂在/api/:version/下, 不再加前缀
@@ -34,36 +37,21 @@ def build():
 
 
 @bp.route('/deploy', methods=['POST'])
-def deploy():
-    payload = AbortDict(request.get_json())
-
-    # TODO 参数需要类型校验
-    appname = payload['appname']
-    repo = payload['repo']
-    sha = payload['sha']
+@use_args(DeploySchema())
+def deploy(args):
+    appname = args['appname']
+    sha = args['sha']
     release = Release.get_by_app_and_sha(appname, sha)
     if not release:
-        raise ActionError(400, 'repo %s, %s does not have the right appname in app.yaml' % (repo, sha))
+        abort(404, 'Release {} for {} not found'.format(sha, appname))
 
-    combo_name = payload.get('combo')
-    specs = release.specs
-    envname = specs.combos[combo_name].envname if combo_name else payload.get('envname', '')
-    deploy_options = make_deploy_options(
-        release,
-        combo_name=combo_name,
-        podname=payload.get('podname'),
-        nodename=payload.get('nodename'),
-        entrypoint=payload.get('entrypoint'),
-        cpu_quota=payload.get('cpu_quota'),
-        count=payload.get('count'),
-        memory=payload.get('memory'),
-        networks=payload.get('networks'),
-        envname=envname,
-        extra_env=payload.get('extra_env'),
-        debug=payload.get('debug'),
-        extra_args=payload.get('extra_args'),
-    )
-    async_result = create_container.delay(deploy_options, sha=payload['sha'], user_id=g.user.id, envname=envname)
+    combo_name = args['combo_name']
+    app = release.app
+    combo = app.get_combo(combo_name)
+    if not combo:
+        abort(404, 'Combo {} for {} not found'.format(combo_name, appname))
+
+    async_result = create_container.delay(zone=g.zone, user_id=g.user.id, **args)
     return Response(celery_task_stream_response(async_result.task_id), mimetype='application/json')
 
 

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-
 import json
-from citadel.models.container import Container
-from citadel.rpc import get_core
-from citadel.ext import get_etcd
 from humanfriendly import parse_size, format_size
+
+from citadel.ext import get_etcd
+from citadel.rpc.client import get_core
+
 
 MEMORY_RESERVE = parse_size('1GiB', binary=True)
 ETCD_CORE_KEY = '/eru-core/pod/{}/node/{}/info'

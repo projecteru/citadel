@@ -3,10 +3,10 @@ from flask import jsonify, g, request, abort, url_for, redirect
 from flask_mako import render_template
 
 from citadel.libs.view import create_page_blueprint
-from citadel.models.app import AppUserRelation, App
+from citadel.models.app import App
 from citadel.models.container import Container
 from citadel.models.user import get_users, get_user
-from citadel.rpc import get_core
+from citadel.rpc.client import get_core
 
 
 bp = create_page_blueprint('admin', __name__, url_prefix='/admin')
