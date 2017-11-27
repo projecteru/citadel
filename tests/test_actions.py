@@ -2,6 +2,7 @@ import pytest
 import requests
 from humanfriendly import parse_size
 from telnetlib import Telnet
+from time import sleep
 
 from .test_specs import make_specs, default_appname, default_sha, default_port, artifact_filename, artifact_content
 from citadel.config import ZONE_CONFIG, BUILD_ZONE
@@ -74,7 +75,7 @@ def test_workflow():
     network_name, ip = network.popitem()
     assert network_name == default_network_name
     # TODO: use health check functionality rather than sleep
-    assert False
+    sleep(3)
     # checking if volume is correct
     artifact_url = 'http://{}:{}/{}'.format(ip, default_port[0], artifact_filename)
     artifact_response = requests.get(artifact_url)
