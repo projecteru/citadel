@@ -48,7 +48,7 @@ def create_page_blueprint(name, import_name, url_prefix=None):
     return bp
 
 
-def create_api_blueprint(name, import_name, url_prefix=None, jsonize=True):
+def create_api_blueprint(name, import_name, url_prefix=None, jsonize=True, handle_http_error=True):
     """
     幺蛾子, 就是因为flask写API挂路由太累了, 搞了这么个东西.
     会把url_prefix挂到/api/下.
@@ -62,14 +62,17 @@ def create_api_blueprint(name, import_name, url_prefix=None, jsonize=True):
         bp_url_prefix = os.path.join(bp_url_prefix, url_prefix)
     bp = Blueprint(name, import_name, url_prefix=bp_url_prefix)
 
-    def _error_hanlder(error):
-        return jsonify({'error': error.description}), error.code
+    if handle_http_error:
 
-    for code in ERROR_CODES:
-        bp.errorhandler(code)(_error_hanlder)
+        def _error_hanlder(error):
+            return jsonify({'error': error.description}), error.code
+
+        for code in ERROR_CODES:
+            bp.errorhandler(code)(_error_hanlder)
 
     # 如果不需要自动帮忙jsonize, 就不要
     # 可能的场景比如返回一个stream
     if jsonize:
         patch_blueprint_route(bp)
+
     return bp

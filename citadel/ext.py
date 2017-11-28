@@ -1,10 +1,11 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
 import mapi
 from etcd import Client
 from flask_caching import Cache
 from flask_mako import MakoTemplates
 from flask_oauthlib.client import OAuth
 from flask_session import Session
+from flask_sockets import Sockets
 from flask_sqlalchemy import SQLAlchemy
 from redis import Redis
 
@@ -21,6 +22,7 @@ def get_etcd(zone):
 db = SQLAlchemy()
 mako = MakoTemplates()
 oauth = OAuth()
+sockets = Sockets()
 rds = Redis.from_url(REDIS_URL)
 
 sso = oauth.remote_app(
