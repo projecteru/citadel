@@ -95,3 +95,8 @@ def memoize(f):
 def make_sentence_json(message):
     msg = json.dumps({'type': 'sentence', 'message': message}, cls=JSONEncoder)
     return msg + '\n'
+
+
+def validate_sha(s):
+    if len(s) < 7:
+        raise ValidationError('sha must be longer than 7')

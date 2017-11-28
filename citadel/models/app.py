@@ -2,7 +2,7 @@
 import json
 from collections import defaultdict
 from humanfriendly import parse_size
-from marshmallow import fields, ValidationError
+from marshmallow import fields
 from numbers import Number
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
@@ -13,7 +13,7 @@ from citadel.config import DEFAULT_ZONE
 from citadel.ext import db
 from citadel.libs.datastructure import SmartStatus
 from citadel.libs.exceptions import ModelDeleteError
-from citadel.libs.utils import logger
+from citadel.libs.utils import logger, validate_sha
 from citadel.models.base import StrictSchema, BaseModelMixin
 from citadel.models.specs import Specs
 from citadel.models.user import User
@@ -404,6 +404,17 @@ class Release(BaseModelMixin):
         return opts
 
 
+class RegisterSchema(StrictSchema):
+    appname = fields.Str(required=True)
+    sha = fields.Str(required=True, validate=validate_sha)
+    git = fields.Str(required=True)
+    specs_text = fields.Str(required=True)
+    branch = fields.Str()
+    git_tag = fields.Str()
+    commit_message = fields.Str()
+    author = fields.Str()
+
+
 class Combo(BaseModelMixin):
     __table_args__ = (
         db.UniqueConstraint('appname', 'name'),
@@ -457,11 +468,6 @@ class ComboSchema(StrictSchema):
     memory = fields.Function(deserialize=parse_memory, required=True)
     count = fields.Int(missing=1)
     envname = fields.Str()
-
-
-def validate_sha(s):
-    if len(s) < 7:
-        raise ValidationError('sha must be longer than 7')
 
 
 class DeploySchema(StrictSchema):

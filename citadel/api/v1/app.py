@@ -4,10 +4,9 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 from webargs.flaskparser import use_args
 
-from citadel.libs.datastructure import AbortDict
 from citadel.libs.exceptions import ModelCreateError
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
-from citadel.models.app import App, Release, Combo, ComboSchema
+from citadel.models.app import App, Release, Combo, ComboSchema, RegisterSchema
 from citadel.models.container import Container
 
 
@@ -113,20 +112,20 @@ def get_release_containers(name, sha):
 
 
 @bp.route('/register', methods=['POST'])
-def register_release():
-    data = AbortDict(request.get_json())
-    name = data['name']
-    git = data['git']
-    sha = data['sha']
-    specs_text = data['specs_text']
-    branch = data.get('branch')
-    git_tag = data.get('git_tag')
-    commit_message = data.get('commit_message')
-    author = data.get('author')
+@use_args(RegisterSchema())
+def register_release(args):
+    appname = args['appname']
+    git = args['git']
+    sha = args['sha']
+    specs_text = args['specs_text']
+    branch = args.get('branch')
+    git_tag = args.get('git_tag')
+    commit_message = args.get('commit_message')
+    author = args.get('author')
 
-    app = App.get_or_create(name, git)
+    app = App.get_or_create(appname, git)
     if not app:
-        abort(400, 'Error during create an app (%s, %s, %s)' % (name, git, sha))
+        abort(400, 'Error during create an app (%s, %s, %s)' % (appname, git, sha))
 
     try:
         release = Release.create(app, sha, specs_text, branch=branch, git_tag=git_tag,
@@ -135,7 +134,7 @@ def register_release():
         abort(400, str(e))
 
     if not release:
-        abort(400, 'Error during create a release (%s, %s, %s)' % (name, git, sha))
+        abort(400, 'Error during create a release (%s, %s, %s)' % (appname, git, sha))
 
     if release.raw:
         release.update_image(release.specs.base)
