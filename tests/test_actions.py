@@ -1,23 +1,13 @@
 import pytest
 import requests
 from humanfriendly import parse_size
-from telnetlib import Telnet
 from time import sleep
 
-from .test_specs import make_specs, default_appname, default_sha, default_port, artifact_filename, artifact_content
-from citadel.config import ZONE_CONFIG, BUILD_ZONE
+from .prepare import core_online, make_specs, default_appname, default_sha, default_port, artifact_filename, artifact_content
+from citadel.config import BUILD_ZONE
 from citadel.rpc import core_pb2 as pb
 from citadel.rpc.client import get_core
 
-
-core_online = False
-try:
-    for zone in ZONE_CONFIG.values():
-        ip, port = zone['CORE_URL'].split(':')
-        Telnet(ip, port).close()
-        core_online = True
-except ConnectionRefusedError:
-    core_online = False
 
 pytestmark = pytest.mark.skipif(not core_online, reason='one or more eru-core is offline, skip core-related tests')
 
