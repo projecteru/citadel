@@ -13,7 +13,7 @@ json_headers = {'Content-Type': 'application/json'}
 def test_register_app(test_db, client):
     # test app related APIs
     app_data = {
-        'name': default_appname,
+        'appname': default_appname,
         'git': 'git@github.com:projecteru2/citadel.git',
         'sha': '13bba2286f2112316703f1675061322ddd730a04',
         'specs_text': make_specs_text(),
