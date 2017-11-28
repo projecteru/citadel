@@ -47,8 +47,7 @@ def test_register_app(test_db, client):
     res = client.post(url_for('app_v1.register_release'),
                       data=app_data)
     assert res.status_code == 400
-    response_text = res.data.decode('utf-8')
-    assert 'IntegrityError' in response_text
+    assert 'IntegrityError' in res.json['error']
 
 
 def test_combo(test_db, client):
