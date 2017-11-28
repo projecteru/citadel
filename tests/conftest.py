@@ -2,8 +2,10 @@
 import pytest
 from six.moves.urllib_parse import urlparse
 
+from .prepare import default_appname, default_git, default_sha, make_specs_text
 from citadel.app import create_app
 from citadel.ext import db, rds
+from citadel.models import App, Release
 
 
 @pytest.fixture
@@ -39,6 +41,8 @@ def test_db(request, app):
         raise Exception('Need to run test on localhost or in container')
 
     db.create_all()
+    app = App.get_or_create(default_appname, git=default_git)
+    Release.create(app, default_sha, make_specs_text())
 
     def teardown():
         db.session.remove()
