@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
 from collections import defaultdict
-from humanfriendly import parse_size
-from marshmallow import fields
-from numbers import Number
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
@@ -13,8 +10,8 @@ from citadel.config import DEFAULT_ZONE
 from citadel.ext import db
 from citadel.libs.datastructure import SmartStatus
 from citadel.libs.exceptions import ModelDeleteError
-from citadel.libs.utils import logger, validate_sha
-from citadel.models.base import StrictSchema, BaseModelMixin
+from citadel.libs.utils import logger
+from citadel.models.base import BaseModelMixin
 from citadel.models.specs import Specs
 from citadel.models.user import User
 from citadel.rpc import core_pb2 as pb
@@ -404,17 +401,6 @@ class Release(BaseModelMixin):
         return opts
 
 
-class RegisterSchema(StrictSchema):
-    appname = fields.Str(required=True)
-    sha = fields.Str(required=True, validate=validate_sha)
-    git = fields.Str(required=True)
-    specs_text = fields.Str(required=True)
-    branch = fields.Str()
-    git_tag = fields.Str()
-    commit_message = fields.Str()
-    author = fields.Str()
-
-
 class Combo(BaseModelMixin):
     __table_args__ = (
         db.UniqueConstraint('appname', 'name'),
@@ -450,37 +436,6 @@ class Combo(BaseModelMixin):
         except IntegrityError:
             db.session.rollback()
             raise
-
-
-def parse_memory(s):
-    if isinstance(s, Number):
-        return int(s)
-    return parse_size(s, binary=True)
-
-
-class ComboSchema(StrictSchema):
-    name = fields.Str(required=True)
-    entrypoint_name = fields.Str(required=True)
-    podname = fields.Str(required=True)
-    nodename = fields.Str()
-    networks = fields.List(fields.Str(), required=True)
-    cpu_quota = fields.Float(required=True)
-    memory = fields.Function(deserialize=parse_memory, required=True)
-    count = fields.Int(missing=1)
-    envname = fields.Str()
-
-
-class DeploySchema(StrictSchema):
-    appname = fields.Str(required=True)
-    sha = fields.Str(required=True, validate=validate_sha)
-    combo_name = fields.Str(required=True)
-    podname = fields.Str()
-    nodename = fields.Str()
-    extra_args = fields.Str()
-    cpu_quota = fields.Float()
-    memory = fields.Function(deserialize=parse_memory)
-    count = fields.Int()
-    debug = fields.Bool()
 
 
 class AppUserRelation(BaseModelMixin):
