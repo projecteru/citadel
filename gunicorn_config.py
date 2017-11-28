@@ -3,3 +3,4 @@ graceful_timeout = 3600
 timeout = 1200
 max_requests = 1200
 workers = 8
+worker_class = 'flask_sockets.worker'
