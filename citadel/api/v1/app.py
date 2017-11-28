@@ -4,8 +4,9 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 from webargs.flaskparser import use_args
 
+from citadel.libs.validation import ComboSchema, RegisterSchema
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
-from citadel.models.app import App, Release, Combo, ComboSchema, RegisterSchema
+from citadel.models.app import App, Release, Combo
 from citadel.models.container import Container
 
 

@@ -4,8 +4,9 @@ from itertools import chain
 from webargs.flaskparser import use_args
 
 from citadel.libs.datastructure import AbortDict
+from citadel.libs.validation import DeploySchema
 from citadel.libs.view import create_api_blueprint
-from citadel.models.app import DeploySchema, Release
+from citadel.models.app import Release
 from citadel.tasks import (ActionError, create_container, remove_container,
                            upgrade_container_dispatch,
                            celery_task_stream_response,
