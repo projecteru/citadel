@@ -1,8 +1,7 @@
 # coding: utf-8
 import logging
-
 from celery import Celery, Task
-from flask import g, session, Flask, request, redirect, url_for
+from flask import jsonify, g, session, Flask, request, redirect, url_for
 from raven.contrib.flask import Sentry
 from werkzeug.utils import import_string
 
@@ -120,6 +119,19 @@ def create_app():
         if not g.user and not anonymous_path(request.path):
             session.pop('sso', None)
             return redirect(url_for('user.login'))
+
+    @app.errorhandler(422)
+    def handle_unprocessable_entity(err):
+        # webargs attaches additional metadata to the `data` attribute
+        exc = getattr(err, 'exc')
+        if exc:
+            # Get validations from the ValidationError object
+            messages = exc.messages
+        else:
+            messages = ['Invalid request']
+        return jsonify({
+            'messages': messages,
+        }), 422
 
     return app
 
