@@ -3,7 +3,7 @@ import json
 from flask import url_for
 from humanfriendly import parse_size
 
-from .test_specs import make_specs, default_appname, make_specs_text
+from .prepare import default_appname, make_specs_text, default_port, make_specs
 from citadel.models.app import Release
 
 
@@ -12,12 +12,26 @@ json_headers = {'Content-Type': 'application/json'}
 
 def test_register_app(test_db, client):
     # test app related APIs
+    appname = 'python-helloworld'
+    sha = '3ff0138208ce41693d8ab1b96326b660cad34bef'
+    git = 'git@github.com:dbarnett/python-helloworld.git'
+    entrypoints = {
+        'web': {
+            'cmd': 'python -m http.server',
+            'ports': default_port,
+        },
+        'hello': {
+            'cmd': 'python helloworld.py',
+        },
+    }
+    specs_text = make_specs_text(appname=appname, entrypoints=entrypoints)
+    specs = make_specs(appname=appname, entrypoints=entrypoints)
     app_data = {
-        'appname': default_appname,
-        'git': 'git@github.com:projecteru2/citadel.git',
-        'sha': '13bba2286f2112316703f1675061322ddd730a04',
-        'specs_text': make_specs_text(),
-        'branch': 'next-gen',
+        'appname': appname,
+        'git': git,
+        'sha': sha,
+        'specs_text': specs_text,
+        'branch': 'master',
         'commit_message': '我一定行',
         'author': 'timfeirg',
     }
@@ -25,12 +39,13 @@ def test_register_app(test_db, client):
                       data=json.dumps(app_data),
                       headers=json_headers)
     assert res.status_code == 200
-    release = Release.get_by_app_and_sha(default_appname, '13bba22')
-    assert release.app.git == 'git@github.com:projecteru2/citadel.git'
+    release = Release.get_by_app_and_sha(appname, sha[:7])
+    assert release.app.git == git
     assert release.commit_message == '我一定行'
-    assert release.specs._raw == make_specs()._raw
+    assert release.specs._raw == specs._raw
 
-    # test combo related APIs
+
+def test_combo(test_db, client):
     data = {
         'name': 'prod',
         'entrypoint_name': 'web',
