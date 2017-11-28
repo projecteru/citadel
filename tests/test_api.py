@@ -11,7 +11,6 @@ json_headers = {'Content-Type': 'application/json'}
 
 
 def test_register_app(test_db, client):
-    # test app related APIs
     appname = 'python-helloworld'
     sha = '3ff0138208ce41693d8ab1b96326b660cad34bef'
     git = 'git@github.com:dbarnett/python-helloworld.git'
@@ -43,6 +42,13 @@ def test_register_app(test_db, client):
     assert release.app.git == git
     assert release.commit_message == '我一定行'
     assert release.specs._raw == specs._raw
+
+    # test duplicate, and test POST using HTTP form BTW
+    res = client.post(url_for('app_v1.register_release'),
+                      data=app_data)
+    assert res.status_code == 400
+    response_text = res.data.decode('utf-8')
+    assert 'IntegrityError' in response_text
 
 
 def test_combo(test_db, client):

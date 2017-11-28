@@ -4,7 +4,6 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 from webargs.flaskparser import use_args
 
-from citadel.libs.exceptions import ModelCreateError
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import App, Release, Combo, ComboSchema, RegisterSchema
 from citadel.models.container import Container
@@ -130,11 +129,8 @@ def register_release(args):
     try:
         release = Release.create(app, sha, specs_text, branch=branch, git_tag=git_tag,
                                  author=author, commit_message=commit_message)
-    except (ModelCreateError, ValidationError) as e:
+    except (IntegrityError, ValidationError) as e:
         abort(400, str(e))
-
-    if not release:
-        abort(400, 'Error during create a release (%s, %s, %s)' % (appname, git, sha))
 
     if release.raw:
         release.update_image(release.specs.base)
