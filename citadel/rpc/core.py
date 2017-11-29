@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 from decimal import Decimal
-
-from six.moves.urllib_parse import urlparse
+from urllib.parse import urlparse
 
 from citadel.libs.jsonutils import Jsonized
 

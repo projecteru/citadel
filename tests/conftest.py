@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
-from six.moves.urllib_parse import urlparse
+from urllib.parse import urlparse
 
 from .prepare import default_appname, default_git, default_sha, make_specs_text
 from citadel.app import create_app
