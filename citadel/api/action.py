@@ -20,10 +20,6 @@ bp = create_api_blueprint('action', __name__, jsonize=False)
 
 @bp.route('/build', methods=['POST'])
 def build():
-    """
-    可以这么玩玩:
-    $ http --stream POST localhost:5000/api/v1/build repo=git@gitlab.ricebook.net:tonic/ci-test.git sha=1d74377e99dcfb3fd892f9eaeab91e1e229179ba uid=4401
-    """
     data = AbortDict(request.get_json())
 
     # TODO 参数需要类型校验

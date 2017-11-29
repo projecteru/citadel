@@ -34,7 +34,7 @@ def test_register_app(test_db, client):
         'commit_message': '我一定行',
         'author': 'timfeirg',
     }
-    res = client.post(url_for('app_v1.register_release'),
+    res = client.post(url_for('app.register_release'),
                       data=json.dumps(app_data),
                       headers=json_headers)
     assert res.status_code == 200
@@ -44,7 +44,7 @@ def test_register_app(test_db, client):
     assert release.specs._raw == specs._raw
 
     # test duplicate, and test POST using HTTP form BTW
-    res = client.post(url_for('app_v1.register_release'),
+    res = client.post(url_for('app.register_release'),
                       data=app_data)
     assert res.status_code == 400
     assert 'IntegrityError' in res.json['error']
@@ -61,7 +61,7 @@ def test_combo(test_db, client):
         'count': 4,
         'envname': 'prod',
     }
-    res = client.post(url_for('app_v1.create_combo', appname=default_appname),
+    res = client.post(url_for('app.create_combo', appname=default_appname),
                       data=json.dumps(data),
                       headers=json_headers)
     assert res.status_code == 200
@@ -70,14 +70,14 @@ def test_combo(test_db, client):
     assert combo['memory'] == parse_size('512MB', binary=True)
     assert combo['networks'] == ['release']
 
-    res = client.delete(url_for('app_v1.delete_combo', appname=default_appname),
+    res = client.delete(url_for('app.delete_combo', appname=default_appname),
                         data=json.dumps({'name': 'prod'}),
                         headers=json_headers)
     assert res.status_code == 200
 
     # test typo
     data['network'] = data.pop('networks')
-    res = client.post(url_for('app_v1.create_combo', appname=default_appname),
+    res = client.post(url_for('app.create_combo', appname=default_appname),
                       data=json.dumps(data),
                       headers=json_headers)
     assert res.status_code == 422
