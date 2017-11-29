@@ -3,7 +3,7 @@ import collections
 from flask import g, abort
 from functools import wraps
 from humanfriendly import parse_size
-from six.moves.urllib.parse import urlencode
+from urllib.parse import urlencode
 
 from citadel.config import DEFAULT_ZONE
 from citadel.models.app import AppUserRelation, Release, App

@@ -19,7 +19,6 @@ more_itertools
 gunicorn
 pymysql
 requests
-six
 celery[redis]
 humanize
 humanfriendly
