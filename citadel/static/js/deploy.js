@@ -18,7 +18,7 @@ $(document).ready(function(){
       }
     });
     var network_checkboxes = $('#network-checkbox');
-    var get_networks_url = '/api/v1/pod/' + pod + '/networks';
+    var get_networks_url = '/api/pod/' + pod + '/networks';
     $.get(get_networks_url, {}, function(r){
       network_checkboxes.html("")
       for (var i=0; i<r.length; i++) {
