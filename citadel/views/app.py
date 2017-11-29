@@ -13,7 +13,7 @@ from citadel.rpc.client import get_core
 from citadel.views.helper import bp_get_app
 
 
-bp = create_page_blueprint('app', __name__, url_prefix='/app')
+bp = create_page_blueprint('app_view', __name__, url_prefix='/app')
 
 
 @bp.route('/')

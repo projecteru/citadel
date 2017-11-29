@@ -102,7 +102,7 @@ def create_app():
         app.register_blueprint(bp)
 
     for bp_name in api_blueprints:
-        bp = import_string('%s.api.v1.%s:bp' % (__package__, bp_name))
+        bp = import_string('%s.api.%s:bp' % (__package__, bp_name))
         app.register_blueprint(bp)
 
     @app.before_request
