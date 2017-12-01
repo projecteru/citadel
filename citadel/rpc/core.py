@@ -100,3 +100,5 @@ class CreateContainerMessage(JSONMessage):
     def __init__(self, m):
         super(CreateContainerMessage, self).__init__(m)
         self.cpu = dict(m.cpu)
+        self.publish = dict(m.publish)
+        self.hook = m.hook.decode('utf-8')

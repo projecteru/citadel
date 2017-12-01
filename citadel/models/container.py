@@ -30,7 +30,7 @@ class Container(BaseModelMixin, PropsMixin):
     sha = db.Column(db.CHAR(64), nullable=False)
     container_id = db.Column(db.CHAR(64), nullable=False, index=True)
     entrypoint = db.Column(db.String(50), nullable=False)
-    envname = db.Column(db.String(50), nullable=False)
+    envname = db.Column(db.String(50))
     cpu_quota = db.Column(db.Numeric(12, 3), nullable=False)
     memory = db.Column(db.BigInteger, nullable=False)
     zone = db.Column(db.String(50), nullable=False)
@@ -57,7 +57,9 @@ class Container(BaseModelMixin, PropsMixin):
             db.session.commit()
         except IntegrityError:
             db.session.rollback()
-            return None
+            # TODO: This must not go wrong!
+            raise
+
         return c
 
     @classmethod
