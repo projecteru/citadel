@@ -85,7 +85,7 @@
             % endif
           </td>
           <td>${ c.entrypoint }</td>
-          <td>${ c.env }</td>
+          <td>${ c.envname }</td>
           <td>
             <% status = c.status() %>
             % if status == 'removing':

@@ -31,7 +31,7 @@ class Container(BaseModelMixin, PropsMixin):
     sha = db.Column(db.CHAR(64), nullable=False)
     container_id = db.Column(db.CHAR(64), nullable=False, index=True)
     entrypoint = db.Column(db.String(50), nullable=False)
-    env = db.Column(db.String(50), nullable=False)
+    envname = db.Column(db.String(50), nullable=False)
     cpu_quota = db.Column(db.Numeric(12, 3), nullable=False)
     memory = db.Column(db.BigInteger, nullable=False)
     zone = db.Column(db.String(50), nullable=False)
@@ -48,10 +48,10 @@ class Container(BaseModelMixin, PropsMixin):
         return 'citadel:container:%s' % self.container_id
 
     @classmethod
-    def create(cls, appname, sha, container_id, entrypoint, env, cpu_quota, memory, zone, podname, nodename, override_status=ContainerOverrideStatus.NONE):
+    def create(cls, appname, sha, container_id, entrypoint, envname, cpu_quota, memory, zone, podname, nodename, override_status=ContainerOverrideStatus.NONE):
         try:
             c = cls(appname=appname, sha=sha, container_id=container_id,
-                    entrypoint=entrypoint, env=env, cpu_quota=cpu_quota,
+                    entrypoint=entrypoint, envname=envname, cpu_quota=cpu_quota,
                     memory=memory, zone=zone, podname=podname,
                     nodename=nodename, override_status=override_status)
             db.session.add(c)
@@ -304,7 +304,7 @@ class Container(BaseModelMixin, PropsMixin):
             'sha': self.sha,
             'container_id': self.container_id,
             'entrypoint': self.entrypoint,
-            'env': self.env,
+            'envname': self.envname,
             'cpu_quota': self.cpu_quota,
             'zone': self.zone,
             'podname': self.podname,
