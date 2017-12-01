@@ -18,14 +18,15 @@ ws = create_api_blueprint('action', __name__, url_prefix='action', jsonize=False
 
 @ws.route('/build')
 def build(socket):
-    message = socket.receive()
-    try:
-        payload = build_args_schema.loads(message)
-    except JSONDecodeError as e:
-        socket.close(message=json.dumps(e))
-
-    if payload.errors:
-        socket.close(message=json.dumps(payload.errors))
+    payload = None
+    while not payload or payload.errors:
+        message = socket.receive()
+        try:
+            payload = build_args_schema.loads(message)
+            if payload.errors:
+                socket.send(json.dumps(payload.errors))
+        except JSONDecodeError as e:
+            socket.send(json.dumps({'error': str(e)}))
 
     args = payload.data
     async_result = build_image.delay(args['appname'], args['sha'])
@@ -36,14 +37,15 @@ def build(socket):
 
 @ws.route('/deploy')
 def deploy(socket):
-    message = socket.receive()
-    try:
-        payload = deploy_schema.loads(message)
-    except JSONDecodeError as e:
-        socket.close(message=json.dumps(e))
-
-    if payload.errors:
-        socket.close(message=json.dumps(payload.errors))
+    payload = None
+    while not payload or payload.errors:
+        message = socket.receive()
+        try:
+            payload = build_args_schema.loads(message)
+            if payload.errors:
+                socket.send(json.dumps(payload.errors))
+        except JSONDecodeError as e:
+            socket.send(json.dumps({'error': str(e)}))
 
     args = payload.data
     async_result = create_container.delay(zone=g.zone, user_id=g.user_id, **args)
