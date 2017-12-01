@@ -79,14 +79,12 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
     memory = memory or combo.memory
     ms = get_core(zone).create_container(deploy_options)
 
-    task_id = self.request.id
-    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
     bad_news = []
-    res = []
+    deploy_messages = []
     for m in ms:
-        content = json.dumps(m, cls=JSONEncoder)
-        rds.publish(channel_name, content + '\n')
-        res.append(m.to_dict())
+        self.stream_output(m)
+        content = m.to_dict()
+        deploy_messages.append(content)
 
         if m.success:
             logger.debug('Creating container %s:%s got grpc message %s', appname, combo.entrypoint_name, m)
@@ -121,7 +119,7 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
         msg = 'Deploy {}\n*BAD NEWS*:\n```\n{}\n```\n'.format(appname, bad_news)
         notbot_sendmsg(app.subscribers, msg)
 
-    return res
+    return deploy_messages
 
 
 @current_app.task(bind=True)
@@ -168,12 +166,10 @@ def remove_container(self, ids, user_id=None):
 
     update_elb_for_containers(containers, UpdateELBAction.REMOVE)
 
-    task_id = self.request.id
-    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
     ms = get_core(zone).remove_container(full_ids)
     res = []
     for m in ms:
-        rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
+        self.stream_output(m)
         res.append(m.to_dict())
 
         container = Container.get_by_container_id(m.id)
@@ -193,10 +189,6 @@ def remove_container(self, ids, user_id=None):
                          content=op_content)
         elif 'Key not found' in m.message or 'No such container' in m.message:
             container.delete()
-        elif 'Container ID must be length of' in m.message:
-            # TODO: this requires core doesn't change this error message,
-            # maybe use error code in the future
-            continue
         else:
             logger.error('Remove container %s got error: %s', m.id, m.message)
             notbot_sendmsg('#platform', 'Error removing container {}: {}\n@timfeirg'.format(m.id, m.message))
