@@ -2,6 +2,7 @@
 import random
 import string
 import yaml
+from humanfriendly import parse_size
 from telnetlib import Telnet
 
 from citadel.config import ZONE_CONFIG
@@ -45,6 +46,13 @@ default_builds = {
         'commands': ['mkdir -p /etc/whatever'],
     },
 }
+default_combo_name = 'prod'
+
+# test core config
+default_network_name = 'etest'
+default_podname = 'eru'
+default_cpu_quota = 0.2
+default_memory = parse_size('128MB', binary=True)
 
 
 def make_specs_text(appname=default_appname,

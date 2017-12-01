@@ -2,10 +2,12 @@
 import pytest
 from urllib.parse import urlparse
 
-from .prepare import default_appname, default_git, default_sha, make_specs_text
+from .prepare import (default_appname, default_sha, default_git,
+                      make_specs_text, default_combo_name, default_podname,
+                      default_cpu_quota, default_memory, default_network_name)
 from citadel.app import create_app
 from citadel.ext import db, rds
-from citadel.models import App, Release
+from citadel.models.app import App, Release, Combo
 
 
 @pytest.fixture
@@ -43,6 +45,9 @@ def test_db(request, app):
     db.create_all()
     app = App.get_or_create(default_appname, git=default_git)
     Release.create(app, default_sha, make_specs_text())
+    Combo.create(default_appname, default_combo_name, 'web', default_podname,
+                 networks=[default_network_name], cpu_quota=default_cpu_quota,
+                 memory=default_memory, count=1)
 
     def teardown():
         db.session.remove()

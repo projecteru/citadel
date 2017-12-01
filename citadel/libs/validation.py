@@ -45,15 +45,19 @@ class DeploySchema(StrictSchema):
     appname = fields.Str(required=True)
     sha = fields.Str(required=True, validate=validate_sha)
     combo_name = fields.Str(required=True)
-    podname = fields.Str()
+    podname = fields.Str(required=True)
     nodename = fields.Str()
     extra_args = fields.Str()
-    cpu_quota = fields.Float()
-    memory = fields.Function(deserialize=parse_memory)
-    count = fields.Int()
-    debug = fields.Bool()
+    cpu_quota = fields.Float(required=True)
+    memory = fields.Function(deserialize=parse_memory, required=True)
+    count = fields.Int(missing=1)
+    debug = fields.Bool(missing=False)
 
 
 class BuildArgsSchema(StrictSchema):
     appname = fields.Str(required=True)
     sha = fields.Str(required=True, validate=validate_sha)
+
+
+deploy_schema = DeploySchema()
+build_args_schema = BuildArgsSchema()

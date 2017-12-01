@@ -1,22 +1,17 @@
 import pytest
 import requests
-from humanfriendly import parse_size
 from time import sleep
 
-from .prepare import core_online, make_specs, default_appname, default_sha, default_port, artifact_filename, artifact_content
+from .prepare import (core_online, make_specs, default_appname, default_sha,
+                      default_port, artifact_filename, artifact_content,
+                      default_network_name, default_podname, default_cpu_quota,
+                      default_memory)
 from citadel.config import BUILD_ZONE
 from citadel.rpc import core_pb2 as pb
 from citadel.rpc.client import get_core
 
 
 pytestmark = pytest.mark.skipif(not core_online, reason='one or more eru-core is offline, skip core-related tests')
-
-
-# test core config
-default_network_name = 'etest'
-default_podname = 'eru'
-default_cpu_quota = 0.2
-default_memory = parse_size('256MB', binary=True)
 
 
 def test_workflow():

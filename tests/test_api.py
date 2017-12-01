@@ -51,8 +51,9 @@ def test_register_app(test_db, client):
 
 
 def test_combo(test_db, client):
+    combo_name = 'another'
     data = {
-        'name': 'prod',
+        'name': combo_name,
         'entrypoint_name': 'web',
         'podname': 'release',
         'networks': ['release'],
@@ -71,7 +72,7 @@ def test_combo(test_db, client):
     assert combo['networks'] == ['release']
 
     res = client.delete(url_for('app.delete_combo', appname=default_appname),
-                        data=json.dumps({'name': 'prod'}),
+                        data=json.dumps({'name': combo_name}),
                         headers=json_headers)
     assert res.status_code == 200
 
