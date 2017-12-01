@@ -199,7 +199,7 @@ class Release(BaseModelMixin):
     misc = db.Column(db.JSON)
 
     def __str__(self):
-        return '<{r.name}:{r.short_sha}>'.format(r=self)
+        return '<{r.appname}:{r.short_sha}>'.format(r=self)
 
     @classmethod
     def create(cls, app, sha, specs_text=None, branch='', git_tag='', author='', commit_message='', git=''):
@@ -292,12 +292,12 @@ class Release(BaseModelMixin):
         return App.get(self.app_id)
 
     @property
-    def name(self):
+    def appname(self):
         return self.app.name
 
     def get_container_list(self, zone=None):
         from .container import Container
-        return Container.get_by(appname=self.name, sha=self.sha, zone=zone)
+        return Container.get_by(appname=self.appname, sha=self.sha, zone=zone)
 
     @property
     def git_tag(self):
@@ -349,7 +349,7 @@ class Release(BaseModelMixin):
     def make_core_deploy_options(self, combo_name, podname=None, nodename=None,
                                  extra_args=None, cpu_quota=None, memory=None,
                                  count=None, debug=False):
-        combo = Combo.query.filter_by(self.name, combo_name).first()
+        combo = Combo.query.filter_by(appname=self.appname, name=combo_name).first()
         entrypoint_name = combo.entrypoint_name
         specs = self.specs
         entrypoint = specs.entrypoints[entrypoint_name]

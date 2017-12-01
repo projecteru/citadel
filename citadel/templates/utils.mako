@@ -239,7 +239,7 @@
               rel='popover'
               data-html='true'
               data-content="
-              <a href='${ url_for('app.release', name=release.name, sha=release.sha) }'>详情</a>
+              <a href='${ url_for('app.release', name=release.appname, sha=release.sha) }'>详情</a>
               ">
               ${ release.sha[:7] }
             </a>
@@ -255,7 +255,7 @@
           </td>
           <td>
             % if release.raw:
-              <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
+              <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.appname, sha=release.sha) }#add">
                 <span class="fui-plus"></span> Add Raw Container
               </a>
             % elif not release.image:
@@ -263,14 +263,14 @@
                 <span class="fui-time" ></span> Building...
               </a>
             % else:
-              <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.name, sha=release.sha) }#add">
+              <a class="btn btn-xs btn-success" href="${ url_for('app.release', name=release.appname, sha=release.sha) }#add">
                 <span class="fui-plus"></span> Add Container
               </a>
             % endif
             % if release.get_container_list():
               <img style="height: 1em;" src="http://pics.sc.chinaz.com/Files/pic/faces/3709/7.gif">
             % else:
-              <a id="delete" class="btn btn-xs btn-warning" data-release-id="${ release.short_sha }" data-delete-url="${ url_for('app.release', name=release.name, sha=release.sha) }" ><span class="fui-trash"></span></a>
+              <a id="delete" class="btn btn-xs btn-warning" data-release-id="${ release.short_sha }" data-delete-url="${ url_for('app.release', name=release.appname, sha=release.sha) }" ><span class="fui-trash"></span></a>
             % endif
           </td>
         </tr>
