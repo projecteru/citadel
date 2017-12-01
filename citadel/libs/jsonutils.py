@@ -28,7 +28,7 @@ class Jsonized:
 class JSONEncoder(json.JSONEncoder):
 
     def default(self, obj):
-        if isinstance(obj, Jsonized):
+        if hasattr(obj, 'to_dict'):
             return obj.to_dict()
         if isinstance(obj, datetime):
             return obj.strftime('%Y-%m-%d %H:%M:%S')
