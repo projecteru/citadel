@@ -1,2 +1,2 @@
 #!/bin/sh
-SQLALCHEMY_DATABASE_URI="mysql+pymysql://root:kix00iJBqFF@localhost:3306/citadeltest" REDIS_URL="redis://localhost:6379/1" celery -A citadel.app:celery worker --loglevel DEBUG -Q citadel
+C_FORCE_ROOT=true SQLALCHEMY_DATABASE_URI="mysql+pymysql://root:kix00iJBqFF@localhost:3306/citadeltest" REDIS_URL="redis://localhost:6379/1" celery -A citadel.app:celery worker --loglevel DEBUG -Q citadel
