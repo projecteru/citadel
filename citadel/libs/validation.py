@@ -52,3 +52,8 @@ class DeploySchema(StrictSchema):
     memory = fields.Function(deserialize=parse_memory)
     count = fields.Int()
     debug = fields.Bool()
+
+
+class BuildArgsSchema(StrictSchema):
+    appname = fields.Str(required=True)
+    sha = fields.Str(required=True, validate=validate_sha)

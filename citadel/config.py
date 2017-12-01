@@ -87,8 +87,9 @@ task_queues = (
 )
 task_default_exchange = PROJECT_NAME
 task_default_routing_key = PROJECT_NAME
-task_serializer = 'pickle'
-accept_content = ['pickle', 'json']
+task_serializer = 'json'
+result_serializer = 'json'
+accept_content = ['json', 'pickle']
 beat_schedule = {
     'clean-images': {
         'task': 'citadel.tasks.clean_stuff',
