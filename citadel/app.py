@@ -37,7 +37,6 @@ api_blueprints = [
     'app',
     'pod',
     'container',
-    'mimiron',
 ]
 
 ANONYMOUS_PATHS = [

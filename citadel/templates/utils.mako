@@ -41,9 +41,6 @@
               data-content="
               % if g.user.privilege:
                 <pre><code style='font-size:70%;white-space:nowrap' >${ ssh_command_root }</code><br><code style='font-size:70%;white-space:nowrap' >${ ssh_command_process }</code></pre>
-              % else:
-                用 sso 密码钻进容器：
-                <pre><code style='font-size:70%;white-space:nowrap' > ssh ${ g.user.name }~${ c.container_id }@mimiron.ricebook.net -p 2200</code></pre>
               % endif
               <a href='${ make_kibana_url(appname=c.appname, ident=c.ident) }' target='_blank'><span class='label label-info'>日志</span></a>
               <a href='http://dashboard.ricebook.net/dashboard/db/eru-apps?var-app=${ c.appname }&var-version=${ c.short_sha }&var-entry=${ c.entrypoint }&var-container_id=${ c.short_id }' target='_blank'><span class='label label-info'>监控</span></a>
