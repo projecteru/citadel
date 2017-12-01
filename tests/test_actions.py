@@ -21,7 +21,8 @@ default_memory = parse_size('256MB', binary=True)
 
 def test_workflow():
     '''
-    build, create, remove
+    test core grpc here, no flask and celery stuff involved
+    build, create, remove, and check if everything works
     '''
     specs = make_specs()
     appname = default_appname
@@ -34,12 +35,12 @@ def test_workflow():
                                 builds=core_builds)
     core = get_core(BUILD_ZONE)
     build_image_messages = list(core.build_image(opts))
-    image = ''
+    image_tag = ''
     for m in build_image_messages:
         assert not m.error
 
-    image = m.progress
-    assert '{}:{}'.format(default_appname, default_sha) in image
+    image_tag = m.progress
+    assert '{}:{}'.format(default_appname, default_sha) in image_tag
 
     # now create container
     entrypoint_opt = pb.EntrypointOptions(name='web',
@@ -49,7 +50,7 @@ def test_workflow():
     deploy_options = pb.DeployOptions(name=default_appname,
                                       entrypoint=entrypoint_opt,
                                       podname=default_podname,
-                                      image=image,
+                                      image=image_tag,
                                       cpu_quota=default_cpu_quota,
                                       memory=default_memory,
                                       count=1,

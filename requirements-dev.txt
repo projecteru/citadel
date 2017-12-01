@@ -4,3 +4,5 @@ pytest
 pytest-flask
 ipython
 pdbpp
+# for commandline testing
+websocket-client

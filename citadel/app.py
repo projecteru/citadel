@@ -1,13 +1,15 @@
-# coding: utf-8
+# -*- coding: utf-8 -*-
+import json
 import logging
 from celery import Celery, Task
-from flask import jsonify, g, session, Flask, request, redirect, url_for
+from flask import url_for, jsonify, g, session, Flask, request, redirect
 from raven.contrib.flask import Sentry
 from werkzeug.utils import import_string
 
-from citadel.config import DEBUG, SENTRY_DSN, TASK_PUBSUB_CHANNEL, TASK_PUBSUB_EOF, DEFAULT_ZONE, FAKE_USER
-from citadel.ext import sess, rds, db, mako, cache
+from citadel.config import TASK_PUBSUB_CHANNEL, DEBUG, SENTRY_DSN, TASK_PUBSUB_EOF, DEFAULT_ZONE, FAKE_USER
+from citadel.ext import rds, sess, db, mako, cache, sockets
 from citadel.libs.datastructure import DateConverter
+from citadel.libs.jsonutils import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg
 from citadel.models.user import get_current_user, User
 
@@ -35,7 +37,6 @@ api_blueprints = [
     'app',
     'pod',
     'container',
-    'action',
     'mimiron',
 ]
 
@@ -60,12 +61,18 @@ def make_celery(app):
 
         abstract = True
 
+        def stream_output(self, data):
+            channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
+            rds.publish(channel_name, json.dumps(data, cls=JSONEncoder))
+
         def on_success(self, retval, task_id, args, kwargs):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
             rds.publish(channel_name, TASK_PUBSUB_EOF.format(task_id=task_id))
 
         def on_failure(self, exc, task_id, args, kwargs, einfo):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
+            failure_msg = {'error': str(exc), 'args': args, 'kwargs': kwargs}
+            rds.publish(channel_name, json.dumps(failure_msg, cls=JSONEncoder))
             rds.publish(channel_name, TASK_PUBSUB_EOF.format(task_id=task_id))
             msg = 'Citadel task {}:\nargs\n```\n{}\n```\nkwargs:\n```\n{}\n```\nerror message:\n```\n{}\n```'.format(self.name, args, kwargs, str(exc))
             notbot_sendmsg('#platform', msg)
@@ -92,6 +99,7 @@ def create_app():
     mako.init_app(app)
     cache.init_app(app)
     sess.init_app(app)
+    sockets.init_app(app)
 
     if not DEBUG:
         sentry = Sentry(dsn=SENTRY_DSN)
@@ -104,6 +112,10 @@ def create_app():
     for bp_name in api_blueprints:
         bp = import_string('%s.api.%s:bp' % (__package__, bp_name))
         app.register_blueprint(bp)
+
+    # action APIs are all websockets
+    from citadel.api.action import ws
+    sockets.register_blueprint(ws)
 
     @app.before_request
     def init_global_vars():

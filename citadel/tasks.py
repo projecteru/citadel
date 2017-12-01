@@ -42,29 +42,22 @@ def record_health_status(self):
 
 
 @current_app.task(bind=True)
-def build_image(self, appname, sha, uid='',):
+def build_image(self, appname, sha):
     release = Release.get_by_app_and_sha(appname, sha)
-    if not release:
-        raise ActionError(400, 'release %s, %s not found, maybe not registered yet?' % (sha, ))
     specs = release.specs
     if release.raw:
         release.update_image(specs.base)
         return
 
-    uid = str(uid or release.app.id)
-    image = ''
-    task_id = self.request.id
-    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id) if task_id else None
     core = get_core(BUILD_ZONE)
     opts = release.make_core_build_options()
-    ms = core.build_image(opts)
-    for m in ms:
-        rds.publish(channel_name, json.dumps(m, cls=JSONEncoder) + '\n')
-        if m.status == 'finished':
-            image = m.progress
+    build_messages = core.build_image(opts)
+    for m in build_messages:
+        self.stream_output(m)
 
-    if release and image:
-        release.update_image(image)
+    image_tag = m.progress
+    release.update_image(image_tag)
+    return image_tag
 
 
 @current_app.task(bind=True)
@@ -457,7 +450,7 @@ def celery_task_stream_response(celery_task_ids):
         # each content is a single JSON encoded grpc message
         raw_content = item['data']
         # omit the initial message where item['data'] is 1L
-        if isinstance(raw_content, int):
+        if not isinstance(raw_content, (bytes, str)):
             continue
         content = raw_content.decode('utf-8')
         logger.debug('Got pubsub message: %s', content)
