@@ -2,7 +2,7 @@
 <%namespace name="utils" file="/utils.mako"/>
 
 <%def name="title()">
-  ${ release.name } @ ${ release.sha[:7] }
+  ${ release.appname } @ ${ release.sha[:7] }
 </%def>
 
 <%!
@@ -33,7 +33,7 @@
       </button>
     % elif not release.image:
       <span title="去gitlab pipelines上盯着看，它好我也好，不行的话先重试">
-        <a class="btn btn-xs btn-info disabled" href="${ url_for('app.release', name=release.name, sha=release.sha) }" >
+        <a class="btn btn-xs btn-info disabled" href="${ url_for('app.release', name=release.appname, sha=release.sha) }" >
           <span class="fui-time" ></span> Building...
         </a>
       </span>
@@ -97,7 +97,7 @@
                   <div class="form-group collapse advance-form-group">
                     <label class="col-sm-2 control-label" for="">Release</label>
                     <div class="col-sm-10">
-                      <input class="form-control" type="text" name="release" value="${ release.name } / ${ release.short_sha }" data-id="${ release.id }" disabled>
+                      <input class="form-control" type="text" name="release" value="${ release.appname } / ${ release.short_sha }" data-id="${ release.id }" disabled>
                     </div>
                   </div>
                   <div class="form-group">
@@ -202,7 +202,7 @@
             <div class="form-group collapse advance-form-group">
               <label class="col-sm-2 control-label" for="">Release</label>
               <div class="col-sm-10">
-                <input class="form-control" type="text" name="release" value="${ release.name } / ${ release.short_sha }" data-id="${ release.id }" disabled>
+                <input class="form-control" type="text" name="release" value="${ release.appname } / ${ release.short_sha }" data-id="${ release.id }" disabled>
               </div>
             </div>
             <div class="form-group">

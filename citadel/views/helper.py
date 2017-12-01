@@ -47,7 +47,7 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
     :param extra_args: what the fuck is this?
     :param debug: bool, cheers
     """
-    appname = release.name
+    appname = release.appname
     app = release.app
     if combo_name:
         combo = release.specs.combos[combo_name]
