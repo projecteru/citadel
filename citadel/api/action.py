@@ -32,4 +32,4 @@ def build(socket):
     async_result = build_image.delay(args['appname'], args['sha'])
     for m in celery_task_stream_response(async_result.task_id):
         logger.debug(m)
-        socket.send(str(m))
+        socket.send(json.dumps(m))
