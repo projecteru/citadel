@@ -353,17 +353,20 @@ class Release(BaseModelMixin):
         entrypoint_name = combo.entrypoint_name
         specs = self.specs
         entrypoint = specs.entrypoints[entrypoint_name]
-        # TODO: health check support
         # TODO: hook support
         # TODO: extra hosts support
         # TODO: wtf is meta
         # TODO: wtf is nodelabels
+        healthcheck_opt = pb.HealthCheckOptions(ports=[str(entrypoint.healthcheck_port)],
+                                                url=entrypoint.healthcheck_url,
+                                                code=entrypoint.healthcheck_expected_code)
         entrypoint_opt = pb.EntrypointOptions(name=entrypoint_name,
                                               command=entrypoint.command,
                                               privileged=entrypoint.privileged,
                                               dir=entrypoint.working_dir,
                                               log_config=entrypoint.log_config,
                                               publish=[str(p.port) for p in entrypoint.ports],
+                                              healthcheck=healthcheck_opt,
                                               restart_policy=entrypoint.restart)
         app = self.app
         env_set = app.get_env_set(combo.envname)

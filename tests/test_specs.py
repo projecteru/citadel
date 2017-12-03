@@ -2,7 +2,7 @@
 import pytest
 from marshmallow import ValidationError
 
-from .prepare import make_specs, default_appname, default_entrypoints, default_port
+from .prepare import make_specs, default_appname, default_entrypoints, default_ports
 
 
 def test_extra_fields():
@@ -23,7 +23,7 @@ def test_entrypoints():
     specs = make_specs()
     port = specs.entrypoints['web'].ports[0]
     assert port.protocol == 'tcp'
-    assert port.port == int(default_port[0])
+    assert port.port == int(default_ports[0])
     assert specs.entrypoints['web'].working_dir == '/home/{}'.format(default_appname)
     assert specs.entrypoints['test-working-dir'].working_dir == '/tmp'
 
@@ -34,3 +34,26 @@ def test_build():
 
     with pytest.raises(ValidationError):
         make_specs(container_user='should-not-be-here')
+
+
+def test_healthcheck():
+    entrypoints = {
+        'web-default-healthcheck': {
+            'cmd': 'python -m http.server',
+            'ports': default_ports,
+        },
+        'web-special-healthcheck': {
+            'cmd': 'python -m http.server',
+            'ports': default_ports,
+            'healthcheck_url': '/healthcheck',
+            'healthcheck_port': 8808,
+        },
+    }
+    specs = make_specs(entrypoints=entrypoints)
+    web_default_healthcheck = specs.entrypoints['web-default-healthcheck']
+    assert web_default_healthcheck.healthcheck_url == '/'
+    assert web_default_healthcheck.healthcheck_port == int(default_ports[0])
+
+    web_special_healthcheck = specs.entrypoints['web-special-healthcheck']
+    assert web_special_healthcheck.healthcheck_url == '/healthcheck'
+    assert web_special_healthcheck.healthcheck_port == 8808

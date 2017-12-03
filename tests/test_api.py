@@ -3,7 +3,7 @@ import json
 from flask import url_for
 from humanfriendly import parse_size
 
-from .prepare import default_appname, make_specs_text, default_port, make_specs
+from .prepare import default_appname, make_specs_text, default_ports, make_specs
 from citadel.models.app import Release
 
 
@@ -17,7 +17,7 @@ def test_register_app(test_db, client):
     entrypoints = {
         'web': {
             'cmd': 'python -m http.server',
-            'ports': default_port,
+            'ports': default_ports,
         },
         'hello': {
             'cmd': 'python helloworld.py',
