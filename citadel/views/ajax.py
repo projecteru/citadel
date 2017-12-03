@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from flask import g, abort, session, request, Blueprint, jsonify, Response
+from flask import g, abort, session, request, Blueprint, jsonify
 from humanfriendly import parse_size
-from itertools import chain
 
 from citadel.config import ELB_APP_NAME, ELB_POD_NAME, DEFAULT_ZONE
 from citadel.libs.jsonutils import jsonize
@@ -12,8 +11,8 @@ from citadel.models.app import AppUserRelation, Release
 from citadel.models.loadbalance import ELBRule, update_elb_for_containers, UpdateELBAction
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc.client import get_core
-from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container, upgrade_container_dispatch, celery_task_stream_response, celery_task_stream_traceback
-from citadel.views.helper import bp_get_app, bp_get_balancer, make_deploy_options
+from citadel.tasks import ActionError, create_elb_instance_upon_containers, create_container, remove_container
+from citadel.views.helper import bp_get_app, bp_get_balancer
 
 
 bp = Blueprint('ajax', __name__, url_prefix='/ajax')
@@ -67,80 +66,6 @@ def debug_container():
 
     update_elb_for_containers(containers, UpdateELBAction.REMOVE)
     return DEFAULT_RETURN_VALUE
-
-
-@bp.route('/rmcontainer', methods=['POST'])
-@jsonize
-def remove_containers():
-    # 过滤掉ELB的容器, ELB不要走这个方式下线
-    payload = request.get_json()
-    container_ids = payload['container_id']
-    if isinstance(container_ids, str):
-        container_ids = [container_ids]
-
-    containers = Container.get_by_container_ids(container_ids)
-    # mark removing so that users would see some changes, but the actual
-    # removing happends in celery tasks
-    should_remove = []
-    for c in containers:
-        if not c:
-            continue
-        if c.appname == ELB_APP_NAME:
-            return {'error': 'Cannot delete ELB container here'}, 400
-        should_remove.append(c.container_id)
-
-    if should_remove:
-        remove_container.delay(should_remove, user_id=g.user.id)
-
-    return DEFAULT_RETURN_VALUE
-
-
-@bp.route('/upgrade-container', methods=['POST'])
-def upgrade_containers():
-    payload = request.get_json()
-    container_ids = payload['container_ids']
-    sha = payload['sha']
-    containers = Container.get_by_container_ids(container_ids)
-    appnames = set(c.appname for c in containers if c)
-    if not appnames:
-        abort(400, 'No containers to upgrade')
-
-    if len(appnames) != 1:
-        abort(400, 'Cannot upgrade containers across apps')
-
-    container_specs = set(c.release.specs_text for c in containers)
-    new_release = containers[0].app.get_release(sha)
-    if not new_release:
-        abort(400, 'Release {} not found'.format(sha))
-
-    if len(container_specs) != 1 or container_specs.pop() != new_release.specs_text:
-        abort(400, 'Cannot upgrade due to app.yaml change')
-
-    if ELB_APP_NAME in appnames:
-        abort(400, 'Do not upgrade {} through this API'.format(ELB_APP_NAME))
-
-    async_results = [upgrade_container_dispatch.delay(c.container_id, sha, user_id=g.user.id) for c in containers]
-    task_ids = [r.task_id for r in async_results]
-    messages = chain(celery_task_stream_response(task_ids), celery_task_stream_traceback(task_ids))
-    return Response(messages, mimetype='application/json')
-
-
-@bp.route('/replace-containers', methods=['POST'])
-def replace_containers():
-    payload = request.get_json()
-    container_ids = payload['container_ids']
-    containers = Container.get_by_container_ids(container_ids)
-    appnames = set(c.appname for c in containers if c)
-    if not appnames:
-        abort(400, 'No containers to upgrade')
-
-    if ELB_APP_NAME in appnames:
-        abort(400, 'Do not upgrade {} through this API'.format(ELB_APP_NAME))
-
-    async_results = [upgrade_container_dispatch.delay(c.container_id, c.sha, user_id=g.user.id) for c in containers]
-    task_ids = [r.task_id for r in async_results]
-    messages = chain(celery_task_stream_response(task_ids), celery_task_stream_traceback(task_ids))
-    return Response(messages, mimetype='application/json')
 
 
 @bp.route('/pods')

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from marshmallow import ValidationError
 from humanfriendly import parse_size
-from marshmallow import fields
+from marshmallow import ValidationError, fields
 from numbers import Number
 
 from citadel.models.base import StrictSchema
@@ -10,6 +9,11 @@ from citadel.models.base import StrictSchema
 def validate_sha(s):
     if len(s) < 7:
         raise ValidationError('sha must be longer than 7')
+
+
+def validate_full_contianer_id(s):
+    if len(s) < 64:
+        raise ValidationError('Container ID must be of length 64')
 
 
 class RegisterSchema(StrictSchema):
@@ -59,5 +63,10 @@ class BuildArgsSchema(StrictSchema):
     sha = fields.Str(required=True, validate=validate_sha)
 
 
+class RemoveContainerSchema(StrictSchema):
+    container_ids = fields.List(fields.Str(required=True, validate=validate_full_contianer_id), required=True)
+
+
 deploy_schema = DeploySchema()
 build_args_schema = BuildArgsSchema()
+remove_container_schema = RemoveContainerSchema()
