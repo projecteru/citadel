@@ -78,6 +78,10 @@ class Container(BaseModelMixin, PropsMixin):
         return [c for c in containers if c]
 
     @property
+    def core_deploy_key(self):
+        return '/eru-core/deploy/{c.appname}/{c.entrypoint}/{c.nodename}/{c.container_id}'.format(c=self)
+
+    @property
     def app(self):
         from .app import App
         return App.get_by_name(self.appname)
@@ -154,16 +158,14 @@ class Container(BaseModelMixin, PropsMixin):
 
     @property
     def healthy(self):
-        # TODO: hard code, ugly
-        agent2_container_path = '/agent2/{}.ricebook.link/containers/{}'.format(self.nodename, self.container_id)
+        core_deploy_key = self.core_deploy_key
         try:
             etcd = get_etcd(self.zone)
-            res = etcd.read(agent2_container_path)
-        except EtcdKeyNotFound:
+            res = etcd.read(core_deploy_key)
+            deploy_info = json.loads(res.value)
+        except (EtcdKeyNotFound, json.decoder.JSONDecodeError):
             return False
-        container_info = json.loads(res.value)
-        # if missing 'Healthy', considered healthy
-        return container_info.get('Healthy', True)
+        return deploy_info['Healthy']
 
     @property
     def short_id(self):
