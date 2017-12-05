@@ -21,14 +21,14 @@ except ConnectionRefusedError:
 
 default_appname = 'test-app'
 default_sha = '651fe0a'
-default_port = ['8000']
+default_ports = ['8000']
 default_git = 'git@github.com:projecteru2/citadel.git'
 artifact_content = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 artifact_filename = '{}-data.txt'.format(default_appname)
 default_entrypoints = {
     'web': {
         'cmd': 'python -m http.server',
-        'ports': default_port,
+        'ports': default_ports,
     },
     'test-working-dir': {
         'cmd': 'echo pass',

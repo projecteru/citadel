@@ -1,11 +1,6 @@
 import pytest
-import requests
-from time import sleep
 
-from .prepare import (core_online, make_specs, default_appname, default_sha,
-                      default_port, artifact_filename, artifact_content,
-                      default_network_name, default_podname, default_cpu_quota,
-                      default_memory)
+from .prepare import core_online, make_specs, default_appname, default_sha, default_network_name, default_podname, default_cpu_quota, default_memory
 from citadel.config import BUILD_ZONE
 from citadel.rpc import core_pb2 as pb
 from citadel.rpc.client import get_core
@@ -60,15 +55,11 @@ def test_workflow():
     assert len(network) == 1
     network_name, ip = network.popitem()
     assert network_name == default_network_name
-    # TODO: use health check functionality rather than sleep
-    sleep(3)
-    # checking if volume is correct
-    artifact_url = 'http://{}:{}/{}'.format(ip, default_port[0], artifact_filename)
-    artifact_response = requests.get(artifact_url)
-    assert artifact_content in artifact_response.text
 
     # clean this up
-    remove_container_messages = list(core.remove_container([deploy_message.id]))
+    container_info = deploy_messages[0]
+    container_id = container_info.id
+    remove_container_messages = list(core.remove_container([container_id]))
     assert len(remove_container_messages) == 1
     remove_container_message = remove_container_messages[0]
     assert remove_container_message.success is True
