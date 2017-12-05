@@ -521,7 +521,7 @@ class AppStatusAssembler:
             this_container_status = self._container_status_map[cid]
             this_container_status.name = cid
             this_container_status.status_dic.update({
-                'healthy': int(c.healthy),
+                'healthy': int(c.is_healthy()),
             })
 
 

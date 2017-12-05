@@ -81,6 +81,18 @@ class Container(BaseModelMixin, PropsMixin):
     def core_deploy_key(self):
         return '/eru-core/deploy/{c.appname}/{c.entrypoint}/{c.nodename}/{c.container_id}'.format(c=self)
 
+    def get_deploy_info(self):
+        try:
+            etcd = get_etcd(self.zone)
+            res = etcd.read(self.core_deploy_key)
+            return json.loads(res.value)
+        except (EtcdKeyNotFound, json.decoder.JSONDecodeError):
+            return {}
+
+    def is_healthy(self):
+        deploy_info = self.get_deploy_info()
+        return deploy_info.get('Healthy', False)
+
     @property
     def app(self):
         from .app import App
@@ -157,17 +169,6 @@ class Container(BaseModelMixin, PropsMixin):
         return self.name.rsplit('_', 2)[-1]
 
     @property
-    def healthy(self):
-        core_deploy_key = self.core_deploy_key
-        try:
-            etcd = get_etcd(self.zone)
-            res = etcd.read(core_deploy_key)
-            deploy_info = json.loads(res.value)
-        except (EtcdKeyNotFound, json.decoder.JSONDecodeError):
-            return False
-        return deploy_info['Healthy']
-
-    @property
     def short_id(self):
         return self.container_id[:7]
 
@@ -214,7 +215,7 @@ class Container(BaseModelMixin, PropsMixin):
 
         must_end = datetime.now() + timeout
         while datetime.now() < must_end:
-            if self.healthy:
+            if self.is_healthy():
                 return True
             sleep(period.seconds)
 
@@ -247,7 +248,7 @@ class Container(BaseModelMixin, PropsMixin):
         if self.is_debug():
             return 'debug'
         status = self.info.get('State', {}).get('Status', 'unknown')
-        if status == 'running' and not self.healthy:
+        if status == 'running' and not self.is_healthy():
             return 'sick'
         return status
 
