@@ -76,7 +76,7 @@ def parse_builds(dic):
 
 def parse_single_port(port_string):
     if isinstance(port_string, Number):
-        data = {'port': port_string, 'protocol': 'tcp'}
+        data = {'port': str(port_string), 'protocol': 'tcp'}
     else:
         parts = port_string.split('/')
         try:
@@ -213,9 +213,12 @@ class Entrypoint(Jsonized):
                  before_stop=None, backup_path=None, _raw=None):
         self.command = command
         self.image = image
-        self.ports = [Port(_raw=_raw, **data) for data in ports]
+        self.ports = [Port(_raw=data, **data) for data in ports]
         self.network_mode = network_mode
         self.restart = restart
+        self.healthcheck_url = healthcheck_url
+        self.healthcheck_port = healthcheck_port
+        self.healthcheck_expected_code = healthcheck_expected_code
         self.hosts = hosts
         self.privileged = privileged
         self.log_config = log_config
@@ -223,6 +226,7 @@ class Entrypoint(Jsonized):
         self.after_start = after_start
         self.before_stop = before_stop
         self.backup_path = backup_path
+        self._raw = _raw
 
 
 entrypoint_schema = EntrypointSchema()
@@ -248,8 +252,18 @@ class SpecsSchema(StrictSchema):
     @post_load
     def fix_defaults(self, data):
         for _, entrypoint in data['entrypoints'].items():
+            # set default working_dir to app's home
             if not entrypoint.get('working_dir'):
                 entrypoint['working_dir'] = '/home/{}'.format(data['appname'])
+
+            # set default healthcheck to app's first publish ports
+            ports = entrypoint.get('ports')
+            if ports:
+                if not entrypoint.get('healthcheck_port'):
+                    entrypoint['healthcheck_port'] = ports[0]['port']
+
+                if not entrypoint.get('healthcheck_url'):
+                    entrypoint['healthcheck_url'] = '/'
 
     @validates_schema
     def check_raw(self, data):
