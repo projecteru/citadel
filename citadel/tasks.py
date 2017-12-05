@@ -10,8 +10,7 @@ from humanfriendly import parse_timespan
 from citadel.config import ZONE_CONFIG, CITADEL_TACKLE_TASK_THROTTLING_KEY, ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
 from citadel.ext import rds, hub
 from citadel.libs.exceptions import ActionError, ModelDeleteError
-from citadel.libs.jsonutils import JSONEncoder
-from citadel.libs.utils import notbot_sendmsg, logger, make_sentence_json
+from citadel.libs.utils import notbot_sendmsg, logger
 from citadel.models import Container, Release
 from citadel.models.app import App
 from citadel.models.container import ContainerOverrideStatus
@@ -194,74 +193,6 @@ def remove_container(self, ids, user_id=None):
             notbot_sendmsg('#platform', 'Error removing container {}: {}\n@timfeirg'.format(m.id, m.message))
 
     return res
-
-
-@current_app.task(bind=True)
-def upgrade_container_dispatch(self, container_id, sha, user_id=None):
-    container = Container.get_by_container_id(container_id)
-    release = container.app.get_release(sha)
-    if not release or not release.image:
-        raise ActionError(400, 'Release %s not found or not built' % sha)
-
-    deploy_options = container.deploy_options
-    deploy_options['image'], _ = release.describe_entrypoint_image(container.entrypoint)
-    if not release.specs.freeze_node:
-        deploy_options['nodename'] = ''
-
-    channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
-    rds.publish(channel_name, make_sentence_json('Upgrading container using options {}'.format(deploy_options)))
-
-    if release.smooth_upgrade:
-        smooth_upgrade_container(container_id,
-                                 sha,
-                                 deploy_options,
-                                 channel_name,
-                                 user_id=user_id)
-    else:
-        upgrade_container(container_id,
-                          sha,
-                          deploy_options,
-                          channel_name,
-                          user_id=user_id)
-
-
-def upgrade_container(container_id, sha, deploy_options, channel_name, user_id=None):
-    """Remove old container, and then start new one only after the old one's removed"""
-    rds.publish(channel_name, make_sentence_json('Removing old container {} ...'.format(container_id)))
-    remove_container(container_id, user_id=user_id)
-
-    rds.publish(channel_name, make_sentence_json('Starting new container to replace {} ...'.format(container_id)))
-    grpc_message = create_container(deploy_options,
-                                    sha=sha,
-                                    user_id=user_id,
-                                    envname='SAME')[0]
-    new_container_id = grpc_message['id']
-    rds.publish(channel_name, make_sentence_json('New container created: {}'.format(new_container_id)))
-
-
-def smooth_upgrade_container(container_id, sha, deploy_options, channel_name, user_id=None):
-    """Start new container, wait for it to become healthy, then remove the old one"""
-    container = Container.get_by_container_id(container_id)
-    rds.publish(channel_name, make_sentence_json('Starting new container to replace {} ...'.format(container_id)))
-    grpc_message = create_container(deploy_options,
-                                    sha=sha,
-                                    user_id=user_id,
-                                    envname='SAME')[0]
-    rds.publish(channel_name, json.dumps(grpc_message, cls=JSONEncoder) + '\n')
-    if not grpc_message['success']:
-        rds.publish(channel_name, make_sentence_json('Create new container for {} failed'.format(container)))
-        return
-
-    new_container_id = grpc_message['id']
-    new_container = Container.get_by_container_id(new_container_id)
-    rds.publish(channel_name, make_sentence_json('Wait for new container {} to erect...'.format(new_container)))
-    healthy = new_container.wait_for_erection(new_container.release.erection_timeout)
-    if healthy:
-        rds.publish(channel_name, make_sentence_json('New container {} OK, remove old container {}'.format(new_container_id, container_id)))
-        remove_container(container_id, user_id=user_id)
-    else:
-        rds.publish(channel_name, make_sentence_json('New container {} still sick, have to remove ...'.format(new_container_id)))
-        remove_container(new_container_id, user_id=user_id)
 
 
 @current_app.task(bind=True)
@@ -506,7 +437,8 @@ def respawn_container(self, container_status, dangers, **kwargs):
         msg = '*Container Respawn*\n```\ncid: {}\nsha: {}\nreason: {}\n```'.format(cid, sha, dangers)
         notbot_sendmsg(container.app.subscribers, msg)
 
-    upgrade_container(cid, sha)
+    # FIXME
+    # upgrade_container(cid, sha)
 
 
 @current_app.task(bind=True, base=TackleTask)
