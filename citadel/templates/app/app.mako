@@ -153,7 +153,8 @@
 
       var logDisplay = $('#upgrade-container-pre');
       var success = true;
-      oboe({url: "${ url_for('ajax.upgrade_containers') }", method: 'POST', body: data})
+      ## FIXME: build url
+      oboe({url: "", method: 'POST', body: data})
         .done(function(r) {
           console.log(r);
           if (r.error) {

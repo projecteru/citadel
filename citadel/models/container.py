@@ -7,7 +7,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError, ObjectDeletedError
 from time import sleep
 
-from citadel.config import UPGRADE_CONTAINER_IGNORE_ENV
 from citadel.ext import db, get_etcd
 from citadel.libs.datastructure import purge_none_val_from_dict
 from citadel.libs.utils import logger
@@ -142,27 +141,6 @@ class Container(BaseModelMixin, PropsMixin):
     @property
     def networks(self):
         return self.info.get('NetworkSettings', {}).get('Networks', {})
-
-    @property
-    def deploy_options(self):
-        release = self.release
-        image, raw = release.describe_entrypoint_image(self.entrypoint)
-        deploy_options = {
-            'specs': release.specs_text,
-            'appname': self.appname,
-            'image': image,
-            'zone': self.zone,
-            'podname': self.podname,
-            'nodename': self.nodename,
-            'entrypoint': self.entrypoint,
-            'cpu_quota': float(self.cpu_quota),
-            'count': 1,
-            'memory': self.memory,
-            'networks': {network_name: '' for network_name in self.networks},
-            'env': [e for e in self.info['Config']['Env'] if not e.split('=', 1)[0] in UPGRADE_CONTAINER_IGNORE_ENV],
-            'raw': raw,
-        }
-        return deploy_options
 
     @property
     def ident(self):
