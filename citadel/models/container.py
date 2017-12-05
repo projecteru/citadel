@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import itertools
 import json
 from datetime import timedelta, datetime
 from etcd import EtcdKeyNotFound
@@ -35,6 +34,7 @@ class Container(BaseModelMixin, PropsMixin):
     zone = db.Column(db.String(50), nullable=False)
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
+    deploy_info = db.Column(db.JSON)
     override_status = db.Column(db.Integer, default=ContainerOverrideStatus.NONE, nullable=False)
 
     initialized = PropsItem('initialized', default=0, type=int)
@@ -65,11 +65,9 @@ class Container(BaseModelMixin, PropsMixin):
     def get_by_container_id(cls, container_id):
         """get by container_id, prefix can be used in container_id"""
         if len(container_id or '') < 7:
-            return None
+            raise ValueError('Must provide full container ID, got {}'.format(container_id))
         c = cls.query.filter(cls.container_id.like('{}%'.format(container_id))).first()
-        if not c:
-            return None
-        return c.inspect()
+        return c
 
     @classmethod
     def get_by_container_ids(cls, container_ids):
@@ -80,17 +78,8 @@ class Container(BaseModelMixin, PropsMixin):
     def core_deploy_key(self):
         return '/eru-core/deploy/{c.appname}/{c.entrypoint}/{c.nodename}/{c.container_id}'.format(c=self)
 
-    def get_deploy_info(self):
-        try:
-            etcd = get_etcd(self.zone)
-            res = etcd.read(self.core_deploy_key)
-            return json.loads(res.value)
-        except (EtcdKeyNotFound, json.decoder.JSONDecodeError):
-            return {}
-
     def is_healthy(self):
-        deploy_info = self.get_deploy_info()
-        return deploy_info.get('Healthy', False)
+        return self.deploy_info['Healthy']
 
     @property
     def app(self):
@@ -118,17 +107,7 @@ class Container(BaseModelMixin, PropsMixin):
             query_set = query_set.filter(cls.sha.like('{}%'.format(sha)))
 
         res = query_set.order_by(cls.id.desc())
-        return [c.inspect() for c in res]
-
-    @classmethod
-    def get(cls, id):
-        c = super(Container, cls).get(id)
-        return c.inspect()
-
-    @classmethod
-    def get_all(cls, start=0, limit=20):
-        cs = super(Container, cls).get_all(start, limit)
-        return [c.inspect() for c in cs]
+        return res
 
     @property
     def specs_entrypoint(self):
@@ -139,8 +118,8 @@ class Container(BaseModelMixin, PropsMixin):
         return self.specs_entrypoint.backup_path
 
     @property
-    def networks(self):
-        return self.info.get('NetworkSettings', {}).get('Networks', {})
+    def publish(self):
+        return self.deploy_info.get('Publish', {})
 
     @property
     def ident(self):
@@ -196,70 +175,28 @@ class Container(BaseModelMixin, PropsMixin):
             if self.is_healthy():
                 return True
             sleep(period.seconds)
+            # deploy_info is written by watch-etcd services, so it's very
+            # important to constantly query database, without refresh we'll be
+            # constantly hitting sqlalchemy cache
+            db.session.refresh(self, 'deploy_info')
+            db.session.commit()
 
         return False
 
-    def inspect(self):
-        """must be called after get / create"""
-        # 太尼玛假了...
-        # docker inspect在删除容器的时候可能需要比较长的时间才有响应
-        # 也可能响应过后就直接报错了
-        # 所以不如正在删除的容器就不要去inspect了
-        if self.override_status == ContainerOverrideStatus.REMOVING:
-            self.name = 'unknown'
-            self.info = {'State': {'Status': 'removing'}}
-            return self
-
-        c = get_core(self.zone).get_container(self.container_id)
-        if not c:
-            self.name = 'unknown'
-            self.info = {}
-            return self
-        self.name = c.name
-        self.info = json.loads(c.info)
-        return self
-
     def status(self):
-        # docker 删除容器的时候无法 inspect，所以不会展示出 InRemoval 这个状态
-        if self.is_removing():
-            return 'removing'
         if self.is_debug():
             return 'debug'
-        status = self.info.get('State', {}).get('Status', 'unknown')
-        if status == 'running' and not self.is_healthy():
-            return 'sick'
-        return status
-
-    def get_ips(self):
-        ips = []
-        for name, network in self.networks.items():
-            # 如果是host模式要去取下node的IP
-            if name == 'host':
-                node = get_core(self.zone).get_node(self.podname, self.nodename)
-                if not node:
-                    continue
-                ips.append(node.ip)
-            # 其他的不管是bridge还是自定义的都可以直接取
+        if self.is_removing():
+            return 'removing'
+        running = self.deploy_info['Running']
+        healthy = self.deploy_info['Healthy']
+        if running:
+            if healthy:
+                return 'running'
             else:
-                ips.append(network.get('IPAddress', ''))
-
-        return [ip for ip in ips if ip]
-
-    def get_backends(self):
-        from .app import Release
-        ips = self.get_ips()
-        release = Release.get_by_app_and_sha(self.appname, self.sha)
-        if not release:
-            return []
-
-        specs = release.specs
-        entrypoint = specs.entrypoints[self.entrypoint]
-        ports = entrypoint.ports
-        if not ports:
-            return []
-
-        ports = [p.port for p in ports]
-        return ['%s:%s' % (ip, port) for ip, port in itertools.product(ips, ports)]
+                return 'sick'
+        else:
+            return 'dead'
 
     def get_node(self):
         return get_core(self.zone).get_node(self.podname, self.nodename)
@@ -286,8 +223,6 @@ class Container(BaseModelMixin, PropsMixin):
             'podname': self.podname,
             'nodename': self.nodename,
             'name': self.name,
-            'info': self.info,
-            'backends': self.get_backends(),
-            'ips': self.get_ips(),
+            'deploy_info': self.deploy_info,
         })
         return d

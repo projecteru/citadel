@@ -259,11 +259,9 @@ def deal_with_agent_etcd_change(self, key, data):
     elif healthy:
         container.mark_initialized()
         update_elb_for_containers(container)
-        logger.debug('Healthy condition: [%s, %s, %s] ADD [%s, %s] [%s]', container.appname, container.podname, container.entrypoint, container_id, container.ident, ','.join(container.get_backends()))
     else:
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
         if container.initialized and not container.is_removing():
-            logger.debug('Sick condition: [%s, %s, %s] DEL [%s, %s] [%s]', container.appname, container.podname, container.entrypoint, container_id, container.ident, ','.join(container.get_backends()))
             msg = 'Sick container `{}`\ncitadel url: {}\nkibana log: {}'.format(
                 container,
                 url_for('app.app', name=appname, _external=True),
@@ -271,7 +269,6 @@ def deal_with_agent_etcd_change(self, key, data):
             )
         else:
             container.mark_initialized()
-            logger.debug('Initial sick condition: [%s, %s, %s] DEL [%s, %s] [%s]', container.appname, container.podname, container.entrypoint, container_id, container.ident, ','.join(container.get_backends()))
 
     notbot_sendmsg(subscribers, msg)
 
