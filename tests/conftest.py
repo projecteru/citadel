@@ -2,11 +2,11 @@
 import pytest
 from urllib.parse import urlparse
 
-from .prepare import (default_appname, default_sha, default_git,
-                      make_specs_text, default_combo_name, default_podname,
-                      default_cpu_quota, default_memory, default_network_name)
+from .prepare import PoliteProcess, default_appname, default_sha, default_git, make_specs_text, default_combo_name, default_podname, default_cpu_quota, default_memory, default_network_name
 from citadel.app import create_app
+from citadel.bin.watch_etcd import watch_etcd as watch_etcd_task
 from citadel.ext import db, rds
+from citadel.libs.utils import logger
 from citadel.models.app import App, Release, Combo
 
 
@@ -25,7 +25,7 @@ def app(request):
     return app
 
 
-@pytest.yield_fixture
+@pytest.fixture
 def client(app):
     with app.test_client() as client:
         yield client
@@ -55,3 +55,14 @@ def test_db(request, app):
         rds.flushdb()
 
     request.addfinalizer(teardown)
+
+
+@pytest.fixture
+def watch_etcd():
+    p = PoliteProcess(target=watch_etcd_task, kwargs={'run_async': False}, daemon=True)
+    logger.info('Starting watch_etcd process %s', p)
+    p.start()
+    yield p
+    logger.info('Terminating watch_etcd process %s', p)
+    p.terminate()
+    p.join(10)
