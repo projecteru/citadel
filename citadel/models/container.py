@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-import json
 from datetime import timedelta, datetime
-from etcd import EtcdKeyNotFound
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError, ObjectDeletedError
 from time import sleep
 
-from citadel.ext import db, get_etcd
+from citadel.config import CORE_DEPLOY_INFO_PATH
+from citadel.ext import db
 from citadel.libs.datastructure import purge_none_val_from_dict
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
@@ -34,7 +33,7 @@ class Container(BaseModelMixin, PropsMixin):
     zone = db.Column(db.String(50), nullable=False)
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
-    deploy_info = db.Column(db.JSON)
+    deploy_info = db.Column(db.JSON, default={})
     override_status = db.Column(db.Integer, default=ContainerOverrideStatus.NONE, nullable=False)
 
     initialized = PropsItem('initialized', default=0, type=int)
@@ -76,10 +75,10 @@ class Container(BaseModelMixin, PropsMixin):
 
     @property
     def core_deploy_key(self):
-        return '/eru-core/deploy/{c.appname}/{c.entrypoint}/{c.nodename}/{c.container_id}'.format(c=self)
+        return '{prefix}/{c.appname}/{c.entrypoint}/{c.nodename}/{c.container_id}'.format(c=self, prefix=CORE_DEPLOY_INFO_PATH)
 
     def is_healthy(self):
-        return self.deploy_info['Healthy']
+        return self.deploy_info.get('Healthy')
 
     @property
     def app(self):
@@ -159,6 +158,12 @@ class Container(BaseModelMixin, PropsMixin):
     def mark_initialized(self):
         self.initialized = 1
 
+    def update_deploy_info(self, deploy_info):
+        logger.debug('Update deploy_info for %s: %s', self, deploy_info)
+        self.deploy_info = deploy_info
+        db.session.add(self)
+        db.session.commit()
+
     def wait_for_erection(self, timeout=timedelta(minutes=5), period=timedelta(seconds=2)):
         """wait until this container is healthy, timeout can be timedelta or
         seconds, if timeout is 0, don't even wait and just report healthy"""
@@ -178,7 +183,7 @@ class Container(BaseModelMixin, PropsMixin):
             # deploy_info is written by watch-etcd services, so it's very
             # important to constantly query database, without refresh we'll be
             # constantly hitting sqlalchemy cache
-            db.session.refresh(self, 'deploy_info')
+            db.session.refresh(self, attribute_names=['deploy_info'])
             db.session.commit()
 
         return False
@@ -188,8 +193,8 @@ class Container(BaseModelMixin, PropsMixin):
             return 'debug'
         if self.is_removing():
             return 'removing'
-        running = self.deploy_info['Running']
-        healthy = self.deploy_info['Healthy']
+        running = self.deploy_info.get('Running')
+        healthy = self.deploy_info.get('Healthy')
         if running:
             if healthy:
                 return 'running'
@@ -204,7 +209,7 @@ class Container(BaseModelMixin, PropsMixin):
     def delete(self):
         try:
             self.destroy_props()
-            logger.debug('Delete container %s, name %s', self.container_id, self.name)
+            logger.debug('Delete container %s', self)
         except ObjectDeletedError:
             logger.debug('Error during deleting: Object %s already deleted', self)
             return None

@@ -3,7 +3,6 @@ import json
 from celery import current_app
 from celery.result import AsyncResult
 from datetime import datetime, timedelta
-from flask import url_for
 from grpc import RpcError, StatusCode
 from humanfriendly import parse_timespan
 
@@ -17,7 +16,7 @@ from citadel.models.container import ContainerOverrideStatus
 from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction, ELBInstance
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc.client import get_core
-from citadel.views.helper import make_deploy_options, make_kibana_url
+from citadel.views.helper import make_deploy_options
 
 
 @current_app.task(bind=True)
@@ -225,50 +224,59 @@ def clean_stuff(self):
 
 
 @current_app.task(bind=True)
-def deal_with_agent_etcd_change(self, key, data):
-    container_id = data.get('ID')
-    healthy = data.get('Healthy')
-    alive = data.get('Alive')
-    appname = data.get('Name')
+def deal_with_agent_etcd_change(self, key, deploy_info):
+    container_id = deploy_info['ID']
+    healthy = deploy_info['Healthy']
+    appname = deploy_info['Name']
     app = App.get_by_name(appname)
     container = Container.get_by_container_id(container_id)
-    if None in [container_id, healthy, alive, appname, app, container]:
-        return
+    previous_deploy_info = container.deploy_info
+    container.update_deploy_info(deploy_info)
 
+    # TODO: use new ELB lib
+    # 只要是健康, 无论如何也做一次 ELB 更新, 一方面是反正不贵,
+    # 另一方面如果之前哪里出错了没更新成功, 下一次更新还有可能修好
+    if healthy:
+        logger.info('ELB: ADD [%s, %s, %s, %s, %s]', container.appname, container.podname, container.entrypoint, container_id, container.publish)
+        update_elb_for_containers(container)
+    else:
+        logger.info('ELB: REMOVE [%s, %s, %s, %s, %s]', container.appname, container.podname, container.entrypoint, container_id, container.publish)
+        update_elb_for_containers(container, UpdateELBAction.REMOVE)
+
+    # 处理完了 ELB, 再根据前后状态决定要发什么报警信息
     subscribers = app.subscribers
     msg = ''
 
-    if not alive:
-        logger.info('[%s, %s, %s] REMOVE [%s] from ELB', container.appname, container.podname, container.entrypoint, container_id)
-        update_elb_for_containers(container, UpdateELBAction.REMOVE)
-
-        exitcode = container.info.get('State', {}).get('ExitCode', None)
-        # remove cronjob container
-        if exitcode == 0 and container.is_cronjob():
-            remove_container(container_id)
-            return
-
-        if not container.is_removing() and exitcode != 0:
-            msg = 'Dead container `{}`\nexit code: {}\nOOMKilled: {}\ncitadel url: {}\ncontainer log: {}'.format(
-                container,
-                exitcode,
-                container.info.get('State', {}).get('OOMKilled', None),
-                url_for('app.app', name=appname, _external=True),
-                make_kibana_url(appname=appname, ident=container.ident),
-            )
-    elif healthy:
-        container.mark_initialized()
-        update_elb_for_containers(container)
-    else:
-        update_elb_for_containers(container, UpdateELBAction.REMOVE)
-        if container.initialized and not container.is_removing():
-            msg = 'Sick container `{}`\ncitadel url: {}\nkibana log: {}'.format(
-                container,
-                url_for('app.app', name=appname, _external=True),
-                make_kibana_url(appname=appname, ident=container.ident)
-            )
-        else:
+    # TODO: acquire exit-code
+    # TODO: handle cronjob containers
+    previous_healthy = previous_deploy_info.get('Healthy')
+    if healthy:
+        # 健康万岁
+        if previous_healthy is None:
+            # 容器第一次健康, 说明刚刚初始化好, 就不需要报警了, mark 一下就好
             container.mark_initialized()
+        elif previous_healthy is False:
+            # 容器病好了, 要汇报好消息, 但是如果是第一次病好,
+            # 那说明只是初始化成功, 这种情况就没必要报警了,
+            # 每个容器都会经历一次, 只需要 mark 一下就好
+            if container.initialized:
+                msg = 'Container resurge: {}'.format(container)
+            else:
+                container.mark_initialized()
+        else:
+            # 之前也健康, 那就不用管了
+            pass
+    else:
+        # 生病了
+        if previous_healthy is None:
+            # 说明刚刚初始化好, 这时候不健康也是正常的, 可以忽略
+            pass
+        elif previous_healthy is False:
+            # 之前就不健康, 那说明已经发过报警了, 就不要骚扰用户了
+            pass
+        else:
+            # 之前是健康的, 现在病了, 当然要报警
+            msg = 'Container sick: {}'.format(container)
 
     notbot_sendmsg(subscribers, msg)
 

@@ -6,12 +6,13 @@ import argparse
 import json
 import logging
 
-from citadel.config import DEBUG
-from citadel.ext import get_etcd
 from citadel.app import celery  # must import citadel.app before importing citadel.tasks
+from citadel.config import DEBUG, CORE_DEPLOY_INFO_PATH, DEFAULT_ZONE
+from citadel.ext import get_etcd
 from citadel.tasks import deal_with_agent_etcd_change
 
 
+_ = celery  # to prevent unused variable
 logging.getLogger('requests').setLevel(logging.CRITICAL)
 logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 if DEBUG:
@@ -23,23 +24,27 @@ logging.basicConfig(level=log_level, format='%(levelname)s - %(asctime)s: %(mess
 logger = logging.getLogger('etcd-watcher')
 
 
-def watch_etcd(zone=None, etcd_path='/agent2'):
+def watch_etcd(zone=DEFAULT_ZONE, run_async=True):
     etcd = get_etcd(zone)
-    logger.info('Start watching etcd at zone %s, path %s', zone, etcd_path)
-    for resp in etcd.eternal_watch(etcd_path, recursive=True):
-        if not resp or resp.action != 'set':
+    logger.info('Start watching etcd at zone %s, path %s', zone, CORE_DEPLOY_INFO_PATH)
+    for resp in etcd.eternal_watch(CORE_DEPLOY_INFO_PATH, recursive=True):
+        if not resp or resp.action != 'update' or not resp.value:
+            logger.debug('Discard ETCD event: key %s, action %s, value %s', resp.key, resp.action, resp.value)
             continue
         event = json.loads(resp.value)
-        if event.get('Name') == 'lambda':
+        if event['Name'] in {'eru', 'lambda'}:
+            logger.debug('Discard ETCD event: key %s, value %s', resp.key, resp.value)
             continue
         logger.info('Watch ETCD event: key %s, value %s', resp.key, resp.value)
-        deal_with_agent_etcd_change.delay(resp.key, json.loads(resp.value))
+        if run_async:
+            deal_with_agent_etcd_change.delay(resp.key, json.loads(resp.value))
+        else:
+            deal_with_agent_etcd_change(resp.key, json.loads(resp.value))
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Watch etcd service, must run in every citadel zone')
     parser.add_argument('zone', help='zone to watch')
-    parser.add_argument('-w', '--watch', dest='etcd_path', default='/agent2', help='etcd directory to watch recursively, depend on eru-agent config')
     args = parser.parse_args()
     return args
 

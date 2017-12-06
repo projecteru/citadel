@@ -13,7 +13,7 @@ from citadel.tasks import build_image, create_container, remove_container
 pytestmark = pytest.mark.skipif(not core_online, reason='one or more eru-core is offline, skip core-related tests')
 
 
-def test_workflow(test_db):
+def test_workflow(test_db, watch_etcd):
     """
     test celery tasks, all called synchronously
     build, create, upgrade, remove, and check if everything works
@@ -37,14 +37,20 @@ def test_workflow(test_db):
     assert not container_info['error']
     container_id = container_info['id']
     container = Container.get_by_container_id(container_id)
+    # agent 肯定还没探测到, 所以 deploy_info 应该是默认值
+    assert container.deploy_info == {}
     assert container.podname == default_podname
     assert container.memory == default_memory
     assert float(container.cpu_quota) == default_cpu_quota
 
     # check etcd data at /eru-core/deploy/test-app/web
-    container.wait_for_erection()
+    container.wait_for_erection(timeout=10)
     etcd = get_etcd(DEFAULT_ZONE)
     deploy_info = json.loads(etcd.read(container.core_deploy_key).value)
+
+    # check watch_etcd process is actually working
+    assert container.deploy_info == deploy_info
+
     # TODO: eru-core / agent etcd data refactory
     assert deploy_info['Extend']['healthcheck_ports'] == default_ports[0]
     assert deploy_info['Extend']['healthcheck_url'] == '/'
