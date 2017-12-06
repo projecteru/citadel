@@ -39,7 +39,7 @@ ZONE_CONFIG = {
     },
 }
 
-SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', default='mysql+pymysql://root:@localhost:3306/citadel')
+SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', default='mysql+pymysql://root:@localhost:3306/citadeltest')
 SQLALCHEMY_TRACK_MODIFICATIONS = getenv('SQLALCHEMY_TRACK_MODIFICATIONS', default=True, type=bool)
 
 OAUTH2_BASE_URL = getenv('OAUTH2_BASE_URL', default='https://sso.ricebook.net/oauth/api/')
