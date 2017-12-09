@@ -39,7 +39,7 @@ def get_backends(backend_name, exclude_containers=()):
                                               sha=short_sha)
                   if c not in exclude_containers and
                   not c.override_status]
-    return [b for c in containers for b in c.get_backends()]
+    return [b for c in containers for b in c.publish.values()]
 
 
 @memoize
@@ -227,11 +227,9 @@ class ELBInstance(BaseModelMixin):
         return Container.get_by_container_id(self.container_id)
 
     @property
-    def ip(self):
-        if not self.container:
-            return 'Unknown'
-        ips = self.container.get_ips()
-        return ips and ips[0] or 'Unknown'
+    def address(self):
+        _, address = self.container.publish.popitem()
+        return address
 
     def is_alive(self):
         return self.container and self.container.status() == 'running'

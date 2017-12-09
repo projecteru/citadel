@@ -34,12 +34,12 @@
                 data-html='true'
                 data-original-title='钻进去看看'
                 data-content="
-                <a href='http://${ elb.ip }/__erulb__/upstream' target='_blank'><span class='label label-info'>upstream</span></a>
-                <a href='http://${ elb.ip }/__erulb__/rule' target='_blank'><span class='label label-info'>rule</span></a>
+                <a href='http://${ elb.address }/__erulb__/upstream' target='_blank'><span class='label label-info'>upstream</span></a>
+                <a href='http://${ elb.address }/__erulb__/rule' target='_blank'><span class='label label-info'>rule</span></a>
                 <br> <br>
                 <pre><code style='font-size:70%;white-space:nowrap' >${ ssh_command_root }</code><br><code style='font-size:70%;white-space:nowrap' >${ ssh_command_process }</code></pre>
                 ">
-                ${ elb.ip }
+                ${ elb.address }
               </a>
             </td>
             <td><span class="label label-${'success' if elb.is_alive() else 'danger'}">${ elb.container.short_id }</span></td>
