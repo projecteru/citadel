@@ -29,6 +29,7 @@ MAKO_TRANSLATE_EXCEPTIONS = False
 AGENT_PORT = getenv('AGENT_PORT', default=12345, type=int)
 REDIS_URL = getenv('REDIS_URL', default='redis://127.0.0.1:6379/0')
 
+CORE_DEPLOY_INFO_PATH = '/eru-core/deploy'
 DEFAULT_ZONE = 'test-zone'
 BUILD_ZONE = 'test-zone'
 ZONE_CONFIG = {

@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import multiprocessing
+import traceback
+
 import random
 import string
 import yaml
@@ -96,3 +99,31 @@ def make_specs(appname=default_appname,
     specs_string = yaml.dump(specs_dict)
     Specs.validate(specs_string)
     return Specs.from_string(specs_string)
+
+
+class PoliteProcess(multiprocessing.Process):
+    """
+    same as multiprocessing.Process, but can handle childs' exceptions in
+    parent process
+    https://stackoverflow.com/questions/19924104/python-multiprocessing-handling-child-errors-in-parent
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(PoliteProcess, self).__init__(*args, **kwargs)
+        self._pconn, self._cconn = multiprocessing.Pipe()
+        self._exception = None
+
+    def run(self):
+        try:
+            multiprocessing.Process.run(self)
+            self._cconn.send(None)
+        except Exception as e:
+            tb = traceback.format_exc()
+            self._cconn.send((e, tb))
+            raise e
+
+    @property
+    def exception(self):
+        if self._pconn.poll():
+            self._exception = self._pconn.recv()
+        return self._exception

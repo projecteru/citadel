@@ -73,9 +73,9 @@
             </a>
           </td>
           <td>
-            % if c.get_ips():
-              % for n in c.get_ips():
-                <span class="block-span">${ n }</span>
+            % if c.publish:
+              % for address in c.publish.values():
+                <span class="block-span">${ address }</span>
               % endfor
             % else:
               host / none

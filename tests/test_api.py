@@ -66,7 +66,7 @@ def test_combo(test_db, client):
                       data=json.dumps(data),
                       headers=json_headers)
     assert res.status_code == 200
-    combo = json.loads(res.data)
+    combo = res.json
     assert combo['cpu_quota'] == 4.5
     assert combo['memory'] == parse_size('512MB', binary=True)
     assert combo['networks'] == ['release']
