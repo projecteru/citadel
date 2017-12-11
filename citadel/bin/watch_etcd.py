@@ -24,7 +24,7 @@ logging.basicConfig(level=log_level, format='%(levelname)s - %(asctime)s: %(mess
 logger = logging.getLogger('etcd-watcher')
 
 
-def watch_etcd(zone=DEFAULT_ZONE, run_async=True):
+def watch_etcd(zone=DEFAULT_ZONE, sync=False):
     etcd = get_etcd(zone)
     logger.info('Start watching etcd at zone %s, path %s', zone, CORE_DEPLOY_INFO_PATH)
     for resp in etcd.eternal_watch(CORE_DEPLOY_INFO_PATH, recursive=True):
@@ -33,22 +33,23 @@ def watch_etcd(zone=DEFAULT_ZONE, run_async=True):
             continue
         event = json.loads(resp.value)
         if event['Name'] in {'eru', 'lambda'}:
-            logger.debug('Discard ETCD event: key %s, value %s', resp.key, resp.value)
+            logger.debug('Discard ETCD event: key %s, action %s, value %s', resp.key, resp.action, resp.value)
             continue
-        logger.info('Watch ETCD event: key %s, value %s', resp.key, resp.value)
-        if run_async:
-            deal_with_agent_etcd_change.delay(resp.key, json.loads(resp.value))
-        else:
+        logger.info('Capture ETCD event: key %s, value %s', resp.key, resp.value)
+        if sync:
             deal_with_agent_etcd_change(resp.key, json.loads(resp.value))
+        else:
+            deal_with_agent_etcd_change.delay(resp.key, json.loads(resp.value))
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Watch etcd service, must run in every citadel zone')
-    parser.add_argument('zone', help='zone to watch')
+    parser.add_argument('--zone', default=DEFAULT_ZONE, help='zone to watch, default to {}'.format(DEFAULT_ZONE))
+    parser.add_argument('--sync', action='store_true')
     args = parser.parse_args()
     return args
 
 
 if __name__ == '__main__':
     args = parse_args()
-    watch_etcd(zone=args.zone, etcd_path=args.etcd_path)
+    watch_etcd(zone=args.zone, sync=args.sync)
