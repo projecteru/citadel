@@ -176,6 +176,7 @@ class Container(BaseModelMixin, PropsMixin):
             period = timedelta(seconds=period)
 
         must_end = datetime.now() + timeout
+        logger.debug('Waiting for container %s to become healthy...', self)
         while datetime.now() < must_end:
             if self.is_healthy():
                 return True

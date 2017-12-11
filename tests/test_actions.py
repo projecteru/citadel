@@ -9,7 +9,7 @@ from citadel.rpc.client import get_core
 pytestmark = pytest.mark.skipif(not core_online, reason='one or more eru-core is offline, skip core-related tests')
 
 
-def test_workflow():
+def test_workflow(request):
     '''
     test core grpc here, no flask and celery stuff involved
     build, create, remove, and check if everything works
@@ -46,6 +46,18 @@ def test_workflow():
                                       count=1,
                                       networks=networks)
     deploy_messages = list(core.create_container(deploy_options))
+
+    container_info = deploy_messages[0]
+    container_id = container_info.id
+
+    def cleanup():
+        remove_container_messages = list(core.remove_container([container_id]))
+        assert len(remove_container_messages) == 1
+        remove_container_message = remove_container_messages[0]
+        assert remove_container_message.success is True
+
+    request.addfinalizer(cleanup)
+
     assert len(deploy_messages) == 1
     deploy_message = deploy_messages[0]
     assert not deploy_message.error
@@ -55,11 +67,3 @@ def test_workflow():
     assert len(network) == 1
     network_name, ip = network.popitem()
     assert network_name == default_network_name
-
-    # clean this up
-    container_info = deploy_messages[0]
-    container_id = container_info.id
-    remove_container_messages = list(core.remove_container([container_id]))
-    assert len(remove_container_messages) == 1
-    remove_container_message = remove_container_messages[0]
-    assert remove_container_message.success is True

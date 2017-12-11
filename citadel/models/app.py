@@ -357,7 +357,8 @@ class Release(BaseModelMixin):
         # TODO: extra hosts support
         # TODO: wtf is meta
         # TODO: wtf is nodelabels
-        healthcheck_opt = pb.HealthCheckOptions(ports=[str(entrypoint.healthcheck_port)],
+        healthcheck_opt = pb.HealthCheckOptions(tcp_ports=[str(p) for p in entrypoint.healthcheck_tcp_ports],
+                                                http_port=str(entrypoint.healthcheck_http_port),
                                                 url=entrypoint.healthcheck_url,
                                                 code=entrypoint.healthcheck_expected_code)
         entrypoint_opt = pb.EntrypointOptions(name=entrypoint_name,

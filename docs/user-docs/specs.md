@@ -76,7 +76,7 @@ combos:
 	* `image`: docker 镜像, 允许各个 entrypoint 用不同的 image 部署 (比 app 镜像拥有更高优先级).
 	* `restart`: 标准的 docker restart policy.
 	* `healthcheck_url`: 只要声明了 `ports` 就会免费送你 tcp 健康检查的, 但是写了这个健康检查 url 的话, 应用可以做更灵活准确的健康检查.tcp 健康检查的原理很简单：agent 会去尝试连接 `{容器IP}:{容器端口}` 这个地址, 连接失败认为是挂了, 修改 etcd 里容器的健康状态, 其余工作交给 citadel 来完成. http 的话 agent 会去尝试 GET `http://[IP]:[PORT]/[healthcheck_url]`, 你还可以声明请求 `healthcheck_url` 所期待的状态码, 见 `healthcheck_expected_code`.
-	* `healthcheck_port`: 如果用来做健康检查的端口和暴露给 ELB 的端口不一样, 需要在这里声明.
+	* `healthcheck_http_port`: 用 http 来做健康检查的话, 需要声明端口.
 	* `healthcheck_expected_code`: 声明了健康检查 url 的期待返回值, 如果没有声明, 则认为 [200, 500) 区间的状态码都属于健康.因为这个进程还在响应请求, 这里的超时时间是 5 秒, 5 秒还没有返回认为容器不健康, 会发送报警到项目 `subscribers`.
 	* `network_mode`: 如果你不想用 calico 的 SDN, 可以在这里标记为 host, 这样会占用整个宿主机的 IP, 最好不要这样, 不作死就不会死.
 	* `log_config`: 可选 `json-file`, `none`, `syslog` 等, 可以覆盖整个 core 的日志配置, 也就是说可以上一个用 json-file 来记日志的容器, 方便实时 debug, 但是我们其实有其他的 debug 手段, 所以这个选项也可以无视掉, 不作死就不会死.
