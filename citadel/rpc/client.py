@@ -34,7 +34,6 @@ def handle_grpc_exception(default=None):
 _STREAM_TIMEOUT = 3600
 _UNARY_TIMEOUT = 5
 
-_GET_POD_NETWORKS = 'citadel:getpodnetworks:{name}'
 _GET_NODE = 'citadel:getnode:{podname}:{nodename}'
 
 
@@ -87,10 +86,9 @@ class CoreRPC:
         return sorted([Node(n) for n in r.nodes], key=attrgetter('name'))
 
     @handle_grpc_exception(default=list)
-    @cache(_GET_POD_NETWORKS, ttl=ONE_DAY)
-    def get_pod_networks(self, name):
+    def list_networks(self, podname, driver=None):
         stub = self._get_stub()
-        opts = GetPodOptions(name=name)
+        opts = pb.ListNetworkOptions(podname=podname, driver=driver)
         r = stub.ListNetworks(opts, _UNARY_TIMEOUT)
         return [Network(n) for n in r.networks]
 
