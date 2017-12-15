@@ -44,6 +44,7 @@ class Node(JSONMessage):
     def __init__(self, node):
         super(Node, self).__init__(node)
         self.cpu = dict(node.cpu)
+        self.labels = dict(node.labels)
         self.info = node.info and json.loads(node.info) or {}
 
     @property
