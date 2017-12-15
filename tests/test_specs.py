@@ -42,18 +42,32 @@ def test_healthcheck():
             'cmd': 'python -m http.server',
             'ports': default_ports,
         },
-        'web-special-healthcheck': {
+        'web-http-healthcheck': {
             'cmd': 'python -m http.server',
             'ports': default_ports,
             'healthcheck_url': '/healthcheck',
-            'healthcheck_port': 8808,
+            'healthcheck_http_port': 8808,
+            'healthcheck_expected_code': 200,
         },
     }
     specs = make_specs(entrypoints=entrypoints)
     web_default_healthcheck = specs.entrypoints['web-default-healthcheck']
-    assert web_default_healthcheck.healthcheck_url == '/'
-    assert web_default_healthcheck.healthcheck_port == int(default_ports[0])
+    assert web_default_healthcheck.healthcheck_tcp_ports == default_ports
+    assert not web_default_healthcheck.healthcheck_url
 
-    web_special_healthcheck = specs.entrypoints['web-special-healthcheck']
-    assert web_special_healthcheck.healthcheck_url == '/healthcheck'
-    assert web_special_healthcheck.healthcheck_port == 8808
+    web_http_healthcheck = specs.entrypoints['web-http-healthcheck']
+    assert web_http_healthcheck.healthcheck_http_port == 8808
+    assert web_http_healthcheck.healthcheck_expected_code == 200
+
+    # if use http health check, must define all three variables
+    bad_entrypoints = {
+        'web-http-healthcheck': {
+            'cmd': 'python -m http.server',
+            'ports': default_ports,
+            'healthcheck_url': '/healthcheck',
+            # 'healthcheck_http_port': 8808,
+            'healthcheck_expected_code': 200,
+        },
+    }
+    with pytest.raises(ValidationError):
+        make_specs(entrypoints=bad_entrypoints)
