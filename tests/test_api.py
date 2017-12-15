@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
+import pytest
 from flask import url_for
 from humanfriendly import parse_size
 
-from .prepare import default_appname, make_specs_text, default_ports, make_specs
+from .prepare import default_appname, make_specs_text, default_ports, make_specs, core_online, default_podname
 from citadel.models.app import Release
 
 
@@ -82,3 +83,19 @@ def test_combo(test_db, client):
                       data=json.dumps(data),
                       headers=json_headers)
     assert res.status_code == 422
+
+
+@pytest.mark.skipif(not core_online, reason='needs eru-core')
+def test_pod_meta(test_db, client):
+    # nothing to assert here, just to see if everything works
+    all_pods = client.get(url_for('pod.get_all_pods')).json
+    assert len(all_pods) == 1
+    podname = all_pods[0]['name']
+    assert podname == default_podname
+
+    pod_info = client.get(url_for('pod.get_pod', name=podname)).json
+    assert pod_info
+    pod_nodes = client.get(url_for('pod.get_pod_nodes', name=podname)).json
+    assert pod_nodes
+    networks = client.get(url_for('pod.list_networks', name=podname)).json
+    assert networks
