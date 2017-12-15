@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from flask import g, request, abort
+from flask import g, abort
 
-from citadel.libs.datastructure import AbortDict
 from citadel.libs.view import create_api_blueprint
 from citadel.models.container import Container
 from citadel.rpc.client import get_core
@@ -41,38 +40,6 @@ def get_pod_containers(name):
 
 
 @bp.route('/<name>/networks', methods=['GET'])
-def get_pod_networks(name):
+def list_networks(name):
     pod = _get_pod(name)
-    return get_core(g.zone).get_pod_networks(pod.name)
-
-
-@bp.route('/<name>/addnode', methods=['PUT', 'POST'])
-def add_node(name):
-    pod = _get_pod(name)
-
-    json_data = request.get_json()
-    data = json_data and AbortDict(json_data) or request.form
-
-    cafile, certfile, keyfile = '', '', ''
-    if json_data:
-        cafile = data.get('cafile', '')
-        certfile = data.get('certfile', '')
-        keyfile = data.get('keyfile', '')
-    else:
-        try:
-            cafile = request.files['cafile'].read()
-            certfile = request.files['certfile'].read()
-            keyfile = request.files['keyfile'].read()
-        except KeyError:
-            pass
-
-    nodename = data['nodename']
-    endpoint = data['endpoint']
-    public = bool(data.get('public', ''))
-
-    bundle = (cafile, certfile, keyfile)
-
-    if not all(bundle) and any(bundle):
-        abort(400, 'cafile, certfile, keyfile must be either all empty or none empty')
-
-    return get_core(g.zone).add_node(nodename, endpoint, pod.name, cafile, certfile, keyfile, public)
+    return get_core(g.zone).list_networks(pod.name)
