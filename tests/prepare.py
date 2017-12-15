@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-import multiprocessing
-import traceback
-
 import random
 import string
 import yaml
@@ -32,6 +29,13 @@ default_entrypoints = {
     'web': {
         'cmd': 'python -m http.server',
         'ports': default_ports,
+        'healthcheck_http_port': int(default_ports[0]),
+        'healthcheck_url': '/{}'.format(artifact_filename),
+        'healthcheck_expected_code': 200,
+    },
+    'web-bad-ports': {
+        'cmd': 'python -m http.server',
+        'ports': ['8000', '8001'],
     },
     'test-working-dir': {
         'cmd': 'echo pass',
@@ -99,31 +103,3 @@ def make_specs(appname=default_appname,
     specs_string = yaml.dump(specs_dict)
     Specs.validate(specs_string)
     return Specs.from_string(specs_string)
-
-
-class PoliteProcess(multiprocessing.Process):
-    """
-    same as multiprocessing.Process, but can handle childs' exceptions in
-    parent process
-    https://stackoverflow.com/questions/19924104/python-multiprocessing-handling-child-errors-in-parent
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(PoliteProcess, self).__init__(*args, **kwargs)
-        self._pconn, self._cconn = multiprocessing.Pipe()
-        self._exception = None
-
-    def run(self):
-        try:
-            multiprocessing.Process.run(self)
-            self._cconn.send(None)
-        except Exception as e:
-            tb = traceback.format_exc()
-            self._cconn.send((e, tb))
-            raise e
-
-    @property
-    def exception(self):
-        if self._pconn.poll():
-            self._exception = self._pconn.recv()
-        return self._exception

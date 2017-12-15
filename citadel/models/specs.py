@@ -195,7 +195,8 @@ class EntrypointSchema(Schema):
     network_mode = fields.Str()
     restart = fields.Str(validate=validate_restart)
     healthcheck_url = fields.Str()
-    healthcheck_port = fields.Int(validate=validate_port)
+    healthcheck_http_port = fields.Int(validate=validate_port)
+    healthcheck_tcp_ports = fields.List(fields.Int(validate=validate_port))
     healthcheck_expected_code = fields.Int(validate=validate_http_code)
     privileged = fields.Bool(missing=False)
     log_config = fields.Str(validate=validate_log_config)
@@ -207,7 +208,8 @@ class EntrypointSchema(Schema):
 
 class Entrypoint(Jsonized):
     def __init__(self, command=None, image=None, ports=None, network_mode=None,
-                 restart=None, healthcheck_url=None, healthcheck_port=None,
+                 restart=None, healthcheck_url=None,
+                 healthcheck_http_port=None, healthcheck_tcp_ports=None,
                  healthcheck_expected_code=None, hosts=None, privileged=None,
                  log_config=None, working_dir=None, after_start=None,
                  before_stop=None, backup_path=None, _raw=None):
@@ -217,7 +219,8 @@ class Entrypoint(Jsonized):
         self.network_mode = network_mode
         self.restart = restart
         self.healthcheck_url = healthcheck_url
-        self.healthcheck_port = healthcheck_port
+        self.healthcheck_http_port = healthcheck_http_port
+        self.healthcheck_tcp_ports = healthcheck_tcp_ports
         self.healthcheck_expected_code = healthcheck_expected_code
         self.hosts = hosts
         self.privileged = privileged
@@ -256,20 +259,25 @@ class SpecsSchema(StrictSchema):
             if not entrypoint.get('working_dir'):
                 entrypoint['working_dir'] = '/home/{}'.format(data['appname'])
 
-            # set default healthcheck to app's first publish ports
-            ports = entrypoint.get('ports')
-            if ports:
-                if not entrypoint.get('healthcheck_port'):
-                    entrypoint['healthcheck_port'] = ports[0]['port']
+            # 只要声明 ports, 就全部赠送 tcp 健康检查
+            publish_ports = entrypoint.get('ports')
+            healthcheck_tcp_ports = entrypoint.get('healthcheck_tcp_ports')
+            if publish_ports and not healthcheck_tcp_ports:
+                entrypoint['healthcheck_tcp_ports'] = [str(p['port']) for p in publish_ports]
 
-                if not entrypoint.get('healthcheck_url'):
-                    entrypoint['healthcheck_url'] = '/'
-
-    @validates_schema
-    def check_raw(self, data):
+    @validates_schema(pass_original=True)
+    def validate_misc(self, data, original_data):
+        # check raw related fields
         raw = False if data.get('stages') else True
         if not raw and data.get('container_user'):
             raise ValidationError('cannot specify container_user because this release is not raw')
+
+        for _, entrypoint in original_data['entrypoints'].items():
+            healthcheck_stuff = [entrypoint.get('healthcheck_url'),
+                                 entrypoint.get('healthcheck_http_port'),
+                                 entrypoint.get('healthcheck_expected_code')]
+            if any(healthcheck_stuff) and not all(healthcheck_stuff):
+                raise ValidationError('If you plan to use HTTP health check, you must define healthcheck_url, healthcheck_http_port, healthcheck_expected_code')
 
 
 class Specs(Jsonized):

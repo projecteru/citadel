@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import pytest
+import subprocess
+import threading
 from urllib.parse import urlparse
 
-from .prepare import PoliteProcess, default_appname, default_sha, default_git, make_specs_text, default_combo_name, default_podname, default_cpu_quota, default_memory, default_network_name
+from .prepare import default_appname, default_sha, default_git, make_specs_text, default_combo_name, default_podname, default_cpu_quota, default_memory, default_network_name
 from citadel.app import create_app
-from citadel.bin.watch_etcd import watch_etcd as watch_etcd_task
 from citadel.ext import db, rds
 from citadel.libs.utils import logger
 from citadel.models.app import App, Release, Combo
@@ -58,11 +59,25 @@ def test_db(request, app):
 
 
 @pytest.fixture
-def watch_etcd():
-    p = PoliteProcess(target=watch_etcd_task, kwargs={'run_async': False}, daemon=True)
+def watch_etcd(request, test_db):
+    p = subprocess.Popen(
+        'bin/run-etcd-watcher --zone test-zone --sync'.split(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
     logger.info('Starting watch_etcd process %s', p)
-    p.start()
-    yield p
-    logger.info('Terminating watch_etcd process %s', p)
-    p.terminate()
-    p.join(10)
+
+    def async_thread_output(p):
+        while p.poll() is None:
+            # A None value indicates that the process hasn't terminated yet.
+            print(p.stdout.readline())
+
+    t = threading.Thread(target=async_thread_output, args=(p, ))
+    t.start()
+
+    def teardown():
+        logger.info('Terminating watch_etcd process %s', p)
+        p.terminate()
+
+    request.addfinalizer(teardown)
+    return p
