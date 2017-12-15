@@ -72,12 +72,13 @@ def watch_etcd(request, test_db):
             # A None value indicates that the process hasn't terminated yet.
             print(p.stdout.readline())
 
-    t = threading.Thread(target=async_thread_output, args=(p, ))
+    t = threading.Thread(target=async_thread_output, args=(p, ), daemon=True)
     t.start()
 
     def teardown():
         logger.info('Terminating watch_etcd process %s', p)
         p.terminate()
+        t.join(10)
 
     request.addfinalizer(teardown)
     return p
