@@ -372,7 +372,7 @@ class Release(BaseModelMixin):
         app = self.app
         env_set = app.get_env_set(combo.envname)
         networks = {network_name: '' for network_name in combo.networks}
-        deploy_opt = pb.DeployOptions(name=app.name,
+        deploy_opt = pb.DeployOptions(name=specs.name,
                                       entrypoint=entrypoint_opt,
                                       podname=podname or combo.podname,
                                       nodename=nodename or combo.nodename,

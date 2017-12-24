@@ -237,6 +237,7 @@ entrypoint_schema = EntrypointSchema()
 
 class SpecsSchema(StrictSchema):
     appname = fields.Str(required=True)
+    name = fields.Str()
     entrypoints = fields.Function(deserialize=parse_entrypoints, required=True)
     dns = fields.List(fields.Str())
     hosts = fields.List(fields.Str())
@@ -254,6 +255,9 @@ class SpecsSchema(StrictSchema):
 
     @post_load
     def fix_defaults(self, data):
+        if 'name' not in data:
+            data['name'] = data['appname']
+
         for _, entrypoint in data['entrypoints'].items():
             # set default working_dir to app's home
             if not entrypoint.get('working_dir'):
@@ -289,12 +293,13 @@ class Specs(Jsonized):
 
     exclude_from_dump = ['crontab']
 
-    def __init__(self, appname=None, entrypoints={}, dns=None, hosts=None,
-                 stages=None, container_user=None, builds={}, volumes=None,
-                 base=None, permitted_users=None, subscribers=None,
-                 erection_timeout=None, freeze_node=None, smooth_upgrade=None,
-                 crontab=None, _raw=None):
+    def __init__(self, appname=None, name=None, entrypoints={}, dns=None,
+                 hosts=None, stages=None, container_user=None, builds={},
+                 volumes=None, base=None, permitted_users=None,
+                 subscribers=None, erection_timeout=None, freeze_node=None,
+                 smooth_upgrade=None, crontab=None, _raw=None):
         self.appname = appname
+        self.name = name
         self.entrypoints = {entrypoint_name: Entrypoint(_raw=data, **data) for entrypoint_name, data in entrypoints.items()}
         self.dns = dns
         self.hosts = hosts
