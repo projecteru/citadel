@@ -14,7 +14,6 @@
 	* [定时备份容器目录](docs/user-docs/backup.md)
 	* [定时任务功能](docs/user-docs/crontab.md)
 	* [容器内环境变量](docs/user-docs/env.md)
-	* [FAQ](docs/user-docs/FAQ.md)
 
 * 开发者文档
 	* [开发与部署](docs/dev-docs/dev.md)

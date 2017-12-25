@@ -39,7 +39,7 @@ default_entrypoints = {
     },
     'test-working-dir': {
         'cmd': 'echo pass',
-        'working_dir': '/tmp',
+        'dir': '/tmp',
     },
 }
 default_builds = {
