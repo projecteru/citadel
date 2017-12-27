@@ -56,8 +56,6 @@ ELB_BACKEND_NAME_DELIMITER = getenv('ELB_BACKEND_NAME_DELIMITER', default='___')
 ELB_POD_NAME = getenv('ELB_POD_NAME', default='elb')
 CITADEL_HEALTH_CHECK_STATS_KEY = 'citadel:health'
 
-HUB_ADDRESS = getenv('HUB_ADDRESS', default='hub.ricebook.net')
-
 REDIS_POD_NAME = getenv('REDIS_POD_NAME', default='redis')
 
 NOTBOT_SENDMSG_URL = getenv('NOTBOT_SENDMSG_URL', default='http://notbot.intra.ricebook.net/api/sendmsg.peter')
