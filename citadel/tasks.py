@@ -7,7 +7,7 @@ from grpc import RpcError, StatusCode
 from humanfriendly import parse_timespan
 
 from citadel.config import ZONE_CONFIG, CITADEL_TACKLE_TASK_THROTTLING_KEY, ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
-from citadel.ext import rds, hub
+from citadel.ext import rds
 from citadel.libs.exceptions import ActionError, ModelDeleteError
 from citadel.libs.utils import notbot_sendmsg, logger
 from citadel.models import Container, Release
@@ -208,15 +208,6 @@ def clean_stuff(self):
             r.delete()
         except ModelDeleteError:
             continue
-
-    # clean detached images
-    hub_eru_apps = [n for n in hub.get_all_repos() if n.startswith('eruapp')]
-    for repo_name in hub_eru_apps:
-        appname = repo_name.split('/', 1)[-1]
-        for short_sha in hub.get_tags(repo_name) or []:
-            if not Release.get_by_app_and_sha(appname, short_sha):
-                if hub.delete_repo(repo_name, short_sha):
-                    logger.info('Delete image %s:%s', appname, short_sha)
 
     # clean oplogs
     threshold = datetime.now() - timedelta(days=7)
