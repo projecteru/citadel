@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import mapi
 from etcd import Client
 from flask_caching import Cache
 from flask_mako import MakoTemplates
@@ -38,4 +37,3 @@ sso = oauth.remote_app(
 
 cache = Cache(config={'CACHE_TYPE': 'redis'})
 sess = Session()
-hub = mapi.MapiClient(HUB_ADDRESS, use_tls=True)
