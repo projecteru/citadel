@@ -1,3 +1,7 @@
+## Citadel
+
+[![Build Status](https://travis-ci.org/projecteru2/citadel.svg?branch=master)](https://travis-ci.org/projecteru2/citadel)
+
 这里是 Citadel 的文档, Citadel 本身是联系各个 ERU 组件的一个 WEB 项目, 开发者可以用 Citadel 管理应用, 包括上下线, 在 ELB 上绑定域名, 以及一些 ERU 的运维操作. 此外, 我们在 ENJOY 用 Citadel, eru-cli, GitLab CI 搭建了一套持续集成方案. 目前 Citadel 还在重新开发中.
 
 #### Citadel 与 eru-core / ELB

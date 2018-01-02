@@ -6,7 +6,7 @@ from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.exceptions import ModelCreateError
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
-from citadel.models.loadbalance import ELBInstance, ELBRuleSet, get_elb_client
+from citadel.models.elb import ELBInstance, ELBRuleSet, get_elb_client
 from citadel.rpc.client import get_core
 from citadel.views.helper import need_admin
 
