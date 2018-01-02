@@ -1,5 +1,3 @@
-#-i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
--i https://pypi.doubanio.com/simple/
 Flask
 Flask_OAuthlib
 Flask_SQLAlchemy
@@ -30,4 +28,4 @@ pyparsing
 crontab
 webargs
 marshmallow
--e git+http://gitlab.ricebook.net/platform/erulb3.git#egg=erulb-py
+elb.py
