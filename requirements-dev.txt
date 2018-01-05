@@ -1,7 +1,9 @@
 #-i http://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 -i https://pypi.doubanio.com/simple/
+mock
 pytest
 pytest-flask
+pytest-mock
 ipython
 pdbpp
 # for commandline testing

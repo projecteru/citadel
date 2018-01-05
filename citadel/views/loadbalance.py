@@ -6,7 +6,7 @@ from citadel.config import ELB_APP_NAME, ELB_POD_NAME
 from citadel.libs.exceptions import ModelCreateError
 from citadel.libs.view import create_page_blueprint
 from citadel.models.app import App, Release
-from citadel.models.loadbalance import ELBInstance, ELBRule, get_elb_client
+from citadel.models.loadbalance import ELBInstance, ELBRuleSet, get_elb_client
 from citadel.rpc.client import get_core
 from citadel.views.helper import need_admin
 
@@ -52,7 +52,7 @@ def index():
 
 @bp.route('/<name>', methods=['GET'])
 def elb(name):
-    rules = ELBRule.get_by(elbname=name, zone=g.zone)
+    rules = ELBRuleSet.get_by(elbname=name, zone=g.zone)
     all_apps = [a for a in App.get_all(limit=100) if a and a.name != ELB_APP_NAME]
     if not all_apps:
         abort(404, 'NO APPS AT ALL')
@@ -79,7 +79,7 @@ def edit_rule(name):
     if not rule_content:
         abort(400)
 
-    rules = ELBRule.get_by(zone=g.zone, elbname=name, domain=domain)
+    rules = ELBRuleSet.get_by(zone=g.zone, elbname=name, domain=domain)
     if not rules:
         abort(404)
 
@@ -101,7 +101,7 @@ def add_rule(name):
     domain = _cleanse_domain(request.form['domain'])
     rule_content = request.form['rule']
     try:
-        ELBRule.create(g.zone, appname, name, domain, rule_content)
+        ELBRuleSet.create(g.zone, appname, name, domain, rule_content)
     except ModelCreateError as e:
         abort(400, str(e))
 
@@ -120,7 +120,7 @@ def add_general_rule(name):
         abort(400, 'Bad domain')
 
     try:
-        ELBRule.create(g.zone, name, domain, appname, entrypoint=entrypoint, podname=podname)
+        ELBRuleSet.create(g.zone, name, domain, appname, entrypoint=entrypoint, podname=podname)
     except ModelCreateError as e:
         abort(400, str(e))
 

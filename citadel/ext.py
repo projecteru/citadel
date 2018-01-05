@@ -8,7 +8,7 @@ from flask_sockets import Sockets
 from flask_sqlalchemy import SQLAlchemy
 from redis import Redis
 
-from citadel.config import ZONE_CONFIG, HUB_ADDRESS, REDIS_URL, OAUTH2_BASE_URL, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_ACCESS_TOKEN_URL, OAUTH2_AUTHORIZE_URL
+from citadel.config import ZONE_CONFIG, REDIS_URL, OAUTH2_BASE_URL, OAUTH2_CLIENT_ID, OAUTH2_CLIENT_SECRET, OAUTH2_ACCESS_TOKEN_URL, OAUTH2_AUTHORIZE_URL
 from citadel.libs.utils import memoize
 
 
