@@ -173,7 +173,7 @@ class Port(Jsonized):
 
 
 class BuildSchema(Schema):
-    base = fields.Str(required=True)
+    base = fields.Str()
     repo = fields.Str()
     version = fields.Str()
     working_dir = fields.Str(load_from='dir')
@@ -245,7 +245,7 @@ class SpecsSchema(StrictSchema):
     container_user = fields.Str()
     builds = fields.Function(deserialize=parse_builds, missing={})
     volumes = fields.List(fields.Str())
-    base = fields.Str(required=True)
+    base = fields.Str()
     permitted_users = fields.List(fields.Str(), missing=[])
     subscribers = fields.Str(required=True)
     erection_timeout = fields.Function(deserialize=better_parse_timespan, missing=FIVE_MINUTES)
@@ -257,6 +257,12 @@ class SpecsSchema(StrictSchema):
     def fix_defaults(self, data):
         if 'name' not in data:
             data['name'] = data['appname']
+
+        if 'base' in data:
+            default_build_base = data['base']
+            for build in data['builds'].values():
+                if 'base' not in build:
+                    build['base'] = default_build_base
 
         for _, entrypoint in data['entrypoints'].items():
             # set default working_dir to app's home
@@ -275,6 +281,13 @@ class SpecsSchema(StrictSchema):
         raw = False if data.get('stages') else True
         if not raw and data.get('container_user'):
             raise ValidationError('cannot specify container_user because this release is not raw')
+        if raw and not data.get('base'):
+            raise ValidationError('this is a raw release, must specify base')
+
+        if not data.get('base'):
+            for build in data['builds'].values():
+                if not build.get('base'):
+                    raise ValidationError('either use a global base image as default build base, or specify base in each build stage')
 
         for _, entrypoint in original_data['entrypoints'].items():
             healthcheck_stuff = [entrypoint.get('healthcheck_url'),
