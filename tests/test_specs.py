@@ -29,11 +29,34 @@ def test_entrypoints():
 
 
 def test_build():
-    with pytest.raises(ValidationError):
+    default_base = 'bar'
+    builds = {
+        'first': {
+            'commands': ['echo whatever'],
+        },
+        'final': {
+            'base': 'foo',
+            'commands': ['echo whatever'],
+        },
+    }
+    specs = make_specs(base=default_base, stages=list(builds.keys()), builds=builds)
+    assert specs.builds['first']['base'] == default_base
+    assert specs.builds['final']['base'] == 'foo'
+
+    with pytest.raises(ValidationError) as exc:
+        make_specs(base=None, stages=list(builds.keys()), builds=builds)
+
+    assert 'either use a global base image as default build base, or specify base in each build stage' in str(exc)
+
+    with pytest.raises(ValidationError) as exc:
         make_specs(stages=['wrong-stage-name'])
 
-    with pytest.raises(ValidationError):
+    assert 'stages inconsistent with' in str(exc)
+
+    with pytest.raises(ValidationError) as exc:
         make_specs(container_user='should-not-be-here')
+
+    assert 'cannot specify container_user because this release is not raw' in str(exc)
 
 
 def test_healthcheck():
