@@ -1,11 +1,14 @@
 # coding: utf-8
+
 import json
-import sqlalchemy.orm.exc
-import sqlalchemy.types as types
+import logging
 from datetime import datetime
 from flask_sqlalchemy import sqlalchemy as sa
 from marshmallow import Schema, validates_schema, ValidationError
+import sqlalchemy.orm.exc
+import sqlalchemy.types as types
 from sqlalchemy import inspect
+from sqlalchemy.exc import SQLAlchemyError
 
 from citadel.ext import db, rds
 from citadel.libs.jsonutils import Jsonized
@@ -13,6 +16,7 @@ from citadel.libs.utils import logger
 
 
 _missing = object()
+_logger = logging.getLogger(__name__)
 
 
 class BaseModelMixin(db.Model, Jsonized):
@@ -24,12 +28,26 @@ class BaseModelMixin(db.Model, Jsonized):
     updated = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
     @classmethod
+    def create(cls, **kwargs):
+        b = cls(**kwargs)
+        try:
+            db.session.add(b)
+            db.session.commit()
+            return b
+        except SQLAlchemyError as e:
+            _logger.error('Create %s error: %s', cls, e)
+            db.session.rollback()
+            return
+
+    @classmethod
     def get(cls, id):
         return cls.query.get(id)
 
     @classmethod
     def get_multi(cls, ids):
         return [cls.get(i) for i in ids]
+
+    mget = get_multi
 
     @classmethod
     def get_all(cls, start=0, limit=20):

@@ -30,13 +30,13 @@ blueprints = [
     'user',
     'ajax',
     'admin',
-    'loadbalance',
 ]
 
 api_blueprints = [
     'app',
     'pod',
     'container',
+    'elb',
 ]
 
 ANONYMOUS_PATHS = [

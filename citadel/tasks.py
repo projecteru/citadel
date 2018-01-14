@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import json
 from celery import current_app
 from celery.result import AsyncResult
@@ -13,7 +14,7 @@ from citadel.libs.utils import notbot_sendmsg, logger
 from citadel.models import Container, Release
 from citadel.models.app import App
 from citadel.models.container import ContainerOverrideStatus
-from citadel.models.loadbalance import update_elb_for_containers, UpdateELBAction, ELBInstance
+from citadel.models.elb import update_elb_for_containers, UpdateELBAction, ELBInstance
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc.client import get_core
 from citadel.views.helper import make_deploy_options
@@ -121,27 +122,37 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
 
 
 @current_app.task(bind=True)
-def create_elb_instance_upon_containers(self, container_ids, name, sha, comment=None, user_id=None):
-    if isinstance(container_ids, str):
-        container_ids = container_ids,
+def create_elb_instance(self, zone, combo_name, name, sha, nodename=None, user_id=None):
+    """按照zone和combo_name创建elb, 可能可以设定node"""
+    try:
+        grpc_message = create_container(zone=zone,
+                                        user_id=user_id,
+                                        appname=ELB_APP_NAME,
+                                        sha=sha,
+                                        combo_name=combo_name,
+                                        nodename=nodename)
+        container_id = grpc_message[0]['id']
+    except (ActionError, KeyError, IndexError) as e:
+        logger.error('Create ELB instance task error (create container): %s', e)
+        return
 
-    release = Release.get_by_app_and_sha(ELB_APP_NAME, sha)
-    for container_id in container_ids:
-        container = Container.get_by_container_id(container_id)
-        if not container:
-            continue
+    container = Container.get_by_container_id(container_id)
+    if not container:
+        logger.error('Create ELB instance task error (container not found)')
+        return
 
-        ips = container.get_ips()
-        ELBInstance.create(ips[0], container.container_id, name, comment)
+    ips = container.get_ips()
+    if not ELBInstance.create(ips[0], container.container_id, name):
+        logger.error('Create ELB instance task error (ELBInstance created error)')
 
-        # 记录oplog
-        op_content = {'elbname': name, 'container_id': container.container_id}
-        OPLog.create(user_id,
-                     OPType.CREATE_ELB_INSTANCE,
-                     appname=release.app.name,
-                     sha=release.sha,
-                     zone=container.zone,
-                     content=op_content)
+    # 记录oplog
+    op_content = {'elbname': name, 'container_id': container.container_id}
+    OPLog.create(user_id,
+                 OPType.CREATE_ELB_INSTANCE,
+                 appname=ELB_APP_NAME,
+                 sha=sha,
+                 zone=container.zone,
+                 content=op_content)
 
 
 @current_app.task(bind=True)
