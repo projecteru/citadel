@@ -7,7 +7,6 @@ from urllib.parse import urlencode
 
 from citadel.config import DEFAULT_ZONE
 from citadel.models.app import AppUserRelation, Release, App
-from citadel.models.loadbalance import ELBInstance
 
 
 def bp_get_app(appname):
@@ -107,13 +106,6 @@ def make_deploy_options(release, combo_name=None, podname=None, nodename='', ent
         'debug': debug,
     }
     return deploy_options
-
-
-def bp_get_balancer(id):
-    elb = ELBInstance.get(id)
-    if not elb:
-        abort(404, 'ELB %s not found' % id)
-    return elb
 
 
 def need_admin(f):
