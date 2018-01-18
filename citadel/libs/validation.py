@@ -67,6 +67,14 @@ class RemoveContainerSchema(StrictSchema):
     container_ids = fields.List(fields.Str(required=True, validate=validate_full_contianer_id), required=True)
 
 
+class CreateELBRulesSchema(StrictSchema):
+    appname = fields.Str(required=True)
+    podname = fields.Str(required=True)
+    entrypoint_name = fields.Str(required=True)
+    domain = fields.Str(required=True)
+    arguments = fields.Dict(default={})
+
+
 deploy_schema = DeploySchema()
 build_args_schema = BuildArgsSchema()
 remove_container_schema = RemoveContainerSchema()
