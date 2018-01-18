@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from flask import g, abort
-from flask import request
-
 from elb import ELBRespError
-
-from citadel.tasks import create_elb_instance
-from citadel.libs.view import DEFAULT_RETURN_VALUE
-from citadel.libs.view import create_api_blueprint
+from flask import g, abort, request
+from sqlalchemy.exc import SQLAlchemyError
+from webargs.flaskparser import use_args
 
 from citadel.config import ELB_BACKEND_NAME_DELIMITER
-from citadel.models.elb import ELBInstance
-from citadel.models.elb import ELBRuleSet
+from citadel.libs.validation import CreateELBRulesSchema
+from citadel.libs.view import DEFAULT_RETURN_VALUE, create_api_blueprint
+from citadel.models.elb import ELBInstance, ELBRuleSet
+from citadel.tasks import create_elb_instance
 
 
 bp = create_api_blueprint('elb', __name__, url_prefix='elb')
@@ -54,49 +52,37 @@ def elb_instance(elb_id):
     if request.method == 'GET':
         return elb
 
-    # 当是最后一个实例的时候
-    # 删除掉里面的全部rules
-    # TODO 不过这个到底有没有必要其实存疑? 删掉吧先
-    if elb.is_only_instance():
-        elb.clear_rules()
     elb.delete()
     return DEFAULT_RETURN_VALUE
 
 
-# 规则需要用elbname, 因为是对一组elb, id有迷惑性.
-# 或者说设计如此吧...
-@bp.route('/<elbname>/rules', methods=['GET', 'POST'])
-def elb_instance_rules(elbname):
-    # 先得检测下elbname是不是有效的吧
-    # 不能随便给个啥也给生成个ruleset啊
+@bp.route('/<elbname>/rules')
+def get_elb_rules(elbname):
     elbs = ELBInstance.get_by(name=elbname, zone=g.zone)
     if not elbs:
-        abort(404, 'bad elbname: %s' % elbname)
+        abort(404, 'No ELB named {} in zone {}'.format(elbname, g.zone))
 
-    if request.method == 'GET':
-        return ELBRuleSet.query.filter_by(elbname=elbname, zone=g.zone).all()
+    return ELBRuleSet.query.filter_by(elbname=elbname, zone=g.zone).all()
 
-    payload = request.get_json()
-    if not payload:
-        abort(400, 'bad JSON data')
 
-    appname = payload.get('appname', '')
-    podname = payload.get('podname', '')
-    entrypoint = payload.get('entrypoint', '')
-    domain = payload.get('domain', '')
-    arguments = payload.get('arguments', {})
-    if not all([appname, podname, entrypoint, domain]):
-        abort(400, 'bad JSON data')
+@bp.route('/<elbname>/rules', methods=['POST'])
+@use_args(CreateELBRulesSchema())
+def create_elb_rules(args, elbname):
+    elbs = ELBInstance.get_by(name=elbname, zone=g.zone)
+    if not elbs:
+        abort(404, 'No ELB named {} in zone {}'.format(elbname, g.zone))
 
-    simple = payload.get('simple')
-    if not (simple or arguments):
-        abort(400, 'provide either simple or arguments')
+    appname = args['appname']
+    podname = args['podnam']
+    entrypoint = args['entrypoint_name']
+    domain = args['domain']
+    arguments = args['arguments']
 
     # 给一个简单挂容器后端的接口
     # 不需要arguments这种复杂参数
     # 只提供最简单的挂后端
     # TODO 有path加上path吧
-    if payload.get('simple'):
+    if not arguments:
         servername = ELB_BACKEND_NAME_DELIMITER.join([appname, entrypoint, podname])
         arguments = {
             'init': 'backend',
@@ -113,13 +99,10 @@ def elb_instance_rules(elbname):
         }
 
     try:
-        ruleset = ELBRuleSet.create(appname, podname, entrypoint,
-                elbname, g.zone, domain, arguments)
-    except ValueError as e:
+        ruleset = ELBRuleSet.create(appname, podname, entrypoint, elbname,
+                                    g.zone, domain, arguments)
+    except (ValueError, SQLAlchemyError) as e:
         abort(400, e)
-
-    if not ruleset:
-        abort(400, 'create elb ruleset error')
 
     client = ruleset.get_elbset()
     try:
