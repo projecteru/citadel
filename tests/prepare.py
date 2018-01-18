@@ -56,7 +56,7 @@ default_builds = {
 default_combo_name = 'prod'
 
 # test core config
-default_network_name = 'etest'
+default_network_name = 'bridge'
 default_podname = 'eru'
 default_cpu_quota = 0.2
 default_memory = parse_size('128MB', binary=True)
@@ -68,7 +68,7 @@ def make_specs_text(appname=default_appname,
                     container_user=None,
                     builds=default_builds,
                     volumes=['/tmp:/home/{}/tmp'.format(default_appname)],
-                    base='hub.ricebook.net',
+                    base='python:latest',
                     subscribers='#platform',
                     permitted_users=['liuyifu'],
                     crontab=[],
@@ -89,7 +89,7 @@ def make_specs(appname=default_appname,
                container_user=None,
                builds=default_builds,
                volumes=['/tmp:/home/{}/tmp'.format(default_appname)],
-               base='hub.ricebook.net',
+               base='python:latest',
                subscribers='#platform',
                permitted_users=['liuyifu'],
                crontab=[],
