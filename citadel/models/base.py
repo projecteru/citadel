@@ -2,13 +2,12 @@
 
 import json
 import logging
+import sqlalchemy.orm.exc
+import sqlalchemy.types as types
 from datetime import datetime
 from flask_sqlalchemy import sqlalchemy as sa
 from marshmallow import Schema, validates_schema, ValidationError
-import sqlalchemy.orm.exc
-import sqlalchemy.types as types
 from sqlalchemy import inspect
-from sqlalchemy.exc import SQLAlchemyError
 
 from citadel.ext import db, rds
 from citadel.libs.jsonutils import Jsonized
@@ -30,14 +29,9 @@ class BaseModelMixin(db.Model, Jsonized):
     @classmethod
     def create(cls, **kwargs):
         b = cls(**kwargs)
-        try:
-            db.session.add(b)
-            db.session.commit()
-            return b
-        except SQLAlchemyError as e:
-            _logger.error('Create %s error: %s', cls, e)
-            db.session.rollback()
-            return
+        db.session.add(b)
+        db.session.commit()
+        return b
 
     @classmethod
     def get(cls, id):

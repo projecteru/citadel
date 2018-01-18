@@ -45,7 +45,6 @@ backend_rule_value = {
 }
 
 
-
 def test_build_elb_rule(test_db):
     bad_value1 = {'name0': 'whatever', 'name1': 'whatever'}
     with pytest.raises(ValueError):
@@ -109,17 +108,14 @@ def create_elb_instance(mocker):
 def test_create_elbruleset(test_db, mocker):
     arguments = {'init': '', 'rules': []}
     with pytest.raises(ValueError):
-        ELBRuleSet.create('appname', 'podname', 'entrypoint',
-                'elbname', 'zone', 'domain', arguments)
+        ELBRuleSet.create('appname', 'podname', 'entrypoint', 'elbname', 'zone', 'domain', arguments)
     arguments = {'init': 'whatever',
                  'rules': [ua_rule_value, path_rule_value, backend_rule_value]}
     with pytest.raises(ValueError):
-        ELBRuleSet.create('appname', 'podname', 'entrypoint',
-                'elbname', 'zone', 'domain', arguments)
+        ELBRuleSet.create('appname', 'podname', 'entrypoint', 'elbname', 'zone', 'domain', arguments)
     arguments = {'init': 'name0',
                  'rules': [ua_rule_value, path_rule_value, backend_rule_value]}
-    rs = ELBRuleSet.create('appname', 'podname', 'entrypoint',
-            'elbname', 'zone', 'domain', arguments)
+    rs = ELBRuleSet.create('appname', 'podname', 'entrypoint', 'elbname', 'zone', 'domain', arguments)
     assert rs is not None
     ruleset = rs.to_elbruleset()
     assert isinstance(ruleset, RuleSet)
@@ -162,8 +158,7 @@ def test_api_index(test_db, mocker, client):
 
     def client_post(url, data):
         return client.post(url, data=json.dumps(data),
-                headers={'content-type': 'application/json'})
-
+                           headers={'content-type': 'application/json'})
 
     data = {'combo_name': 'combo_name', 'name': 'name'}
     resp = client_post(url_for('elb.index', zone='zone'), data)
@@ -178,7 +173,6 @@ def test_api_elb(test_db, mocker, client):
     resp = client.get(url_for('elb.elb_instance', zone='zone', elb_id=1))
     assert resp.status_code == 404
     r = json.loads(resp.data)
-    assert 'not found' in r['error']
 
     create_elb_instance(mocker)
 
@@ -205,37 +199,29 @@ def test_api_elb(test_db, mocker, client):
 
 
 def test_api_elb_rules(test_db, mocker, client):
-    resp = client.get(url_for('elb.elb_instance_rules', elbname='xxx', zone='zone'))
+    resp = client.get(url_for('elb.get_elb_rules', elbname='xxx', zone='zone'))
     assert resp.status_code == 404
     r = json.loads(resp.data)
-    assert r['error'] == 'bad elbname: xxx'
 
     create_elb_instance(mocker)
-    resp = client.get(url_for('elb.elb_instance_rules', elbname='elbname', zone='zone'))
+    resp = client.get(url_for('elb.get_elb_rules', elbname='elbname', zone='zone'))
     assert resp.status_code == 200
     r = json.loads(resp.data)
     assert len(r) == 0
 
     def client_post(url, data):
         return client.post(url, data=json.dumps(data),
-                headers={'content-type': 'application/json'})
+                           headers={'content-type': 'application/json'})
 
     data = {'appname': 'appname', 'podname': 'podname', 'entrypoint': 'entrypoint'}
-    resp = client_post(url_for('elb.elb_instance_rules', elbname='elbname', zone='zone'), data)
-    assert resp.status_code == 400
-    r = json.loads(resp.data)
-    assert r['error'] == 'bad JSON data'
+    resp = client_post(url_for('elb.create_elb_rules', elbname='elbname', zone='zone'), data)
+    assert resp.status_code == 422
 
     data['domain'] = 'domain'
-    resp = client_post(url_for('elb.elb_instance_rules', elbname='elbname', zone='zone'), data)
-    assert resp.status_code == 400
-    r = json.loads(resp.data)
-    assert r['error'] == 'provide either simple or arguments'
+    resp = client_post(url_for('elb.create_elb_rules', elbname='elbname', zone='zone'), data)
+    assert resp.status_code == 422
 
-    data['simple'] = 'yes'
-    resp = client_post(url_for('elb.elb_instance_rules', elbname='elbname', zone='zone'), data)
+    resp = client_post(url_for('elb.create_elb_rules', elbname='elbname', zone='zone'), data)
     # 没有elb啊这里当然会挂...
     # TODO 有了elb再说吧
-    assert resp.status_code == 400
-    r = json.loads(resp.data)
-    assert 'set domain rules error' in r['error']
+    assert resp.status_code == 422

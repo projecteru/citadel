@@ -2,18 +2,15 @@
 
 import enum
 from collections import Iterable
-from sqlalchemy import String, JSON
-from sqlalchemy import Column, Index
+from elb import ELBSet, RuleSet, UpStream, UARule, BackendRule, PathRule
+from sqlalchemy import Index
 from werkzeug.utils import cached_property
 
-from elb import ELBSet, RuleSet, UpStream
-from elb import UARule, BackendRule, PathRule
-
-from citadel.libs.datastructure import purge_none_val_from_dict
-from citadel.libs.utils import logger, memoize
-from citadel.libs.jsonutils import Jsonized
-
 from citadel.config import ELB_BACKEND_NAME_DELIMITER
+from citadel.ext import db
+from citadel.libs.datastructure import purge_none_val_from_dict
+from citadel.libs.jsonutils import Jsonized
+from citadel.libs.utils import logger, memoize
 from citadel.models.base import BaseModelMixin
 from citadel.models.container import Container
 
@@ -93,22 +90,23 @@ class ELBRuleSet(BaseModelMixin, Jsonized):
         Index('idx_elb_zone', 'elbname', 'zone'),
     )
 
-    appname = Column(String(100), default='')
-    podname = Column(String(100), default='')
-    entrypoint = Column(String(100), default='')
-    elbname = Column(String(100), default='')
-    zone = Column(String(100), default='')
-    domain = Column(String(100), default='')
-    arguments = Column(JSON)
+    appname = db.Column(db.CHAR(64), default='')
+    podname = db.Column(db.String(50), default='')
+    entrypoint = db.Column(db.String(50), default='')
+    elbname = db.Column(db.String(100), default='')
+    zone = db.Column(db.String(50), default='')
+    domain = db.Column(db.String(100), default='')
+    arguments = db.Column(db.JSON)
 
     @classmethod
-    def create(cls, appname, podname, entrypoint,
-               elbname, zone, domain, arguments):
+    def create(cls, appname, podname, entrypoint, elbname, zone, domain, arguments):
         # 检查下这个arguments合法不
         build_elb_ruleset(arguments)
         return super(ELBRuleSet, cls).create(appname=appname, podname=podname,
-                entrypoint=entrypoint, elbname=elbname, zone=zone,
-                domain=domain, arguments=arguments)
+                                             entrypoint=entrypoint,
+                                             elbname=elbname, zone=zone,
+                                             domain=domain,
+                                             arguments=arguments)
 
     def to_elbruleset(self):
         return build_elb_ruleset(self.arguments)
@@ -151,33 +149,23 @@ def get_backends(backend_name, exclude_containers=()):
 class ELBInstance(BaseModelMixin, Jsonized):
     """name 相同的 ELBInstance 组成一个 ELB, ELB 是一个虚拟的概念"""
     __tablename__ = 'elb'
-    __table_args__ = (
-        Index('idx_container', 'container_id'),
-    )
 
-    addr = Column(String(128), nullable=False)
-    container_id = Column(String(64), nullable=False)
-    name = Column(String(64))
-    zone = Column(String(50), nullable=False)
+    addr = db.Column(db.String(128), nullable=False)
+    container_id = db.Column(db.CHAR(64), nullable=False, index=True)
+    name = db.Column(db.String(64))
+    zone = db.Column(db.String(50), nullable=False)
 
     @classmethod
     def create(cls, addr, container_id, name):
         container = Container.get_by_container_id(container_id)
-        ins = super(ELBInstance, cls).create(addr=addr, container_id=container_id,
-                zone=container.zone, name=name)
-        if not ins:
-            return
+        ins = super(ELBInstance, cls).create(addr=addr,
+                                             container_id=container_id,
+                                             zone=container.zone, name=name)
         return ins
 
     @classmethod
     def get_by_zone(cls, zone):
         return cls.query.filter_by(zone=zone).order_by(cls.id.desc()).all()
-
-    def is_only_instance(self):
-        cls = self.__class__
-        elbname = self.name
-        remaining_instances = [b for b in cls.get_by(name=elbname) if b.id != self.id]
-        return not remaining_instances
 
     def clear_rules(self):
         """clear rules in the whole ELB"""
@@ -194,6 +182,8 @@ class ELBInstance(BaseModelMixin, Jsonized):
         container_id = kwargs.pop('container_id', None)
         query_set = cls.query.filter_by(**purge_none_val_from_dict(kwargs))
         if container_id:
+            if len(container_id) < 7:
+                raise ValueError('Container ID too short: {}'.format(container_id))
             query_set = query_set.filter(cls.container_id.like('{}%'.format(container_id)))
 
         res = query_set.order_by(cls.id.desc()).all()
@@ -213,7 +203,7 @@ class ELBInstance(BaseModelMixin, Jsonized):
         return address
 
     def is_alive(self):
-        return self.container and self.container.status() == 'running'
+        return self.container and self.container.is_healthy()
 
 
 class UpdateELBAction(enum.Enum):

@@ -124,26 +124,19 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
 @current_app.task(bind=True)
 def create_elb_instance(self, zone, combo_name, name, sha, nodename=None, user_id=None):
     """按照zone和combo_name创建elb, 可能可以设定node"""
-    try:
-        grpc_message = create_container(zone=zone,
-                                        user_id=user_id,
-                                        appname=ELB_APP_NAME,
-                                        sha=sha,
-                                        combo_name=combo_name,
-                                        nodename=nodename)
-        container_id = grpc_message[0]['id']
-    except (ActionError, KeyError, IndexError) as e:
-        logger.error('Create ELB instance task error (create container): %s', e)
-        return
-
+    messages = create_container(zone=zone,
+                                user_id=user_id,
+                                appname=ELB_APP_NAME,
+                                sha=sha,
+                                combo_name=combo_name,
+                                nodename=nodename)
+    container_id = messages[0]['id']
     container = Container.get_by_container_id(container_id)
     if not container:
-        logger.error('Create ELB instance task error (container not found)')
-        return
+        raise ActionError('Cannot find container for elb: {}'.format(container_id))
 
     ips = container.get_ips()
-    if not ELBInstance.create(ips[0], container.container_id, name):
-        logger.error('Create ELB instance task error (ELBInstance created error)')
+    ELBInstance.create(ips[0], container.container_id, name)
 
     # 记录oplog
     op_content = {'elbname': name, 'container_id': container.container_id}
