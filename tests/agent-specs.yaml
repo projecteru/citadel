@@ -1,0 +1,16 @@
+appname: "eru"
+entrypoints:
+  agent:
+    cmd: "/usr/bin/eru-agent"
+    restart: always
+    publish:
+      - "12345"
+    healthcheck:
+      ports:
+        - "12345/tcp"
+    privileged: true
+volumes:
+  - "/etc/eru:/etc/eru"
+  - "/sys/fs/cgroup/:/sys/fs/cgroup/"
+  - "/var/run/docker.sock:/var/run/docker.sock"
+  - "/proc/:/hostProc/"
