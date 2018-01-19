@@ -63,7 +63,7 @@ def build_image(self, appname, sha):
 def create_container(self, zone=None, user_id=None, appname=None, sha=None,
                      combo_name=None, podname=None, nodename=None,
                      extra_args=None, cpu_quota=None, memory=None, count=None,
-                     debug=False):
+                     debug=False, task_id=None):
     release = Release.get_by_app_and_sha(appname, sha)
     app = release.app
     combo = app.get_combo(combo_name)
@@ -81,7 +81,7 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
     bad_news = []
     deploy_messages = []
     for m in ms:
-        self.stream_output(m)
+        self.stream_output(m, task_id=task_id)
         content = m.to_dict()
         deploy_messages.append(content)
 
@@ -122,14 +122,16 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
 
 
 @current_app.task(bind=True)
-def create_elb_instance(self, zone, combo_name, name, sha, nodename=None, user_id=None):
+def create_elb_instance(self, zone=None, combo_name=None, name=None, sha=None,
+                        nodename=None, user_id=None):
     """按照zone和combo_name创建elb, 可能可以设定node"""
     messages = create_container(zone=zone,
                                 user_id=user_id,
                                 appname=ELB_APP_NAME,
                                 sha=sha,
                                 combo_name=combo_name,
-                                nodename=nodename)
+                                nodename=nodename,
+                                task_id=self.request.id)
     container_id = messages[0]['id']
     container = Container.get_by_container_id(container_id)
     if not container:
@@ -138,7 +140,6 @@ def create_elb_instance(self, zone, combo_name, name, sha, nodename=None, user_i
     ips = container.get_ips()
     ELBInstance.create(ips[0], container.container_id, name)
 
-    # 记录oplog
     op_content = {'elbname': name, 'container_id': container.container_id}
     OPLog.create(user_id,
                  OPType.CREATE_ELB_INSTANCE,
