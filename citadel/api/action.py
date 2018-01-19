@@ -8,9 +8,9 @@ from flask import g
 from json.decoder import JSONDecodeError
 
 from citadel.libs.utils import logger
-from citadel.libs.validation import build_args_schema, deploy_schema, remove_container_schema
+from citadel.libs.validation import build_args_schema, deploy_schema, remove_container_schema, deploy_elb_schema
 from citadel.libs.view import create_api_blueprint
-from citadel.tasks import celery_task_stream_response, build_image, create_container, remove_container
+from citadel.tasks import celery_task_stream_response, build_image, create_container, remove_container, create_elb_instance
 
 
 ws = create_api_blueprint('action', __name__, url_prefix='action', jsonize=False, handle_http_error=False)
@@ -68,6 +68,25 @@ def remove(socket):
 
     args = payload.data
     async_result = remove_container.delay(zone=g.zone, user_id=g.user_id, **args)
+    for m in celery_task_stream_response(async_result.task_id):
+        logger.debug(m)
+        socket.send(json.dumps(m))
+
+
+@ws.route('/deploy-elb')
+def deploy_elb(socket):
+    payload = None
+    while not payload or payload.errors:
+        message = socket.receive()
+        try:
+            payload = deploy_elb_schema.loads(message)
+            if payload.errors:
+                socket.send(json.dumps(payload.errors))
+        except JSONDecodeError as e:
+            socket.send(json.dumps({'error': str(e)}))
+
+    args = payload.data
+    async_result = create_elb_instance.delay(zone=g.zone, user_id=g.user_id, **args)
     for m in celery_task_stream_response(async_result.task_id):
         logger.debug(m)
         socket.send(json.dumps(m))

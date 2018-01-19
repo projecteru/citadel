@@ -58,6 +58,13 @@ class DeploySchema(StrictSchema):
     debug = fields.Bool(missing=False)
 
 
+class DeployELBSchema(StrictSchema):
+    name = fields.Str(required=True)
+    sha = fields.Str(required=True, validate=validate_sha)
+    combo_name = fields.Str(required=True)
+    nodename = fields.Str()
+
+
 class BuildArgsSchema(StrictSchema):
     appname = fields.Str(required=True)
     sha = fields.Str(required=True, validate=validate_sha)
@@ -76,5 +83,6 @@ class CreateELBRulesSchema(StrictSchema):
 
 
 deploy_schema = DeploySchema()
+deploy_elb_schema = DeployELBSchema()
 build_args_schema = BuildArgsSchema()
 remove_container_schema = RemoveContainerSchema()
