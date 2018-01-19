@@ -15,26 +15,9 @@ from citadel.tasks import create_elb_instance
 bp = create_api_blueprint('elb', __name__, url_prefix='elb')
 
 
-@bp.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'GET':
-        return ELBInstance.get_by_zone(g.zone)
-
-    payload = request.get_json()
-    if not payload:
-        abort(400, 'bad JSON data')
-
-    combo_name = payload.get('combo_name', '')
-    name = payload.get('name', '')
-    sha = payload.get('sha', '')
-    nodename = payload.get('nodename', '')
-    if not (combo_name and name and sha):
-        abort(400, 'bad JSON data')
-
-    # 先这样吧
-    # TODO 晚点改成websocket
-    create_elb_instance.delay(g.zone, combo_name, name, sha, nodename, g.user_id)
-    return DEFAULT_RETURN_VALUE
+@bp.route('/')
+def get_elbs():
+    return ELBInstance.get_by_zone(g.zone)
 
 
 def get_elb(elb_id):

@@ -60,8 +60,8 @@ def make_celery(app):
 
         abstract = True
 
-        def stream_output(self, data):
-            channel_name = TASK_PUBSUB_CHANNEL.format(task_id=self.request.id)
+        def stream_output(self, data, task_id=None):
+            channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id or self.request.id)
             rds.publish(channel_name, json.dumps(data, cls=JSONEncoder))
 
         def on_success(self, retval, task_id, args, kwargs):
