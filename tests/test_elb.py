@@ -2,16 +2,12 @@
 
 import json
 import pytest
-from mock import MagicMock
+from elb import RuleSet, ELBSet, PathRule, UARule, BackendRule
 from flask import url_for
+from mock import MagicMock
 
-from elb import RuleSet, ELBSet
-from elb import PathRule, UARule, BackendRule
+from citadel.models.elb import build_elb_rule, build_elb_ruleset, ELBRuleSet, ELBInstance
 
-from citadel.models.elb import build_elb_rule
-from citadel.models.elb import build_elb_ruleset
-from citadel.models.elb import ELBRuleSet
-from citadel.models.elb import ELBInstance
 
 path_rule_value = {
     'name0': {
@@ -133,60 +129,38 @@ def test_create_elbruleset(test_db, mocker):
     assert len(es.elbs) == 2
 
 
-def test_api_index(test_db, mocker, client):
-    resp = client.get(url_for('elb.index', zone='zone'))
+def test_get_elbs(test_db, mocker, client):
+    resp = client.get(url_for('elb.get_elbs', zone='zone'))
     assert resp.status_code == 200
-    r = json.loads(resp.data)
-    assert len(r) == 0
+    assert len(resp.json) == 0
 
     create_elb_instance(mocker)
-    resp = client.get(url_for('elb.index', zone='zone'))
+    resp = client.get(url_for('elb.get_elbs', zone='zone'))
     assert resp.status_code == 200
-    r = json.loads(resp.data)
-    assert len(r) == 2
+    assert len(resp.json) == 2
     ELBInstance.create('10.10.101.1:8000', 'c1', 'elbname')
     ELBInstance.create('10.10.101.2:8000', 'c2', 'elbname')
-    assert [e['addr'] for e in r] == ['10.10.101.2:8000', '10.10.101.1:8000']
-    assert [e['container_id'] for e in r] == ['c2', 'c1']
-    assert [e['name'] for e in r] == ['elbname', 'elbname']
-    assert [e['zone'] for e in r] == ['zone', 'zone']
-
-    resp = client.post(url_for('elb.index', zone='zone'), data='')
-    assert resp.status_code == 400
-    r = json.loads(resp.data)
-    assert r['error'] == 'bad JSON data'
-
-    def client_post(url, data):
-        return client.post(url, data=json.dumps(data),
-                           headers={'content-type': 'application/json'})
-
-    data = {'combo_name': 'combo_name', 'name': 'name'}
-    resp = client_post(url_for('elb.index', zone='zone'), data)
-    assert resp.status_code == 400
-    r = json.loads(resp.data)
-    assert r['error'] == 'bad JSON data'
-
-    # TODO 接了core再说吧
+    assert [e['addr'] for e in resp.json] == ['10.10.101.2:8000', '10.10.101.1:8000']
+    assert [e['container_id'] for e in resp.json] == ['c2', 'c1']
+    assert [e['name'] for e in resp.json] == ['elbname', 'elbname']
+    assert [e['zone'] for e in resp.json] == ['zone', 'zone']
 
 
 def test_api_elb(test_db, mocker, client):
     resp = client.get(url_for('elb.elb_instance', zone='zone', elb_id=1))
     assert resp.status_code == 404
-    r = json.loads(resp.data)
-
     create_elb_instance(mocker)
 
     ids = [e.id for e in ELBInstance.query.order_by(ELBInstance.id.desc()).all()]
     for idx, i in enumerate(ids):
         resp = client.get(url_for('elb.elb_instance', zone='zone', elb_id=i))
         assert resp.status_code == 200
-        r = json.loads(resp.data)
         if idx == 0:
-            assert r['addr'] == '10.10.101.2:8000'
-            assert r['container_id'] == 'c2'
+            assert resp.json['addr'] == '10.10.101.2:8000'
+            assert resp.json['container_id'] == 'c2'
         if idx == 1:
-            assert r['addr'] == '10.10.101.1:8000'
-            assert r['container_id'] == 'c1'
+            assert resp.json['addr'] == '10.10.101.1:8000'
+            assert resp.json['container_id'] == 'c1'
 
     deleted_id, remained_id = ids
     resp = client.delete(url_for('elb.elb_instance', elb_id=deleted_id, zone='zone'))
@@ -201,13 +175,11 @@ def test_api_elb(test_db, mocker, client):
 def test_api_elb_rules(test_db, mocker, client):
     resp = client.get(url_for('elb.get_elb_rules', elbname='xxx', zone='zone'))
     assert resp.status_code == 404
-    r = json.loads(resp.data)
 
     create_elb_instance(mocker)
     resp = client.get(url_for('elb.get_elb_rules', elbname='elbname', zone='zone'))
     assert resp.status_code == 200
-    r = json.loads(resp.data)
-    assert len(r) == 0
+    assert len(resp.json) == 0
 
     def client_post(url, data):
         return client.post(url, data=json.dumps(data),
