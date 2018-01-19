@@ -80,10 +80,6 @@ task_serializer = 'json'
 result_serializer = 'json'
 accept_content = ['json', 'pickle']
 beat_schedule = {
-    'clean-images': {
-        'task': 'citadel.tasks.clean_stuff',
-        'schedule': crontab(hour='4'),
-    },
     'record-health': {
         'task': 'citadel.tasks.record_health_status',
         'schedule': timedelta(seconds=20),
@@ -95,11 +91,12 @@ beat_schedule = {
         # unnecessary eru-tackle tasks
         'options': {'expires': 1},
     },
-    'crontab': {
-        'task': 'citadel.tasks.trigger_scheduled_task',
-        'schedule': crontab(minute='*'),
-        'options': {'expires': 60},
-    },
+    # FIXME:
+    # 'crontab': {
+    #     'task': 'citadel.tasks.trigger_scheduled_task',
+    #     'schedule': crontab(minute='*'),
+    #     'options': {'expires': 60},
+    # },
     'backup': {
         'task': 'citadel.tasks.trigger_backup',
         'schedule': crontab(minute=0, hour=6),

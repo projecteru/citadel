@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
-import collections
 from flask import g, abort
 from functools import wraps
-from humanfriendly import parse_size
 from urllib.parse import urlencode
 
-from citadel.config import DEFAULT_ZONE
 from citadel.models.app import AppUserRelation, Release, App
 
 
@@ -29,83 +26,6 @@ def bp_get_release(appname, sha):
         abort(403, 'You are not permitted to view this app, declare permitted_users in app.yaml')
 
     return release
-
-
-def make_deploy_options(release, combo_name=None, podname=None, nodename='', entrypoint=None, cpu_quota=1, count=1, memory='512MB', networks=(), envname='', extra_env='', extra_args='', debug=False):
-    """
-    :param release: citadel.models.app.Release instance
-    :param combo_name: str, should appear in release.specs.combos
-    :param nodename: str, if empty string, eru-core will choose node for ya
-    :param entrypoint: str, should appear in release.specs.entrypoints
-    :param cpu_quota: Number
-    :param count: int, number of containers to deploy, default to 1
-    :param memory: str or Number, string will be converted to Number using parse_size
-    :param networks: str, tuple of str, dict, this could be a single network name, or a tuple/list of network names
-    :param envname: str, Environment name
-    :param extra_env: str or list of str, if str, should be 'FOO=1;BAR=2;', if list, should be ['FOO=1', 'BAR=2']
-    :param extra_args: what the fuck is this?
-    :param debug: bool, cheers
-    """
-    appname = release.appname
-    app = release.app
-    if combo_name:
-        combo = release.specs.combos[combo_name]
-        zone = combo.zone
-        podname = combo.podname
-        nodename = combo.nodename
-        entrypoint = combo.entrypoint
-        envname = combo.envname
-        env_set = app.get_env_set(envname)
-        # combo.extra_env is dict, sorry...
-        extra_env = combo.extra_env
-        env_vars = env_set.to_env_vars()
-        env_vars.extend(['='.join([k, v]) for k, v in extra_env.items()])
-        cpu_quota = combo.cpu
-        memory = combo.memory_str
-        # user can override count in combo
-        count = max(combo.count, int(count) or 1)
-        networks = combo.networks
-    else:
-        try:
-            zone = g.zone
-        except AttributeError:
-            zone = DEFAULT_ZONE
-
-        env_set = app.get_env_set(envname)
-        env_vars = env_set.to_env_vars()
-        if extra_env:
-            if isinstance(extra_env, str):
-                env_vars.extend(extra_env.strip().split(';'))
-            elif isinstance(extra_env, list):
-                env_vars.extend(extra_env)
-
-    if isinstance(networks, str):
-        networks ={networks: ''}
-    elif isinstance(networks, collections.Sequence):
-        networks = {network_name: '' for network_name in networks}
-
-    if isinstance(memory, str):
-        memory = parse_size(memory, binary=True)
-
-    image, raw = release.describe_entrypoint_image(entrypoint)
-    deploy_options = {
-        'specs': release.specs_text,
-        'appname': appname,
-        'image': image,
-        'zone': zone,
-        'podname': podname,
-        'nodename': nodename,
-        'entrypoint': entrypoint,
-        'cpu_quota': float(cpu_quota),
-        'count': int(count),
-        'memory': memory,
-        'networks': networks,
-        'env': env_vars,
-        'raw': raw,
-        'extra_args': extra_args,
-        'debug': debug,
-    }
-    return deploy_options
 
 
 def need_admin(f):

@@ -17,7 +17,6 @@ from citadel.models.container import ContainerOverrideStatus
 from citadel.models.elb import update_elb_for_containers, UpdateELBAction, ELBInstance
 from citadel.models.oplog import OPType, OPLog
 from citadel.rpc.client import get_core
-from citadel.views.helper import make_deploy_options
 
 
 @current_app.task(bind=True)
@@ -200,26 +199,6 @@ def remove_container(self, ids, user_id=None):
 
 
 @current_app.task(bind=True)
-def clean_stuff(self):
-    # clean unused releases
-    now = datetime.now()
-    window = now - timedelta(days=30), now
-    last_week_oplogs = OPLog.get_by(time_window=window)
-    last_week_sha = set(oplog.sha for oplog in last_week_oplogs if oplog.sha)
-    for r in Release.query.filter(Release.created<now - timedelta(days=30)).all():
-        if r.sha in last_week_sha:
-            continue
-        try:
-            r.delete()
-        except ModelDeleteError:
-            continue
-
-    # clean oplogs
-    threshold = datetime.now() - timedelta(days=7)
-    OPLog.query.filter(OPLog.created < threshold).delete()
-
-
-@current_app.task(bind=True)
 def deal_with_agent_etcd_change(self, key, deploy_info):
     container_id = deploy_info['ID']
     healthy = deploy_info['Healthy']
@@ -305,12 +284,13 @@ def schedule_task(app):
         if this_cronjob_containers and set(c.status() for c in this_cronjob_containers) != {'running'}:
             notbot_sendmsg(app.subscribers, '{} cronjob skipped, because last cronjob container {} did not exit cleanly'.format(app, this_cronjob_containers))
             continue
-        deploy_options = make_deploy_options(
-            release, combo_name=cmd,
-        )
-        create_container.delay(deploy_options=deploy_options,
-                               sha=release.sha,
-                               envname=combo.envname)
+        # FIXME:
+        # deploy_options = make_deploy_options(
+        #     release, combo_name=cmd,
+        # )
+        # create_container.delay(deploy_options=deploy_options,
+        #                        sha=release.sha,
+        #                        envname=combo.envname)
 
 
 @current_app.task
