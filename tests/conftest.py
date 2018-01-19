@@ -11,6 +11,9 @@ from citadel.libs.utils import logger
 from citadel.models.app import App, Release, Combo
 
 
+json_headers = {'Content-Type': 'application/json'}
+
+
 @pytest.fixture
 def app(request):
     app = create_app()
