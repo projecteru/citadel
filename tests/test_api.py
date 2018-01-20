@@ -4,7 +4,7 @@ import pytest
 from flask import url_for
 from humanfriendly import parse_size
 
-from .prepare import default_appname, make_specs_text, default_ports, make_specs, core_online, default_podname
+from .prepare import default_appname, make_specs_text, default_ports, make_specs, core_online, default_podname, default_env_name, default_env
 from .conftest import json_headers
 from citadel.models.app import Release
 
@@ -101,7 +101,7 @@ def test_pod_meta(test_db, client):
 
 def test_app_env(test_db, client):
     res = client.get(url_for('app.get_app_envs', appname=default_appname))
-    assert res.json == {}
+    assert res.json == {default_env_name: dict(default_env)}
 
     test_env_name = 'testenv'
     test_env = {
@@ -131,4 +131,4 @@ def test_app_env(test_db, client):
     assert res.status_code == 200
 
     res = client.get(url_for('app.get_app_envs', appname=default_appname))
-    assert res.json == {test_env_name: test_env}
+    assert res.json == {test_env_name: test_env, default_env_name: dict(default_env)}
