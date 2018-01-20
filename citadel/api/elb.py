@@ -9,7 +9,6 @@ from citadel.config import ELB_BACKEND_NAME_DELIMITER
 from citadel.libs.validation import CreateELBRulesSchema
 from citadel.libs.view import DEFAULT_RETURN_VALUE, create_api_blueprint
 from citadel.models.elb import ELBInstance, ELBRuleSet
-from citadel.tasks import create_elb_instance
 
 
 bp = create_api_blueprint('elb', __name__, url_prefix='elb')
@@ -97,7 +96,7 @@ def create_elb_rules(args, elbname):
     return DEFAULT_RETURN_VALUE
 
 
-@bp.route('/rule/<ruleset_id>', methods=['GET'])
+@bp.route('/rule/<ruleset_id>')
 def elb_ruleset(ruleset_id):
     ruleset = ELBRuleSet.get(ruleset_id)
     if not ruleset:

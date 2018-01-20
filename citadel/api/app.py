@@ -13,47 +13,47 @@ from citadel.models.container import Container
 bp = create_api_blueprint('app', __name__, 'app')
 
 
-def _get_app(name):
-    app = App.get_by_name(name)
+def _get_app(appname):
+    app = App.get_by_name(appname)
     if not app:
-        abort(404, 'App not found: {}'.format(name))
+        abort(404, 'App not found: {}'.format(appname))
     return app
 
 
-def _get_release(name, sha):
-    release = Release.get_by_app_and_sha(name, sha)
+def _get_release(appname, sha):
+    release = Release.get_by_app_and_sha(appname, sha)
     if not release:
-        abort(404, 'Release `%s, %s` not found' % (name, sha))
+        abort(404, 'Release `%s, %s` not found' % (appname, sha))
 
     return release
 
 
-@bp.route('/<name>', methods=['GET'])
-def get_app(name):
-    return _get_app(name)
+@bp.route('/<appname>')
+def get_app(appname):
+    return _get_app(appname)
 
 
-@bp.route('/<name>/containers', methods=['GET'])
-def get_app_containers(name):
-    app = _get_app(name)
+@bp.route('/<appname>/containers')
+def get_app_containers(appname):
+    app = _get_app(appname)
     return Container.get_by(appname=app.name)
 
 
-@bp.route('/<name>/releases', methods=['GET'])
-def get_app_releases(name):
-    app = _get_app(name)
+@bp.route('/<appname>/releases')
+def get_app_releases(appname):
+    app = _get_app(appname)
     return Release.get_by_app(app.name)
 
 
-@bp.route('/<name>/env', methods=['GET'])
-def get_app_envs(name):
-    app = _get_app(name)
+@bp.route('/<appname>/env')
+def get_app_envs(appname):
+    app = _get_app(appname)
     return app.get_env_sets()
 
 
-@bp.route('/<name>/env/<envname>', methods=['GET', 'PUT', 'POST', 'DELETE'])
-def app_env_action(name, envname):
-    app = _get_app(name)
+@bp.route('/<appname>/env/<envname>', methods=['GET', 'PUT', 'POST', 'DELETE'])
+def app_env_action(appname, envname):
+    app = _get_app(appname)
     if request.method == 'GET':
         env = app.get_env_set(envname)
         if not env:
@@ -72,7 +72,7 @@ def app_env_action(name, envname):
         return DEFAULT_RETURN_VALUE
 
 
-@bp.route('/<appname>/combo', methods=['GET'])
+@bp.route('/<appname>/combo')
 def get_app_combos(appname):
     app = _get_app(appname)
     return app.get_combos()
@@ -100,15 +100,15 @@ def delete_combo(appname):
     return DEFAULT_RETURN_VALUE
 
 
-@bp.route('/<name>/version/<sha>', methods=['GET'])
-def get_release(name, sha):
-    return _get_release(name, sha)
+@bp.route('/<appname>/version/<sha>')
+def get_release(appname, sha):
+    return _get_release(appname, sha)
 
 
-@bp.route('/<name>/version/<sha>/containers', methods=['GET'])
-def get_release_containers(name, sha):
-    release = _get_release(name, sha)
-    return Container.get_by(appname=name, sha=release.sha)
+@bp.route('/<appname>/version/<sha>/containers')
+def get_release_containers(appname, sha):
+    release = _get_release(appname, sha)
+    return Container.get_by(appname=appname, sha=release.sha)
 
 
 @bp.route('/register', methods=['POST'])
