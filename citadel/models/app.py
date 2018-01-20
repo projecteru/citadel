@@ -19,8 +19,21 @@ from citadel.rpc import core_pb2 as pb
 
 class EnvSet(dict):
 
+    reserved_keys = frozenset({
+        'ERU_POD',
+        'ERU_NODE_IP',
+        'ERU_NODE_NAME',
+        'ERU_CONTAINER_NO',
+        'ERU_MEMORY',
+    })
+
+    def __init__(self, *args, **kwargs):
+        illegal_keys = self.reserved_keys.intersection(set(kwargs))
+        if illegal_keys:
+            raise ValueError('Cannot add these keys as app env: {}'.format(illegal_keys))
+        return super(EnvSet, self).__init__(*args, **kwargs)
+
     def to_env_vars(self):
-        """外部调用需要的['A=1', 'B=var=1']这种格式"""
         return ['%s=%s' % (k, v) for k, v in self.items()]
 
 
@@ -30,7 +43,7 @@ class App(BaseModelMixin):
     git = db.Column(db.String(255), nullable=False)
     tackle_rule = db.Column(db.JSON)
     # {'prod': {'PASSWORD': 'xxx'}, 'test': {'PASSWORD': 'xxx'}}
-    env_sets = db.Column(db.JSON)
+    env_sets = db.Column(db.JSON, default={})
 
     def __str__(self):
         return '<{}:{}>'.format(self.name, self.git)
@@ -74,22 +87,28 @@ class App(BaseModelMixin):
         return Combo.query.filter_by(appname=self.name, name=combo_name).first()
 
     def get_env_sets(self):
-        return self.env_sets or {}
+        return self.env_sets
 
     def get_env_set(self, envname):
-        env_sets = self.env_sets or {}
+        env_sets = self.env_sets
         return EnvSet(env_sets.get(envname, {}))
 
-    def add_env_set(self, envname, env_set):
-        env_sets = (self.env_sets or {}).copy()
+    def add_env_set(self, envname, data):
+        if envname in self.env_sets:
+            raise ValueError('{} already exists, use update API'.format(envname))
+        self.update_env_set(envname, data)
+
+    def update_env_set(self, envname, data):
+        env_set = EnvSet(**data)
+        env_sets = self.env_sets.copy()
         env_sets[envname] = env_set
         self.env_sets = env_sets
-        logger.debug('Set env set %s for %s, full env_sets: %s', envname, self.name, env_sets)
+        logger.debug('Update env set %s for %s, full env_sets: %s', envname, self.name, env_sets)
         db.session.add(self)
         db.session.commit()
 
     def remove_env_set(self, envname):
-        env_sets = (self.env_sets or {}).copy()
+        env_sets = self.env_sets.copy()
         env = env_sets.pop(envname, None)
         if env:
             self.env_sets = env_sets

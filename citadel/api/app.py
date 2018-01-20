@@ -51,25 +51,48 @@ def get_app_envs(appname):
     return app.get_env_sets()
 
 
-@bp.route('/<appname>/env/<envname>', methods=['GET', 'PUT', 'POST', 'DELETE'])
-def app_env_action(appname, envname):
+@bp.route('/<appname>/env/<envname>', methods=['PUT'])
+def create_app_env(appname, envname):
     app = _get_app(appname)
-    if request.method == 'GET':
-        env = app.get_env_set(envname)
-        if not env:
-            abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
-
-        return DEFAULT_RETURN_VALUE
-    elif request.method in ('PUT', 'POST'):
-        data = request.get_json()
+    data = request.get_json()
+    try:
         app.add_env_set(envname, data)
-        return DEFAULT_RETURN_VALUE
-    elif request.method == 'DELETE':
-        deleted = app.remove_env_set(envname)
-        if not deleted:
-            abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
+    except ValueError as e:
+        abort(400, str(e))
 
-        return DEFAULT_RETURN_VALUE
+    return DEFAULT_RETURN_VALUE
+
+
+@bp.route('/<appname>/env/<envname>', methods=['POST'])
+def update_app_env(appname, envname):
+    app = _get_app(appname)
+    data = request.get_json()
+    try:
+        app.update_env_set(envname, data)
+    except ValueError as e:
+        abort(400, str(e))
+
+    return DEFAULT_RETURN_VALUE
+
+
+@bp.route('/<appname>/env/<envname>')
+def get_app_env(appname, envname):
+    app = _get_app(appname)
+    env = app.get_env_set(envname)
+    if not env:
+        abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
+
+    return env
+
+
+@bp.route('/<appname>/env/<envname>', methods=['DELETE'])
+def delete_app_env(appname, envname):
+    app = _get_app(appname)
+    deleted = app.remove_env_set(envname)
+    if not deleted:
+        abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
+
+    return DEFAULT_RETURN_VALUE
 
 
 @bp.route('/<appname>/combo')

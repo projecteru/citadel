@@ -5,10 +5,8 @@ from flask import url_for
 from humanfriendly import parse_size
 
 from .prepare import default_appname, make_specs_text, default_ports, make_specs, core_online, default_podname
+from .conftest import json_headers
 from citadel.models.app import Release
-
-
-json_headers = {'Content-Type': 'application/json'}
 
 
 def test_register_app(test_db, client):
@@ -99,3 +97,38 @@ def test_pod_meta(test_db, client):
     assert pod_nodes
     networks = client.get(url_for('pod.list_networks', name=podname)).json
     assert networks
+
+
+def test_app_env(test_db, client):
+    res = client.get(url_for('app.get_app_envs', appname=default_appname))
+    assert res.json == {}
+
+    test_env_name = 'testenv'
+    test_env = {
+        'foo': '\'',
+        'FOO': '\"'
+    }
+    res = client.post(url_for('app.create_app_env', appname=default_appname, envname=test_env_name),
+                      data=json.dumps(test_env),
+                      headers=json_headers)
+    assert res.status_code == 200
+
+    res = client.get(url_for('app.get_app_env', appname=default_appname, envname=test_env_name))
+    assert res.json == test_env
+
+    bad_env = {'ERU_MEMORY': 23}
+    res = client.post(url_for('app.create_app_env', appname=default_appname, envname='badenv'),
+                      data=json.dumps(bad_env),
+                      headers=json_headers)
+    assert res.status_code == 400
+    assert 'Cannot add these keys' in res.json['error']
+    assert 'ERU_MEMORY' in res.json['error']
+
+    client.post(url_for('app.create_app_env', appname=default_appname, envname='anotherenv'),
+                data=json.dumps({'foo': 'whatever'}),
+                headers=json_headers)
+    res = client.delete(url_for('app.delete_app_env', appname=default_appname, envname='anotherenv'))
+    assert res.status_code == 200
+
+    res = client.get(url_for('app.get_app_envs', appname=default_appname))
+    assert res.json == {test_env_name: test_env}
