@@ -2,7 +2,7 @@ import json
 import pytest
 import requests
 
-from .prepare import core_online, default_appname, default_sha, default_ports, default_podname, default_cpu_quota, default_memory, default_combo_name, artifact_filename, artifact_content
+from .prepare import core_online, default_appname, default_sha, default_ports, default_podname, default_cpu_quota, default_memory, default_combo_name, artifact_filename, artifact_content, default_env
 from citadel.config import DEFAULT_ZONE
 from citadel.ext import get_etcd
 from citadel.models.app import Release
@@ -77,3 +77,9 @@ def test_workflow(watch_etcd, request):
     core = get_core(DEFAULT_ZONE)
     container_info = json.loads(core.get_container(container_id).info)
     assert '/tmp:/home/test-app/tmp:rw' in container_info['HostConfig']['Binds']
+
+    # check environment variables from combo is actually injected into the
+    # container
+    left_env_vars = set(default_env.to_env_vars())
+    right_env_vars = set(container_info['Config']['Env'])
+    assert left_env_vars.intersection(right_env_vars) == left_env_vars

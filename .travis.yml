@@ -12,6 +12,7 @@ addons:
 notifications:
   email:
     on_failure: never
+    on_success: never
 language: python
 python:
   - "3.6"
