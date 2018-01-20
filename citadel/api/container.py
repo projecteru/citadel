@@ -14,7 +14,7 @@ def get_all_containers():
     return cs
 
 
-@bp.route('/<container_id>', methods=['GET'])
+@bp.route('/<container_id>')
 def get_container(container_id):
     containers = Container.get_by(container_id=container_id, zone=g.zone)
     if not containers:

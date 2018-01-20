@@ -50,7 +50,7 @@ def index():
                            env_sets=env_sets)
 
 
-@bp.route('/<name>', methods=['GET'])
+@bp.route('/<name>')
 def elb(name):
     rules = ELBRuleSet.get_by(elbname=name, zone=g.zone)
     all_apps = [a for a in App.get_all(limit=100) if a and a.name != ELB_APP_NAME]
@@ -127,7 +127,7 @@ def add_general_rule(name):
     return redirect(url_for('loadbalance.elb', name=name))
 
 
-@bp.route('/<name>/rule', methods=['GET'])
+@bp.route('/<name>/rule')
 @need_admin
 def rule(name):
     domain = request.args['domain']
