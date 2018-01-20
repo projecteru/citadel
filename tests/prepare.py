@@ -7,6 +7,7 @@ from telnetlib import Telnet
 
 from citadel.config import ZONE_CONFIG
 from citadel.models.specs import Specs
+from citadel.models.app import EnvSet
 
 
 core_online = False
@@ -54,6 +55,8 @@ default_builds = {
     },
 }
 default_combo_name = 'prod'
+default_env_name = 'prodenv'
+default_env = EnvSet(**{'foo': 'some-env-content'})
 
 # test core config
 default_network_name = 'bridge'
