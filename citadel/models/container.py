@@ -26,7 +26,7 @@ class Container(BaseModelMixin):
     appname = db.Column(db.CHAR(64), nullable=False)
     sha = db.Column(db.CHAR(64), nullable=False)
     container_id = db.Column(db.CHAR(64), nullable=False, index=True)
-    entrypoint = db.Column(db.String(50), nullable=False)
+    entrypoint_name = db.Column(db.String(50), nullable=False)
     envname = db.Column(db.String(50))
     cpu_quota = db.Column(db.Numeric(12, 3), nullable=False)
     memory = db.Column(db.BigInteger, nullable=False)
@@ -38,15 +38,19 @@ class Container(BaseModelMixin):
     initialized = db.Column(db.Integer, default=0)
 
     def __str__(self):
-        return '<{}:{}:{}:{}:{}>'.format(self.zone, self.appname, self.short_sha, self.entrypoint, self.short_id)
+        return '<{}:{}:{}:{}:{}>'.format(self.zone, self.appname, self.short_sha, self.entrypoint_name, self.short_id)
 
     @classmethod
-    def create(cls, appname, sha, container_id, entrypoint, envname, cpu_quota, memory, zone, podname, nodename, override_status=ContainerOverrideStatus.NONE):
+    def create(cls, appname=None, sha=None, container_id=None, entrypoint_name=None,
+               envname=None, cpu_quota=None, memory=None, zone=None,
+               podname=None, nodename=None,
+               override_status=ContainerOverrideStatus.NONE):
         try:
             c = cls(appname=appname, sha=sha, container_id=container_id,
-                    entrypoint=entrypoint, envname=envname, cpu_quota=cpu_quota,
-                    memory=memory, zone=zone, podname=podname,
-                    nodename=nodename, override_status=override_status)
+                    entrypoint_name=entrypoint_name, envname=envname,
+                    cpu_quota=cpu_quota, memory=memory, zone=zone,
+                    podname=podname, nodename=nodename,
+                    override_status=override_status)
             db.session.add(c)
             db.session.commit()
         except IntegrityError:
@@ -71,7 +75,7 @@ class Container(BaseModelMixin):
 
     @property
     def core_deploy_key(self):
-        return '{prefix}/{c.appname}/{c.entrypoint}/{c.nodename}/{c.container_id}'.format(c=self, prefix=CORE_DEPLOY_INFO_PATH)
+        return '{prefix}/{c.appname}/{c.entrypoint_name}/{c.nodename}/{c.container_id}'.format(c=self, prefix=CORE_DEPLOY_INFO_PATH)
 
     def is_healthy(self):
         return self.deploy_info.get('Healthy')
@@ -89,14 +93,14 @@ class Container(BaseModelMixin):
     @classmethod
     def get_by(cls, **kwargs):
         sha = kwargs.pop('sha', None)
-        entrypoint = kwargs.pop('entrypoint', None)
-        if entrypoint == '_all':
+        entrypoint_name = kwargs.pop('entrypoint_name', None)
+        if entrypoint_name == '_all':
             # all means including all entrypoints
-            entrypoint = None
+            entrypoint_name = None
 
         query_set = cls.query.filter_by(**purge_none_val_from_dict(kwargs))
-        if entrypoint:
-            query_set = query_set.filter(cls.entrypoint == entrypoint)
+        if entrypoint_name:
+            query_set = query_set.filter(cls.entrypoint_name == entrypoint_name)
 
         if sha:
             query_set = query_set.filter(cls.sha.like('{}%'.format(sha)))
@@ -106,7 +110,7 @@ class Container(BaseModelMixin):
 
     @property
     def specs_entrypoint(self):
-        return self.release.specs.entrypoints[self.entrypoint]
+        return self.release.specs.entrypoints[self.entrypoint_name]
 
     @property
     def backup_path(self):
@@ -132,7 +136,7 @@ class Container(BaseModelMixin):
         return self.override_status == ContainerOverrideStatus.REMOVING
 
     def is_cronjob(self):
-        return self.entrypoint in self.app.cronjob_entrypoints
+        return self.entrypoint_name in self.app.cronjob_entrypoints
 
     def is_debug(self):
         return self.override_status == ContainerOverrideStatus.DEBUG
@@ -213,7 +217,7 @@ class Container(BaseModelMixin):
             'appname': self.appname,
             'sha': self.sha,
             'container_id': self.container_id,
-            'entrypoint': self.entrypoint,
+            'entrypoint_name': self.entrypoint_name,
             'envname': self.envname,
             'cpu_quota': self.cpu_quota,
             'zone': self.zone,
