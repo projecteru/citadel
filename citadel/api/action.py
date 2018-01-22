@@ -10,6 +10,7 @@ from json.decoder import JSONDecodeError
 from citadel.libs.utils import logger
 from citadel.libs.validation import build_args_schema, deploy_schema, remove_container_schema, deploy_elb_schema
 from citadel.libs.view import create_api_blueprint
+from citadel.models.app import App
 from citadel.tasks import celery_task_stream_response, build_image, create_container, remove_container, create_elb_instance
 
 
@@ -47,8 +48,21 @@ def deploy(socket):
         except JSONDecodeError as e:
             socket.send(json.dumps({'error': str(e)}))
 
-    args = payload.data
-    async_result = create_container.delay(zone=g.zone, user_id=g.user_id, **args)
+        args = payload.data
+        appname = args['appname']
+        app = App.get_by_name(appname)
+        if not app:
+            socket.send(json.dumps({'error': 'app {} not found'.format(appname)}))
+
+        combo_name = args['combo_name']
+        combo = app.get_combo(combo_name)
+        if not combo:
+            socket.send(json.dumps({'error': 'combo {} for app {} not found'.format(combo_name, app)}))
+
+        combo.update(**{k: v for k, v in args.items() if hasattr(combo, k) and v})
+
+    async_result = create_container.delay(zone=g.zone, user_id=g.user_id,
+                                          combo_name=combo_name)
     for m in celery_task_stream_response(async_result.task_id):
         logger.debug(m)
         socket.send(json.dumps(m))

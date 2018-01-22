@@ -3,13 +3,12 @@
 import json
 from celery import current_app
 from celery.result import AsyncResult
-from datetime import datetime, timedelta
 from grpc import RpcError, StatusCode
 from humanfriendly import parse_timespan
 
 from citadel.config import ZONE_CONFIG, CITADEL_TACKLE_TASK_THROTTLING_KEY, ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
 from citadel.ext import rds
-from citadel.libs.exceptions import ActionError, ModelDeleteError
+from citadel.libs.exceptions import ActionError
 from citadel.libs.utils import notbot_sendmsg, logger
 from citadel.models import Container, Release
 from citadel.models.app import App
@@ -60,21 +59,18 @@ def build_image(self, appname, sha):
 
 @current_app.task(bind=True)
 def create_container(self, zone=None, user_id=None, appname=None, sha=None,
-                     combo_name=None, podname=None, nodename=None,
-                     extra_args=None, cpu_quota=None, memory=None, count=None,
-                     debug=False, task_id=None):
+                     combo_name=None, debug=False, task_id=None):
     release = Release.get_by_app_and_sha(appname, sha)
     app = release.app
     combo = app.get_combo(combo_name)
     deploy_options = release.make_core_deploy_options(combo_name,
-                                                      podname=podname,
-                                                      nodename=nodename,
-                                                      extra_args=extra_args,
-                                                      cpu_quota=cpu_quota,
-                                                      memory=memory,
-                                                      count=count, debug=debug)
-    cpu_quota = cpu_quota or combo.cpu_quota
-    memory = memory or combo.memory
+                                                      podname=combo.podname,
+                                                      nodename=combo.nodename,
+                                                      extra_args=combo.extra_args,
+                                                      cpu_quota=combo.cpu_quota,
+                                                      memory=combo.memory,
+                                                      count=combo.count,
+                                                      debug=debug)
     ms = get_core(zone).create_container(deploy_options)
 
     bad_news = []
@@ -92,8 +88,8 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
                              m.id,
                              combo.entrypoint_name,
                              combo.envname,
-                             cpu_quota,
-                             memory,
+                             combo.cpu_quota,
+                             combo.memory,
                              zone,
                              m.podname,
                              m.nodename,
@@ -103,7 +99,7 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
                           'envname': combo.envname,
                           'networks': combo.networks}
             op_content.update(m.to_dict())
-            op_content['cpu'] = cpu_quota
+            op_content['cpu'] = combo.cpu_quota
             OPLog.create(user_id,
                          OPType.CREATE_CONTAINER,
                          appname=appname,
