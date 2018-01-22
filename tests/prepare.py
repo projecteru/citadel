@@ -22,7 +22,7 @@ except ConnectionRefusedError:
 
 default_appname = 'test-app'
 default_sha = '651fe0a'
-default_ports = ['8000']
+default_ports = ['6789']
 default_git = 'git@github.com:projecteru2/citadel.git'
 artifact_content = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 artifact_filename = '{}-data.txt'.format(default_appname)
@@ -61,6 +61,7 @@ default_env = EnvSet(**{'foo': 'some-env-content'})
 # test core config
 default_network_name = 'bridge'
 default_podname = 'eru'
+default_extra_args = '--bind 0.0.0.0 {}'.format(default_ports[0])
 default_cpu_quota = 0.2
 default_memory = parse_size('128MB', binary=True)
 
