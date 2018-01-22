@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta, datetime
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm.exc import StaleDataError, ObjectDeletedError
+from sqlalchemy.orm.exc import StaleDataError
 from time import sleep
 
 from citadel.config import CORE_DEPLOY_INFO_PATH
 from citadel.ext import db
 from citadel.libs.datastructure import purge_none_val_from_dict
 from citadel.libs.utils import logger
-from citadel.models.base import BaseModelMixin, PropsMixin, PropsItem
+from citadel.models.base import BaseModelMixin
 from citadel.rpc.client import get_core
 
 
@@ -18,7 +18,7 @@ class ContainerOverrideStatus:
     REMOVING = 2
 
 
-class Container(BaseModelMixin, PropsMixin):
+class Container(BaseModelMixin):
     __table_args__ = (
         db.Index('appname_sha', 'appname', 'sha'),
     )
@@ -34,15 +34,11 @@ class Container(BaseModelMixin, PropsMixin):
     podname = db.Column(db.String(50), nullable=False)
     nodename = db.Column(db.String(50), nullable=False)
     deploy_info = db.Column(db.JSON, default={})
-    override_status = db.Column(db.Integer, default=ContainerOverrideStatus.NONE, nullable=False)
-
-    initialized = PropsItem('initialized', default=0, type=int)
+    override_status = db.Column(db.Integer, default=ContainerOverrideStatus.NONE)
+    initialized = db.Column(db.Integer, default=0)
 
     def __str__(self):
         return '<{}:{}:{}:{}:{}>'.format(self.zone, self.appname, self.short_sha, self.entrypoint, self.short_id)
-
-    def get_uuid(self):
-        return 'citadel:container:%s' % self.container_id
 
     @classmethod
     def create(cls, appname, sha, container_id, entrypoint, envname, cpu_quota, memory, zone, podname, nodename, override_status=ContainerOverrideStatus.NONE):
@@ -144,6 +140,7 @@ class Container(BaseModelMixin, PropsMixin):
     def mark_debug(self):
         self.override_status = ContainerOverrideStatus.DEBUG
         try:
+            db.session.add(self)
             db.session.commit()
         except StaleDataError:
             db.session.rollback()
@@ -151,12 +148,15 @@ class Container(BaseModelMixin, PropsMixin):
     def mark_removing(self):
         self.override_status = ContainerOverrideStatus.REMOVING
         try:
+            db.session.add(self)
             db.session.commit()
         except StaleDataError:
             db.session.rollback()
 
     def mark_initialized(self):
         self.initialized = 1
+        db.session.add(self)
+        db.session.commit()
 
     def update_deploy_info(self, deploy_info):
         logger.debug('Update deploy_info for %s: %s', self, deploy_info)
@@ -206,15 +206,6 @@ class Container(BaseModelMixin, PropsMixin):
 
     def get_node(self):
         return get_core(self.zone).get_node(self.podname, self.nodename)
-
-    def delete(self):
-        try:
-            self.destroy_props()
-            logger.debug('Delete container %s', self)
-        except ObjectDeletedError:
-            logger.debug('Error during deleting: Object %s already deleted', self)
-            return None
-        return super(Container, self).delete()
 
     def to_dict(self):
         d = super(Container, self).to_dict()
