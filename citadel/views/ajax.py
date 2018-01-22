@@ -5,11 +5,7 @@ from citadel.config import DEFAULT_ZONE
 from citadel.libs.jsonutils import jsonize
 from citadel.libs.view import DEFAULT_RETURN_VALUE, ERROR_CODES
 from citadel.models import Container
-from citadel.models.app import Release
 from citadel.models.elb import update_elb_for_containers, UpdateELBAction
-from citadel.models.oplog import OPType, OPLog
-from citadel.rpc.client import get_core
-from citadel.views.helper import bp_get_app
 
 
 bp = Blueprint('ajax', __name__, url_prefix='/ajax')
@@ -21,32 +17,6 @@ def _error_hanlder(error):
 
 for code in ERROR_CODES:
     bp.errorhandler(code)(_error_hanlder)
-
-
-@bp.route('/app/<name>/delete-env', methods=['POST'])
-@jsonize
-def delete_app_env(name):
-    envname = request.form['env']
-    app = bp_get_app(name)
-    OPLog.create(g.user.id, OPType.DELETE_ENV, app.name, content={'envname': envname})
-    deleted = app.remove_env_set(envname)
-    if not deleted:
-        abort(404, 'App `%s` has no env `%s`' % (app.name, envname))
-
-    return DEFAULT_RETURN_VALUE
-
-
-@bp.route('/release/<release_id>/entrypoints')
-@jsonize
-def get_release_entrypoints(release_id):
-    release = Release.get(release_id)
-    if not release:
-        abort(404, 'Release %s not found' % release_id)
-
-    if not (release.specs and release.specs.entrypoints):
-        abort(404, 'Release %s has no entrypoints')
-
-    return list(release.specs.entrypoints.keys())
 
 
 @bp.route('/debug-container', methods=['POST'])
@@ -63,18 +33,6 @@ def debug_container():
 
     update_elb_for_containers(containers, UpdateELBAction.REMOVE)
     return DEFAULT_RETURN_VALUE
-
-
-@bp.route('/pods')
-@jsonize
-def get_all_pods():
-    return get_core(g.zone).list_pods()
-
-
-@bp.route('/pod/<name>/nodes')
-@jsonize
-def get_pod_nodes(name):
-    return get_core(g.zone).get_pod_nodes(name)
 
 
 @bp.route('/switch-zone', methods=['POST'])
