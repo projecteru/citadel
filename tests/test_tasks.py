@@ -2,7 +2,7 @@ import json
 import pytest
 import requests
 
-from .prepare import core_online, default_appname, default_sha, default_ports, default_podname, default_cpu_quota, default_memory, default_combo_name, artifact_filename, artifact_content, default_env
+from .prepare import core_online, default_appname, default_sha, default_ports, default_podname, default_cpu_quota, default_memory, default_combo_name, artifact_filename, artifact_content, default_env, default_entrypoints, default_extra_args
 from citadel.config import DEFAULT_ZONE
 from citadel.ext import get_etcd
 from citadel.models.app import Release
@@ -29,10 +29,7 @@ def test_workflow(watch_etcd, request):
     deploy_messages = list(create_container(zone=DEFAULT_ZONE,
                                             appname=default_appname,
                                             sha=default_sha,
-                                            combo_name=default_combo_name,
-                                            podname=default_podname,
-                                            cpu_quota=default_cpu_quota,
-                                            memory=default_memory, count=1))
+                                            combo_name=default_combo_name))
     assert len(deploy_messages) == 1
     container_info = deploy_messages[0]
     assert not container_info['error']
@@ -83,3 +80,8 @@ def test_workflow(watch_etcd, request):
     left_env_vars = set(default_env.to_env_vars())
     right_env_vars = set(container_info['Config']['Env'])
     assert left_env_vars.intersection(right_env_vars) == left_env_vars
+
+    # verify extra_args has been correctly appended
+    left_command = '{} {}'.format(default_entrypoints['web']['cmd'], default_extra_args)
+    right_command = ' '.join(container_info['Config']['Cmd'])
+    assert left_command == right_command

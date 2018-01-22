@@ -4,7 +4,7 @@ import subprocess
 import threading
 from urllib.parse import urlparse
 
-from .prepare import default_appname, default_sha, default_git, make_specs_text, default_combo_name, default_podname, default_cpu_quota, default_memory, default_network_name, default_env_name, default_env
+from .prepare import default_appname, default_sha, default_git, make_specs_text, default_combo_name, default_podname, default_cpu_quota, default_memory, default_network_name, default_env_name, default_env, default_extra_args
 from citadel.app import create_app
 from citadel.ext import db, rds
 from citadel.libs.utils import logger
@@ -51,6 +51,7 @@ def test_db(request, app):
     app.add_env_set(default_env_name, default_env)
     Release.create(app, default_sha, make_specs_text())
     Combo.create(default_appname, default_combo_name, 'web', default_podname,
+                 extra_args=default_extra_args,
                  networks=[default_network_name], cpu_quota=default_cpu_quota,
                  memory=default_memory, count=1, envname=default_env_name)
 

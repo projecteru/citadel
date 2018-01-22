@@ -44,6 +44,13 @@ class BaseModelMixin(db.Model, Jsonized):
             return q.all()
         return q[start:start + limit]
 
+    def update(self, **kwargs):
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
+
+        db.session.add(self)
+        db.session.commit()
+
     def delete(self):
         try:
             db.session.delete(self)
