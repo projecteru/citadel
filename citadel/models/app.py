@@ -338,12 +338,6 @@ class Release(BaseModelMixin):
     def specs(self):
         return Specs.from_string(self.specs_text)
 
-    def describe_entrypoint_image(self, entrypoint_name):
-        image = self.specs.entrypoints[entrypoint_name].image
-        if image:
-            return image, True
-        return self.image, self.raw
-
     @property
     def entrypoints(self):
         return self.specs.entrypoints
