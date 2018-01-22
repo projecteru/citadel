@@ -1,7 +1,5 @@
 # coding: utf-8
 
-import json
-import logging
 import sqlalchemy.orm.exc
 import sqlalchemy.types as types
 from datetime import datetime
@@ -9,13 +7,9 @@ from flask_sqlalchemy import sqlalchemy as sa
 from marshmallow import Schema, validates_schema, ValidationError
 from sqlalchemy import inspect
 
-from citadel.ext import db, rds
+from citadel.ext import db
 from citadel.libs.jsonutils import Jsonized
 from citadel.libs.utils import logger
-
-
-_missing = object()
-_logger = logging.getLogger(__name__)
 
 
 class BaseModelMixin(db.Model, Jsonized):
@@ -65,74 +59,6 @@ class BaseModelMixin(db.Model, Jsonized):
 
     def to_dict(self):
         return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
-
-
-class PropsMixin:
-    """丢redis里"""
-
-    def get_uuid(self):
-        raise NotImplementedError('Need uuid to idenify objects')
-
-    @property
-    def _property_key(self):
-        """因为是redis还是改用redis风格的key吧"""
-        return self.get_uuid() + ':property'
-
-    def get_props(self):
-        props = rds.get(self._property_key) or '{}'
-        return json.loads(props)
-
-    def set_props(self, props):
-        rds.set(self._property_key, json.dumps(props))
-
-    def destroy_props(self):
-        rds.delete(self._property_key)
-
-    props = property(get_props, set_props, destroy_props)
-
-    def update_props(self, **kw):
-        props = self.props
-        props.update(kw)
-        self.props = props
-
-    def get_props_item(self, key, default=None):
-        r = self.props.get(key, _missing)
-        if r is not _missing:
-            return r
-        if callable(default):
-            return default()
-        return default
-
-    def set_props_item(self, key, value):
-        props = self.props
-        props[key] = value
-        self.props = props
-
-    def delete_props_item(self, key):
-        props = self.props
-        props.pop(key, None)
-        self.props = props
-
-
-class PropsItem:
-
-    def __init__(self, name, default=None, type=None):
-        self.name = name
-        self.default = default
-        self.type = type
-
-    def __get__(self, obj, obj_type):
-        r = obj.get_props_item(self.name, self.default)
-        if self.type:
-            r = self.type(r)
-
-        return r
-
-    def __set__(self, obj, value):
-        obj.set_props_item(self.name, value)
-
-    def __delete__(self, obj):
-        obj.delete_props_item(self.name)
 
 
 class Enum34(types.TypeDecorator):
