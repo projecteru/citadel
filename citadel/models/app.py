@@ -431,10 +431,10 @@ class Combo(BaseModelMixin):
 
     appname = db.Column(db.CHAR(64), nullable=False, index=True)
     name = db.Column(db.CHAR(64), nullable=False, index=True)
-
     entrypoint_name = db.Column(db.CHAR(64), nullable=False)
     podname = db.Column(db.CHAR(64), nullable=False)
     nodename = db.Column(db.CHAR(64))
+    extra_args = db.Column(db.String(100))
     networks = db.Column(db.JSON)  # List of network names
     cpu_quota = db.Column(db.Float, nullable=False)
     memory = db.Column(db.Integer, nullable=False)
@@ -446,13 +446,14 @@ class Combo(BaseModelMixin):
 
     @classmethod
     def create(cls, appname=None, name=None, entrypoint_name=None,
-               podname=None, nodename=None, networks=None, cpu_quota=None,
-               memory=None, count=None, envname=None):
+               podname=None, nodename=None, extra_args=None, networks=None,
+               cpu_quota=None, memory=None, count=None, envname=None):
         try:
             combo = cls(appname=appname, name=name,
                         entrypoint_name=entrypoint_name, podname=podname,
-                        nodename=nodename, networks=networks, cpu_quota=cpu_quota,
-                        memory=memory, count=count, envname=envname)
+                        nodename=nodename, extra_args=extra_args,
+                        networks=networks, cpu_quota=cpu_quota, memory=memory,
+                        count=count, envname=envname)
             db.session.add(combo)
             db.session.commit()
             return combo
