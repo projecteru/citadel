@@ -1,14 +1,20 @@
 # -*- coding: utf-8 -*-
 from humanfriendly import parse_size
-from marshmallow import ValidationError, fields
+from marshmallow import fields, validates_schema, ValidationError
 from numbers import Number
 
+from citadel.config import ZONE_CONFIG
 from citadel.models.base import StrictSchema
 
 
 def validate_sha(s):
     if len(s) < 7:
-        raise ValidationError('sha must be longer than 7')
+        raise ValidationError('minimum sha length is 7')
+
+
+def validate_zone(s):
+    if s not in ZONE_CONFIG:
+        raise ValidationError('Bad zone: {}'.format(s))
 
 
 def validate_full_contianer_id(s):
@@ -65,6 +71,23 @@ class DeployELBSchema(StrictSchema):
     sha = fields.Str(required=True, validate=validate_sha)
     combo_name = fields.Str(required=True)
     nodename = fields.Str()
+
+
+class GetContainerSchema(StrictSchema):
+    appname = fields.Str()
+    sha = fields.Str(validate=validate_sha)
+    container_id = fields.Str(validate=validate_sha)
+    entrypoint_name = fields.Str()
+    cpu_quota = fields.Float()
+    memory = fields.Function(deserialize=parse_memory)
+    zone = fields.Str(validate=validate_zone)
+    podname = fields.Str()
+    nodename = fields.Str()
+
+    @validates_schema
+    def further_check(self, data):
+        if not data:
+            raise ValidationError('dude what? you did not specify any query parameters')
 
 
 class BuildArgsSchema(StrictSchema):

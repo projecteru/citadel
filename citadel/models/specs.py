@@ -5,7 +5,6 @@ from humanfriendly import InvalidTimespan, parse_timespan, parse_size
 from marshmallow import Schema, fields, validates_schema, ValidationError, post_load
 from numbers import Number
 
-from citadel.config import ZONE_CONFIG
 from citadel.libs.jsonutils import Jsonized
 from citadel.libs.utils import memoize
 from citadel.models.base import StrictSchema
@@ -37,11 +36,6 @@ def validate_http_code(n):
 def validate_log_config(s):
     if s not in {'json-file', 'none', 'syslog'}:
         raise ValidationError('Log config should choose from json-file, none, syslog')
-
-
-def validate_zone(s):
-    if s not in ZONE_CONFIG:
-        raise ValidationError('Bad zone: {}'.format(s))
 
 
 def validate_entrypoint_name(s):
