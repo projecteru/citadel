@@ -4,8 +4,8 @@ import pytest
 from flask import url_for
 from humanfriendly import parse_size
 
-from .prepare import default_appname, make_specs_text, default_ports, make_specs, core_online, default_podname, default_env_name, default_env
 from .conftest import json_headers
+from .prepare import default_appname, make_specs_text, default_ports, make_specs, core_online, default_podname, default_env_name, default_env, fake_container
 from citadel.models.app import Release
 
 
@@ -132,3 +132,17 @@ def test_app_env(test_db, client):
 
     res = client.get(url_for('app.get_app_envs', appname=default_appname))
     assert res.json == {test_env_name: test_env, default_env_name: dict(default_env)}
+
+
+def test_get_container(test_db, client):
+    memory = parse_size('12MB', binary=True)
+    fake_container(memory=memory)
+    res = client.get(url_for('container.get_by'), query_string={'memory': memory})
+    assert len(res.json) == 1
+    assert res.json[0]['memory'] == memory
+
+    sha = 'a1ff45de8977f38db759fd326cb03f743be226d8'
+    fake_container(sha=sha)
+    res = client.get(url_for('container.get_by'), query_string={'sha': sha[:7]})
+    assert len(res.json) == 1
+    assert res.json[0]['sha'] == sha

@@ -26,6 +26,7 @@ class Container(BaseModelMixin):
     appname = db.Column(db.CHAR(64), nullable=False)
     sha = db.Column(db.CHAR(64), nullable=False)
     container_id = db.Column(db.CHAR(64), nullable=False, index=True)
+    container_name = db.Column(db.CHAR(64), nullable=False, index=True)
     entrypoint_name = db.Column(db.String(50), nullable=False)
     envname = db.Column(db.String(50))
     cpu_quota = db.Column(db.Numeric(12, 3), nullable=False)
@@ -41,12 +42,13 @@ class Container(BaseModelMixin):
         return '<{}:{}:{}:{}:{}>'.format(self.zone, self.appname, self.short_sha, self.entrypoint_name, self.short_id)
 
     @classmethod
-    def create(cls, appname=None, sha=None, container_id=None, entrypoint_name=None,
-               envname=None, cpu_quota=None, memory=None, zone=None,
-               podname=None, nodename=None,
-               override_status=ContainerOverrideStatus.NONE):
+    def create(cls, appname=None, sha=None, container_id=None,
+               container_name=None, entrypoint_name=None, envname=None,
+               cpu_quota=None, memory=None, zone=None, podname=None,
+               nodename=None, override_status=ContainerOverrideStatus.NONE):
         try:
             c = cls(appname=appname, sha=sha, container_id=container_id,
+                    container_name=container_name,
                     entrypoint_name=entrypoint_name, envname=envname,
                     cpu_quota=cpu_quota, memory=memory, zone=zone,
                     podname=podname, nodename=nodename,
@@ -92,21 +94,18 @@ class Container(BaseModelMixin):
 
     @classmethod
     def get_by(cls, **kwargs):
-        sha = kwargs.pop('sha', None)
-        entrypoint_name = kwargs.pop('entrypoint_name', None)
-        if entrypoint_name == '_all':
-            # all means including all entrypoints
-            entrypoint_name = None
+        sha = kwargs.pop('sha', '')
+        container_id = kwargs.pop('container_id', '')
 
         query_set = cls.query.filter_by(**purge_none_val_from_dict(kwargs))
-        if entrypoint_name:
-            query_set = query_set.filter(cls.entrypoint_name == entrypoint_name)
 
         if sha:
             query_set = query_set.filter(cls.sha.like('{}%'.format(sha)))
 
-        res = query_set.order_by(cls.id.desc())
-        return res
+        if container_id:
+            query_set = query_set.filter(cls.container_id.like('{}%'.format(container_id)))
+
+        return query_set.order_by(cls.id.desc()).all()
 
     @property
     def specs_entrypoint(self):
@@ -122,7 +121,7 @@ class Container(BaseModelMixin):
 
     @property
     def ident(self):
-        return self.name.rsplit('_', 2)[-1]
+        return self.container_name.rsplit('_', 2)[-1]
 
     @property
     def short_id(self):
@@ -210,20 +209,3 @@ class Container(BaseModelMixin):
 
     def get_node(self):
         return get_core(self.zone).get_node(self.podname, self.nodename)
-
-    def to_dict(self):
-        d = super(Container, self).to_dict()
-        d.update({
-            'appname': self.appname,
-            'sha': self.sha,
-            'container_id': self.container_id,
-            'entrypoint_name': self.entrypoint_name,
-            'envname': self.envname,
-            'cpu_quota': self.cpu_quota,
-            'zone': self.zone,
-            'podname': self.podname,
-            'nodename': self.nodename,
-            'name': self.name,
-            'deploy_info': self.deploy_info,
-        })
-        return d
