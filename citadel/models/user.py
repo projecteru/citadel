@@ -1,54 +1,12 @@
 # -*- coding: utf-8 -*-
-import requests
-from flask import abort, session, request
-from requests.exceptions import ConnectTimeout, ReadTimeout, ConnectionError
+from flask import session
 
-from citadel.config import FAKE_USER, DEBUG, AUTH_AUTHORIZE_URL, AUTH_GET_USER_URL
+from citadel.config import FAKE_USER, DEBUG
 from citadel.ext import sso
 from citadel.libs.cache import cache, ONE_DAY
-from citadel.libs.utils import logger
-
-
-@cache(ttl=ONE_DAY)
-def get_current_user_via_auth(token):
-    try:
-        headers = {'X-Neptulon-Token': token}
-        resp = requests.get(AUTH_AUTHORIZE_URL, headers=headers, timeout=5)
-    except (ConnectTimeout, ConnectionError, ReadTimeout):
-        abort(408, 'error when getting user from neptulon')
-
-    status_code = resp.status_code
-    if status_code != 200:
-        logger.warn('Neptulon error during citadel request %s: headers %s, code %s, body %s', request, headers, status_code, resp.text)
-        return None
-
-    return User.from_dict(resp.json())
-
-
-@cache(ttl=ONE_DAY)
-def get_user_via_auth(token, identifier):
-    try:
-        headers = {'X-Neptulon-Token': token}
-        params = {'identifier': identifier}
-        resp = requests.get(AUTH_GET_USER_URL,
-                            headers=headers,
-                            params=params,
-                            timeout=5)
-    except (ConnectTimeout, ConnectionError, ReadTimeout):
-        abort(408, 'error when getting user from neptulon')
-
-    status_code = resp.status_code
-    if status_code != 200:
-        logger.warn('Neptulon error during citadel request %s: headers %s, params %s, code %s, body %s', request, headers, params, status_code, resp.text)
-        return None
-
-    return User.from_dict(resp.json())
 
 
 def get_current_user():
-    token = request.headers.get('X-Neptulon-Token') or request.values.get('X-Neptulon-Token')
-    if token:
-        return get_current_user_via_auth(token)
     if 'sso' in session:
         resp = sso.get('me')
         return User.from_dict(resp.data)
@@ -61,9 +19,6 @@ def get_user(identifier):
         return None
     if DEBUG:
         return User.from_dict(FAKE_USER)
-    token = request.headers.get('X-Neptulon-Token') or request.values.get('X-Neptulon-Token')
-    if token:
-        return get_user_via_auth(token, identifier)
     resp = sso.get('user/%s' % identifier)
     return resp.data and User.from_dict(resp.data) or None
 

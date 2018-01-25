@@ -48,8 +48,6 @@ OAUTH2_ACCESS_TOKEN_URL = getenv('OAUTH2_ACCESS_TOKEN_URL', default='https://sso
 OAUTH2_AUTHORIZE_URL = getenv('OAUTH2_AUTHORIZE_URL', default='https://sso.ricebook.net/oauth/authorize')
 OAUTH2_CLIENT_ID = getenv('OAUTH2_CLIENT_ID', default='whatever')
 OAUTH2_CLIENT_SECRET = getenv('OAUTH2_CLIENT_SECRET', default='whatever')
-AUTH_AUTHORIZE_URL = getenv('AUTH_AUTHORIZE_URL', default='https://sso.ricebook.net/auth/profile')
-AUTH_GET_USER_URL = getenv('AUTH_GET_USER_URL', default='https://sso.ricebook.net/auth/user')
 
 ELB_APP_NAME = getenv('ELB_APP_NAME', default='erulb3')
 ELB_BACKEND_NAME_DELIMITER = getenv('ELB_BACKEND_NAME_DELIMITER', default='___')
