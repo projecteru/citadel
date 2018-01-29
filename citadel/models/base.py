@@ -38,14 +38,14 @@ class BaseModelMixin(db.Model, Jsonized):
     mget = get_multi
 
     @classmethod
-    def get_all(cls, start=0, limit=20):
+    def get_all(cls, start=0, limit=None):
         q = cls.query.order_by(cls.id.desc())
         if not any([start, limit]):
             return q.all()
         return q[start:start + limit]
 
     def update(self, **kwargs):
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             setattr(self, k, v)
 
         db.session.add(self)

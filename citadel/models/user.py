@@ -1,70 +1,52 @@
 # -*- coding: utf-8 -*-
-from flask import session
 
-from citadel.config import FAKE_USER, DEBUG
-from citadel.ext import sso
-from citadel.libs.cache import cache, ONE_DAY
+from authlib.client.apps import github
+
+from citadel.config import OAUTH_APP_NAME
+from citadel.ext import db, fetch_token
+from citadel.models.base import BaseModelMixin
 
 
 def get_current_user():
-    if 'sso' in session:
-        resp = sso.get('me')
-        return User.from_dict(resp.data)
+    if fetch_token(OAUTH_APP_NAME):
+        authlib_user = github.fetch_user()
+        return User.from_authlib_user(authlib_user)
     return None
 
 
-@cache(ttl=ONE_DAY)
-def get_user(identifier):
-    if not identifier:
-        return None
-    if DEBUG:
-        return User.from_dict(FAKE_USER)
-    resp = sso.get('user/%s' % identifier)
-    return resp.data and User.from_dict(resp.data) or None
+class User(BaseModelMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.CHAR(50), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    privileged = db.Column(db.Integer, default=0)
+    data = db.Column(db.JSON)
 
-
-def get_users(start=0, limit=20, q=None):
-    if DEBUG:
-        return [User.from_dict(FAKE_USER)]
-
-    data = {'start': start, 'limit': limit}
-    if q:
-        data.update({'q': q})
-
-    resp = sso.get('users', data)
-    return [User.from_dict(d) for d in resp.data if d]
-
-
-class User:
-
-    def __init__(self, id, name, email, real_name, privilege, token='', pubkey=''):
-        self.id = id
-        self.name = name
-        self.email = email
-        self.real_name = real_name
-        self.privilege = privilege
-        self.token = token
-        self.pubkey = pubkey
+    @classmethod
+    def create(cls, id, name, email, data=None):
+        user = cls(id=id, name=name, email=email, data=data)
+        db.session.add(user)
+        db.session.commit()
+        return user
 
     def __str__(self):
-        return '{class_} {u.name}'.format(
+        return '{class_} {u.id} {u.name}'.format(
             class_=self.__class__,
             u=self,
         )
 
-    def __hash__(self):
-        return hash((self.__class__, self.id))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.id == other.id
-
     @classmethod
-    def from_dict(cls, info):
-        if not info or not isinstance(info, dict):
-            return None
-        return cls(info['id'], info['name'], info['email'], info['real_name'],
-                   info['privilege'], info.get('token', ''), info.get('pubkey', ''))
+    def from_authlib_user(cls, authlib_user):
+        user = cls.query.filter_by(id=authlib_user.id).first()
+        if not user:
+            user = cls.create(authlib_user.id, authlib_user.name,
+                              authlib_user.email, authlib_user.data)
+        else:
+            user.update(name=authlib_user.name, email=authlib_user.email,
+                        data=authlib_user.data)
 
-    @classmethod
-    def get(cls, id):
-        return get_user(id)
+        return user
+
+    def elevate_privilege(self):
+        self.privileged = 1
+        db.session.add(self)
+        db.session.commit()
