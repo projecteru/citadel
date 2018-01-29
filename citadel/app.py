@@ -24,14 +24,6 @@ else:
 
 logging.basicConfig(level=loglevel, format='[%(asctime)s] [%(process)d] [%(levelname)s] [%(filename)s @ %(lineno)s]: %(message)s', datefmt='%Y-%m-%d %H:%M:%S %z')
 
-blueprints = [
-    'index',
-    'app',
-    'user',
-    'ajax',
-    'admin',
-]
-
 api_blueprints = [
     'app',
     'pod',
@@ -103,10 +95,6 @@ def create_app():
     if not DEBUG:
         sentry = Sentry(dsn=SENTRY_DSN)
         sentry.init_app(app)
-
-    for bp_name in blueprints:
-        bp = import_string('%s.views.%s:bp' % (__package__, bp_name))
-        app.register_blueprint(bp)
 
     for bp_name in api_blueprints:
         bp = import_string('%s.api.%s:bp' % (__package__, bp_name))
