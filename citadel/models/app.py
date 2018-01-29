@@ -276,7 +276,7 @@ class Release(BaseModelMixin):
         return None
 
     @classmethod
-    def get_by_app(cls, name, start=0, limit=20):
+    def get_by_app(cls, name, start=0, limit=None):
         app = App.get_by_name(name)
         if not app:
             return []

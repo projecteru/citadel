@@ -17,7 +17,7 @@ json_headers = {'Content-Type': 'application/json'}
 @pytest.fixture
 def app(request):
     app = create_app()
-    app.config['TESTING'] = True
+    app.config['DEBUG'] = True
 
     ctx = app.app_context()
     ctx.push()

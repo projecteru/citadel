@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
+
 import json
 import logging
 from celery import Celery, Task
-from flask import url_for, jsonify, g, session, Flask, request, redirect
+from flask import url_for, jsonify, g, session, Flask, request, redirect, current_app
 from raven.contrib.flask import Sentry
 from werkzeug.utils import import_string
 
 from citadel.config import TASK_PUBSUB_CHANNEL, DEBUG, SENTRY_DSN, TASK_PUBSUB_EOF, DEFAULT_ZONE, FAKE_USER
-from citadel.ext import rds, sess, db, mako, cache, sockets
+from citadel.ext import rds, sess, db, mako, cache, sockets, oauth
 from citadel.libs.datastructure import DateConverter
 from citadel.libs.jsonutils import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg
-from citadel.models.user import get_current_user, User
+from citadel.models.user import get_current_user
 
 
 if DEBUG:
@@ -29,6 +30,7 @@ api_blueprints = [
     'pod',
     'container',
     'elb',
+    'user',
 ]
 
 ANONYMOUS_PATHS = [
@@ -87,6 +89,7 @@ def create_app():
 
     make_celery(app)
     db.init_app(app)
+    oauth.init_app(app)
     mako.init_app(app)
     cache.init_app(app)
     sess.init_app(app)
@@ -110,13 +113,12 @@ def create_app():
         g.limit = request.args.get('limit', type=int, default=20)
         g.zone = session.get('zone') or request.values.get('zone') or DEFAULT_ZONE
 
-        if DEBUG:
-            g.user = User.from_dict(FAKE_USER)
+        if current_app.config['DEBUG']:
+            g.user = FAKE_USER
         else:
             g.user = get_current_user()
 
         if not g.user and not anonymous_path(request.path):
-            session.pop('sso', None)
             return redirect(url_for('user.login'))
 
     @app.errorhandler(422)
