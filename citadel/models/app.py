@@ -182,7 +182,6 @@ class App(BaseModelMixin):
 
     def delete(self):
         appname = self.name
-        from .loadbalance import ELBRule
         containers = self.get_container_list(None)
         if containers:
             raise ModelDeleteError('App {} is still running, containers {}, remove them before deleting app'.format(appname, containers))
@@ -190,16 +189,12 @@ class App(BaseModelMixin):
         Release.query.filter_by(app_id=self.id).delete()
         # delete all permissions
         AppUserRelation.query.filter_by(appname=appname).delete()
-        # delete all ELB rules
-        rules = ELBRule.get_by(appname=appname)
-        for rule in rules:
-            rule.delete()
-
+        # TODO: delete all ELB rules
         return super(App, self).delete()
 
     def get_associated_elb_rules(self, zone=DEFAULT_ZONE):
-        from citadel.models.loadbalance import ELBRule
-        return ELBRule.get_by(appname=self.name, zone=zone)
+        # TODO
+        pass
 
     def get_permitted_user_ids(self):
         return AppUserRelation.get_user_id_by_appname(self.name)

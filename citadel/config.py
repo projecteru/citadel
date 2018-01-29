@@ -108,9 +108,6 @@ try:
 except ImportError:
     pass
 
-# redis pod is managed by cerberus, elb pod is managed by views.loadbalance
-IGNORE_PODS = {REDIS_POD_NAME, ELB_POD_NAME}
-
 # flask-session settings
 SESSION_USE_SIGNER = True
 SESSION_TYPE = 'redis'
