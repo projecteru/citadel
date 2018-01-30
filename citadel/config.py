@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta
 
 import redis
 from celery.schedules import crontab
+from datetime import timedelta
 from kombu import Queue
+from mock import MagicMock
 from smart_getenv import getenv
 
 
 DEBUG = getenv('DEBUG', default=True, type=bool)
-FAKE_USER = {
-    'id': 10056,
-    'name': 'liuyifu',
-    'real_name': 'timfeirg',
-    'email': 'test@test.com',
-    'privilege': 1,
-    'token': 'token',
-    'pubkey': '',
-}
+FAKE_USER = MagicMock(
+    id=12345,
+    name='timfeirg',
+    email='timfeirg@ricebook.com',
+    privileged=1,
+)
+FAKE_USER.name = 'timfeirg'  # ...
 
 PROJECT_NAME = LOGGER_NAME = 'citadel'
 SERVER_NAME = getenv('SERVER_NAME', default='citadel.ricebook.net')
@@ -43,13 +42,11 @@ ZONE_CONFIG = {
 SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', default='mysql+pymysql://root:@localhost:3306/citadeltest')
 SQLALCHEMY_TRACK_MODIFICATIONS = getenv('SQLALCHEMY_TRACK_MODIFICATIONS', default=True, type=bool)
 
-OAUTH2_BASE_URL = getenv('OAUTH2_BASE_URL', default='https://sso.ricebook.net/oauth/api/')
-OAUTH2_ACCESS_TOKEN_URL = getenv('OAUTH2_ACCESS_TOKEN_URL', default='https://sso.ricebook.net/oauth/token')
-OAUTH2_AUTHORIZE_URL = getenv('OAUTH2_AUTHORIZE_URL', default='https://sso.ricebook.net/oauth/authorize')
-OAUTH2_CLIENT_ID = getenv('OAUTH2_CLIENT_ID', default='whatever')
-OAUTH2_CLIENT_SECRET = getenv('OAUTH2_CLIENT_SECRET', default='whatever')
-AUTH_AUTHORIZE_URL = getenv('AUTH_AUTHORIZE_URL', default='https://sso.ricebook.net/auth/profile')
-AUTH_GET_USER_URL = getenv('AUTH_GET_USER_URL', default='https://sso.ricebook.net/auth/user')
+OAUTH_APP_NAME = 'github'
+GITHUB_CLIENT_KEY = '***REMOVED***'
+GITHUB_CLIENT_SECRET = '***REMOVED***'
+GITHUB_CLIENT_KWARGS = {'scope': 'user:email'}
+OAUTH_CLIENT_CACHE_TYPE = 'redis'
 
 ELB_APP_NAME = getenv('ELB_APP_NAME', default='erulb3')
 ELB_BACKEND_NAME_DELIMITER = getenv('ELB_BACKEND_NAME_DELIMITER', default='___')
@@ -113,7 +110,7 @@ SESSION_USE_SIGNER = True
 SESSION_TYPE = 'redis'
 SESSION_REDIS = redis.Redis.from_url(REDIS_URL)
 SESSION_KEY_PREFIX = '{}:session:'.format(PROJECT_NAME)
-PERMANENT_SESSION_LIFETIME = timedelta(days=2)
+PERMANENT_SESSION_LIFETIME = timedelta(days=5)
 
 # flask cache settings
 CACHE_REDIS_URL = REDIS_URL
