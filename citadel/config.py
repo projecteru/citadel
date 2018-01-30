@@ -4,18 +4,16 @@ import redis
 from celery.schedules import crontab
 from datetime import timedelta
 from kombu import Queue
-from mock import MagicMock
 from smart_getenv import getenv
 
 
-DEBUG = getenv('DEBUG', default=True, type=bool)
-FAKE_USER = MagicMock(
-    id=12345,
-    name='timfeirg',
-    email='timfeirg@ricebook.com',
-    privileged=1,
-)
-FAKE_USER.name = 'timfeirg'  # ...
+DEBUG = getenv('DEBUG', default=False, type=bool)
+FAKE_USER = {
+    'id': 12345,
+    'name': 'timfeirg',
+    'email': 'timfeirg@ricebook.com',
+    'access_token': 'faketoken',
+}
 
 PROJECT_NAME = LOGGER_NAME = 'citadel'
 SERVER_NAME = getenv('SERVER_NAME', default='citadel.ricebook.net')
