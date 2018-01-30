@@ -29,7 +29,7 @@ rds = Redis.from_url(REDIS_URL)
 
 def fetch_token(oauth_app_name):
     token_session_key = '{}-token'.format(oauth_app_name.lower())
-    return session.get(token_session_key)
+    return session.get(token_session_key, {})
 
 
 def update_token(oauth_app_name, token):
