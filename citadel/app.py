@@ -12,7 +12,7 @@ from citadel.ext import rds, sess, db, mako, cache, sockets, oauth
 from citadel.libs.datastructure import DateConverter
 from citadel.libs.jsonutils import JSONEncoder
 from citadel.libs.utils import notbot_sendmsg
-from citadel.models.user import get_current_user
+from citadel.models.user import get_current_user, User
 
 
 if DEBUG:
@@ -114,7 +114,7 @@ def create_app():
         g.zone = session.get('zone') or request.values.get('zone') or DEFAULT_ZONE
 
         if current_app.config['DEBUG']:
-            g.user = FAKE_USER
+            g.user = User(**FAKE_USER)
         else:
             g.user = get_current_user()
 
