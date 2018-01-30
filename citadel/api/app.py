@@ -28,6 +28,11 @@ def _get_release(appname, sha):
     return release
 
 
+@bp.route('/')
+def list_app():
+    return App.get_all()
+
+
 @bp.route('/<appname>')
 def get_app(appname):
     return _get_app(appname)

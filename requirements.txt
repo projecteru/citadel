@@ -1,5 +1,5 @@
 Flask
-Flask_OAuthlib
+Authlib
 Flask_SQLAlchemy
 Flask-Session
 Flask-Caching
