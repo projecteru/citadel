@@ -235,24 +235,6 @@ class Release(BaseModelMixin):
             db.session.rollback()
             raise
 
-        # after the instance is created, manage app permission through combo
-        # permitted_users
-        permitted_users = set(new_release.get_permitted_users())
-        current_permitted_users = set(User.get(id_) for id_ in AppUserRelation.get_user_id_by_appname(appname))
-        come = permitted_users - current_permitted_users
-        gone = current_permitted_users - permitted_users
-        for u in come:
-            if not u:
-                continue
-            logger.debug('Grant %s to app %s', u, appname)
-            AppUserRelation.add(appname, u.id)
-
-        for u in gone:
-            if not u:
-                continue
-            logger.debug('Revoke %s to app %s', u, appname)
-            AppUserRelation.delete(appname, u.id)
-
         return new_release
 
     def delete(self):
@@ -261,11 +243,6 @@ class Release(BaseModelMixin):
             raise ModelDeleteError('Release {} is still running, delete containers {} before deleting this release'.format(self.short_sha, container_list))
         logger.warn('Deleting release %s', self)
         return super(Release, self).delete()
-
-    def get_permitted_users(self):
-        usernames = self.specs.permitted_users
-        permitted_users = [User.get(u) for u in usernames]
-        return permitted_users
 
     @classmethod
     def get(cls, id):
