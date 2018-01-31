@@ -43,8 +43,6 @@ dns:
 meta:
   meta_key1: meta_value1
   meta_key2: meta_value2
-permitted_users:
-  - "cmgs"
 combos:
   test-in-c2:
     cpu: 1
@@ -101,7 +99,6 @@ combos:
 * `erection_timeout`: str/int, 如果你启用了平滑升级, 那么 Citadel 在进行容器升级或者换新的时候, 会先启动新的容器, 等待新的容器健康以后, 再删除老的容器, 默认会等待5m, 这个参数就是来控制等待时间的. 写数字的话, 单位为秒, 也可以写 [humanfriendly](https://humanfriendly.readthedocs.io/en/latest/#humanfriendly.parse_timespan) 的时间.
 * `freeze_node`: bool, 如果为 true, 对容器进行升级/换新操作的时候, 会在原来的 node 上启动新容器, 否则由 eru-core 决定 node 分配. 默认为 false.
 * `smooth_upgrade`: bool, 默认为 true, 也就是启用平滑升级, 有些特殊的应用不允许同一个实例有两个实例同时存活, 那么就需要禁用掉平滑升级.
-* `permitted_user`: 会被加到 citade 的权限里, 这里列出的人才可以对 app 进行操作. 列出的名字是 sso 服务提供方里的用户名.
 * `combos`: 套餐, 其实是一个自由的组合. citadel 上线的时候要选的东西太多太累了, 于是有了这么个东西. 可以直接选几号套餐然后按照套餐预先设定好的参数来部署. 是一个 key-value 结构, key 就是套餐的名字, value 就是套餐的详细参数.
 	* `cpu`: float, 要多少 CPU, 注意, eru 是超售 CPU 的, 但是依然建议用多少写多少.
 	* `memory`: 要多少内存, 支持单位写法, MB, GB, KB, mb, gb, kb 都可以, 但是你要是不写那个 b, 就要死了, m, g, k 都不是单位, 只是一个放大倍率而已, b 那才是单位啊, bytes 啊! 所以你要是因为没写那个 b 挂了... 不要怪我不宽容, 怪自己没文化去...
