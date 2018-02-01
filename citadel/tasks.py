@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import json
 from celery import current_app
-from celery.result import AsyncResult
 from grpc import RpcError, StatusCode
 from humanfriendly import parse_timespan
 
@@ -363,18 +361,6 @@ def celery_task_stream_response(celery_task_ids):
             pubsub.unsubscribe(finished_task_channel)
         else:
             yield content
-
-
-def celery_task_stream_traceback(celery_task_ids):
-    """collect traceback for celery tasks, do not guarantee send order"""
-    if isinstance(celery_task_ids, str):
-        celery_task_ids = celery_task_ids,
-
-    for task_id in celery_task_ids:
-        async_result = AsyncResult(task_id)
-        async_result.wait(timeout=120, propagate=False)
-        if async_result.failed():
-            yield json.dumps({'success': False, 'error': async_result.traceback})
 
 
 class TackleTask(current_app.Task):
