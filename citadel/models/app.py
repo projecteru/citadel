@@ -13,7 +13,6 @@ from citadel.libs.exceptions import ModelDeleteError
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin
 from citadel.models.specs import Specs
-from citadel.models.user import User
 from citadel.rpc import core_pb2 as pb
 
 
@@ -85,6 +84,20 @@ class App(BaseModelMixin):
     @classmethod
     def get_combo(self, combo_name):
         return Combo.query.filter_by(appname=self.name, name=combo_name).first()
+
+    def grant_user(self, user):
+        AppUserRelation.create(self, user)
+
+    def revoke_user(self, user):
+        AppUserRelation.query.filter_by(appname=self.name, user_id=user.id).delete()
+        db.session.commit()
+
+    def list_users(self):
+        from citadel.models.user import User
+        user_ids = [r.user_id for r in
+                    AppUserRelation.filter_by(appname=self.name).all()]
+        users = [User.get(id_) for id_ in user_ids]
+        return users
 
     def get_env_sets(self):
         return self.env_sets
@@ -195,9 +208,6 @@ class App(BaseModelMixin):
     def get_associated_elb_rules(self, zone=DEFAULT_ZONE):
         # TODO
         pass
-
-    def get_permitted_user_ids(self):
-        return AppUserRelation.get_user_id_by_appname(self.name)
 
 
 class Release(BaseModelMixin):
@@ -437,37 +447,15 @@ class AppUserRelation(BaseModelMixin):
     user_id = db.Column(db.Integer, nullable=False)
 
     @classmethod
-    def add(cls, appname, user_id):
+    def create(cls, app, user):
+        relation = cls(appname=app.name, user_id=user.id)
         try:
-            m = cls(appname=appname, user_id=user_id)
-            db.session.add(m)
+            db.session.add(relation)
             db.session.commit()
-            return m
+            return relation
         except IntegrityError:
             db.session.rollback()
-            return None
-
-    @classmethod
-    def delete(cls, appname, user_id):
-        cls.query.filter_by(user_id=user_id, appname=appname).delete()
-        db.session.commit()
-
-    @classmethod
-    def get_user_id_by_appname(cls, appname):
-        rs = cls.query.filter_by(appname=appname).all()
-        return [r.user_id for r in rs]
-
-    @classmethod
-    def get_appname_by_user_id(cls, user_id):
-        rs = cls.query.filter_by(user_id=user_id).all()
-        return [r.appname for r in rs]
-
-    @classmethod
-    def user_permitted_to_app(cls, user_id, appname):
-        user = User.get(user_id)
-        if user.privilege:
-            return True
-        return bool(cls.query.filter_by(user_id=user_id, appname=appname).first())
+            raise
 
 
 class AppStatusAssembler:

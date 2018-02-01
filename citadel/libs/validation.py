@@ -7,6 +7,18 @@ from citadel.config import ZONE_CONFIG
 from citadel.models.base import StrictSchema
 
 
+def validate_username(n):
+    from citadel.models.user import User
+    if not bool(User.get_by_name(n)):
+        raise ValidationError('User {} not found, needs to login first'.format(n))
+
+
+def validate_user_id(id_):
+    from citadel.models.user import User
+    if not bool(User.get(id_)):
+        raise ValidationError('User {} not found, needs to login first'.format(id_))
+
+
 def validate_sha(s):
     if len(s) < 7:
         raise ValidationError('minimum sha length is 7')
@@ -50,6 +62,16 @@ class ComboSchema(StrictSchema):
     memory = fields.Function(deserialize=parse_memory, required=True)
     count = fields.Int(missing=1)
     envname = fields.Str()
+
+
+class UserSchema(StrictSchema):
+    username = fields.Str(validate=validate_username)
+    user_id = fields.Int(validate=validate_user_id)
+
+    @validates_schema(pass_original=True)
+    def further_check(self, _, original_data):
+        if not original_data:
+            raise ValidationError('Must provide username or user_id, got nothing')
 
 
 class DeploySchema(StrictSchema):
