@@ -2,6 +2,7 @@
 
 from authlib.client.apps import github
 from sqlalchemy import inspect
+from sqlalchemy.exc import IntegrityError
 
 from citadel.config import OAUTH_APP_NAME
 from citadel.ext import db, fetch_token
@@ -28,12 +29,16 @@ class User(BaseModelMixin):
     data = db.Column(db.JSON)
 
     @classmethod
-    def create(cls, id=None, name=None, email=None, data=None,
-               access_token=None):
+    def create(cls, id=None, name=None, email=None, access_token=None,
+               privileged=0, data=None):
         user = cls(id=id, name=name, email=email, data=data,
                    access_token=access_token)
-        db.session.add(user)
-        db.session.commit()
+        try:
+            db.session.add(user)
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            raise
         return user
 
     def __str__(self):
@@ -45,8 +50,15 @@ class User(BaseModelMixin):
     @classmethod
     def get_by_access_token(cls, access_token):
         if not access_token:
+            # access_token could be missing so this method is expected to be
+            # called with access_token=None a lot, better check this before
+            # initiating database query
             return None
         return cls.query.filter_by(access_token=access_token).first()
+
+    @classmethod
+    def get_by_name(cls, name):
+        return cls.query.filter_by(name=name).first()
 
     @classmethod
     def from_authlib_user(cls, authlib_user):
@@ -62,6 +74,20 @@ class User(BaseModelMixin):
                         data=authlib_user.data, access_token=access_token)
 
         return user
+
+    def granted_to_app(self, app):
+        if self.privileged:
+            return True
+        from citadel.models.app import AppUserRelation
+        r = AppUserRelation.query.filter_by(appname=app.name, user_id=self.id).all()
+        return bool(r)
+
+    def list_app(self):
+        from citadel.models.app import AppUserRelation, App
+        if self.privileged:
+            return App.get_all()
+        rs = AppUserRelation.query.filter_by(user_id=self.id)
+        return [App.get_by_name(r.appname) for r in rs]
 
     def to_dict(self):
         return {c.key: getattr(self, c.key)

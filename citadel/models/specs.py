@@ -240,7 +240,6 @@ class SpecsSchema(StrictSchema):
     builds = fields.Function(deserialize=parse_builds, missing={})
     volumes = fields.List(fields.Str())
     base = fields.Str()
-    permitted_users = fields.List(fields.Str(), missing=[])
     subscribers = fields.Str(required=True)
     erection_timeout = fields.Function(deserialize=better_parse_timespan, missing=FIVE_MINUTES)
     freeze_node = fields.Bool(missing=False)
@@ -302,9 +301,9 @@ class Specs(Jsonized):
 
     def __init__(self, appname=None, name=None, entrypoints={}, dns=None,
                  hosts=None, stages=None, container_user=None, builds={},
-                 volumes=None, base=None, permitted_users=None,
-                 subscribers=None, erection_timeout=None, freeze_node=None,
-                 smooth_upgrade=None, crontab=None, _raw=None):
+                 volumes=None, base=None, subscribers=None,
+                 erection_timeout=None, freeze_node=None, smooth_upgrade=None,
+                 crontab=None, _raw=None):
         self.appname = appname
         self.name = name
         self.entrypoints = {entrypoint_name: Entrypoint(_raw=data, **data) for entrypoint_name, data in entrypoints.items()}
@@ -315,7 +314,6 @@ class Specs(Jsonized):
         self.builds = builds
         self.volumes = volumes
         self.base = base
-        self.permitted_users = set(permitted_users)
         self.subscribers = subscribers
         self.erection_timeout = erection_timeout
         self.freeze_node = freeze_node

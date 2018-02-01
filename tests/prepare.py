@@ -75,7 +75,6 @@ def make_specs_text(appname=default_appname,
                     volumes=['/tmp:/home/{}/tmp'.format(default_appname)],
                     base='python:latest',
                     subscribers='#platform',
-                    permitted_users=['liuyifu'],
                     crontab=[],
                     **kwargs):
     specs_dict = locals()
@@ -96,7 +95,6 @@ def make_specs(appname=default_appname,
                volumes=['/tmp:/home/{}/tmp'.format(default_appname)],
                base='python:latest',
                subscribers='#platform',
-               permitted_users=['liuyifu'],
                crontab=[],
                **kwargs):
     specs_dict = locals()

@@ -40,6 +40,11 @@ def update_token(oauth_app_name, token):
     return token
 
 
+def delete_token(oauth_app_name):
+    token_session_key = '{}-token'.format(oauth_app_name.lower())
+    session.pop[token_session_key]
+
+
 oauth = OAuth(fetch_token=fetch_token, update_token=update_token)
 github.register_to(oauth)
 
