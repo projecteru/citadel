@@ -54,14 +54,10 @@ class App(BaseModelMixin):
             return app
 
         tackle_rule = tackle_rule if tackle_rule else {}
-        try:
-            app = cls(name=name, git=git, tackle_rule=tackle_rule)
-            db.session.add(app)
-            db.session.commit()
-            return app
-        except IntegrityError:
-            db.session.rollback()
-            return None
+        app = cls(name=name, git=git, tackle_rule=tackle_rule)
+        db.session.add(app)
+        db.session.commit()
+        return app
 
     @classmethod
     def get_by_name(cls, name):
@@ -277,7 +273,9 @@ class Release(BaseModelMixin):
         if not app:
             return None
 
-        return cls.query.filter(cls.app_id == app.id, cls.sha.like('{}%'.format(sha))).first()
+        if len(sha) < 7:
+            raise ValueError('minimum sha length is 7')
+        return cls.query.filter(cls.app_id==app.id, cls.sha.like('{}%'.format(sha))).first()
 
     @property
     def raw(self):
