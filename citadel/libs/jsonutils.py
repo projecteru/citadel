@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 
-
 import json
 from datetime import datetime
 from decimal import Decimal
-from functools import wraps
-
 from flask import Response
+from functools import wraps
 
 
 class Jsonized:

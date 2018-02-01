@@ -13,6 +13,7 @@ FAKE_USER = {
     'name': 'timfeirg',
     'email': 'timfeirg@ricebook.com',
     'access_token': 'faketoken',
+    'privileged': 1,
 }
 
 PROJECT_NAME = LOGGER_NAME = 'citadel'

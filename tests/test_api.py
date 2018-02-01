@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import json
 import pytest
 from flask import url_for
@@ -6,7 +7,9 @@ from humanfriendly import parse_size
 
 from .conftest import json_headers
 from .prepare import default_appname, make_specs_text, default_ports, make_specs, core_online, default_podname, default_env_name, default_env, fake_container
-from citadel.models.app import Release
+from citadel.config import FAKE_USER
+from citadel.models.app import Release, AppUserRelation
+from citadel.models.user import User
 
 
 def test_register_app(test_db, client):
@@ -146,3 +149,27 @@ def test_get_container(test_db, client):
     res = client.get(url_for('container.get_by'), query_string={'sha': sha[:7]})
     assert len(res.json) == 1
     assert res.json[0]['sha'] == sha
+
+
+def test_app_user_permission(test_db, client):
+    User.create(**FAKE_USER)
+
+    res = client.get(url_for('user.list_users'))
+    assert res.status_code == 200
+    assert len(res.json) == 1
+    assert res.json[0]['id'] == FAKE_USER['id']
+
+    payload = {'username': FAKE_USER['name']}
+
+    permission_url = url_for('app.grant_user', appname=default_appname)
+    res = client.put(permission_url, data=payload)
+    assert res.status_code == 200
+    relations = AppUserRelation.query.filter_by(user_id=FAKE_USER['id'],
+                                                appname=default_appname).all()
+    assert len(relations) == 1
+
+    res = client.delete(permission_url, data=payload)
+    assert res.status_code == 200
+    relations = AppUserRelation.query.filter_by(user_id=FAKE_USER['id'],
+                                                appname=default_appname).all()
+    assert len(relations) == 0
