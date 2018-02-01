@@ -13,7 +13,6 @@ from citadel.libs.exceptions import ModelDeleteError
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin
 from citadel.models.specs import Specs
-from citadel.models.user import User
 from citadel.rpc import core_pb2 as pb
 
 
@@ -85,6 +84,20 @@ class App(BaseModelMixin):
     @classmethod
     def get_combo(self, combo_name):
         return Combo.query.filter_by(appname=self.name, name=combo_name).first()
+
+    def grant_user(self, user):
+        AppUserRelation.create(self, user)
+
+    def revoke_user(self, user):
+        AppUserRelation.query.filter_by(appname=self.name, user_id=user.id).delete()
+        db.session.commit()
+
+    def list_users(self):
+        from citadel.models.user import User
+        user_ids = [r.user_id for r in
+                    AppUserRelation.filter_by(appname=self.name).all()]
+        users = [User.get(id_) for id_ in user_ids]
+        return users
 
     def get_env_sets(self):
         return self.env_sets
@@ -196,9 +209,6 @@ class App(BaseModelMixin):
         # TODO
         pass
 
-    def get_permitted_user_ids(self):
-        return AppUserRelation.get_user_id_by_appname(self.name)
-
 
 class Release(BaseModelMixin):
     __table_args__ = (
@@ -235,24 +245,6 @@ class Release(BaseModelMixin):
             db.session.rollback()
             raise
 
-        # after the instance is created, manage app permission through combo
-        # permitted_users
-        permitted_users = set(new_release.get_permitted_users())
-        current_permitted_users = set(User.get(id_) for id_ in AppUserRelation.get_user_id_by_appname(appname))
-        come = permitted_users - current_permitted_users
-        gone = current_permitted_users - permitted_users
-        for u in come:
-            if not u:
-                continue
-            logger.debug('Grant %s to app %s', u, appname)
-            AppUserRelation.add(appname, u.id)
-
-        for u in gone:
-            if not u:
-                continue
-            logger.debug('Revoke %s to app %s', u, appname)
-            AppUserRelation.delete(appname, u.id)
-
         return new_release
 
     def delete(self):
@@ -261,11 +253,6 @@ class Release(BaseModelMixin):
             raise ModelDeleteError('Release {} is still running, delete containers {} before deleting this release'.format(self.short_sha, container_list))
         logger.warn('Deleting release %s', self)
         return super(Release, self).delete()
-
-    def get_permitted_users(self):
-        usernames = self.specs.permitted_users
-        permitted_users = [User.get(u) for u in usernames]
-        return permitted_users
 
     @classmethod
     def get(cls, id):
@@ -460,37 +447,15 @@ class AppUserRelation(BaseModelMixin):
     user_id = db.Column(db.Integer, nullable=False)
 
     @classmethod
-    def add(cls, appname, user_id):
+    def create(cls, app, user):
+        relation = cls(appname=app.name, user_id=user.id)
         try:
-            m = cls(appname=appname, user_id=user_id)
-            db.session.add(m)
+            db.session.add(relation)
             db.session.commit()
-            return m
+            return relation
         except IntegrityError:
             db.session.rollback()
-            return None
-
-    @classmethod
-    def delete(cls, appname, user_id):
-        cls.query.filter_by(user_id=user_id, appname=appname).delete()
-        db.session.commit()
-
-    @classmethod
-    def get_user_id_by_appname(cls, appname):
-        rs = cls.query.filter_by(appname=appname).all()
-        return [r.user_id for r in rs]
-
-    @classmethod
-    def get_appname_by_user_id(cls, user_id):
-        rs = cls.query.filter_by(user_id=user_id).all()
-        return [r.appname for r in rs]
-
-    @classmethod
-    def user_permitted_to_app(cls, user_id, appname):
-        user = User.get(user_id)
-        if user.privilege:
-            return True
-        return bool(cls.query.filter_by(user_id=user_id, appname=appname).first())
+            raise
 
 
 class AppStatusAssembler:

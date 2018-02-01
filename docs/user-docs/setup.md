@@ -92,8 +92,6 @@ entrypoints:
 build:
   - "echo 'already done in CI'"
 base: "hub.ricebook.net/base/alpine:java-2017.03.17"
-permitted_users:
-  - "zhangjianhua"
 combos:
   prod:
     cpu: 1
@@ -119,9 +117,6 @@ entrypoints:
 build:
   - "pip install -U -r requirements.txt"
 base: "hub.ricebook.net/base/centos:python-latest"
-permitted_users:
-  - "tonic"
-  - "liuyifu"
 combos:
   prod:
     cpu: 0.5

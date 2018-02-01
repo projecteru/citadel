@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
-from flask import abort, request
+
+from flask import abort, request, g
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.exc import IntegrityError
 from webargs.flaskparser import use_args
 
 from citadel.libs.validation import ComboSchema, RegisterSchema
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import App, Release, Combo
+from citadel.models.user import User
 from citadel.models.container import Container
+from citadel.libs.validation import UserSchema
 
 
 bp = create_api_blueprint('app', __name__, 'app')
@@ -17,6 +21,10 @@ def _get_app(appname):
     app = App.get_by_name(appname)
     if not app:
         abort(404, 'App not found: {}'.format(appname))
+
+    if not g.user.granted_to_app(app):
+        abort(403, 'You\'re not granted to this app, ask administrators for permission')
+
     return app
 
 
@@ -25,17 +33,55 @@ def _get_release(appname, sha):
     if not release:
         abort(404, 'Release `%s, %s` not found' % (appname, sha))
 
+    if not g.user.granted_to_app(release.app):
+        abort(403, 'You\'re not granted to this app, ask administrators for permission')
+
     return release
 
 
 @bp.route('/')
 def list_app():
-    return App.get_all()
+    return g.user.list_app()
 
 
 @bp.route('/<appname>')
 def get_app(appname):
     return _get_app(appname)
+
+
+@bp.route('/<appname>/users')
+def get_app_users(appname):
+    app = _get_app(appname)
+    return app.list_users()
+
+
+@bp.route('/<appname>/users', methods=['PUT'])
+@use_args(UserSchema())
+def grant_user(args, appname):
+    app = _get_app(appname)
+    if args['username']:
+        user = User.get_by_name(args['username'])
+    else:
+        user = User.get(args['user_id'])
+
+    try:
+        app.grant_user(user)
+    except IntegrityError as e:
+        pass
+
+    return DEFAULT_RETURN_VALUE
+
+
+@bp.route('/<appname>/users', methods=['DELETE'])
+@use_args(UserSchema())
+def revoke_user(args, appname):
+    app = _get_app(appname)
+    if args['username']:
+        user = User.get_by_name(args['username'])
+    else:
+        user = User.get(args['user_id'])
+
+    return app.revoke_user(user)
 
 
 @bp.route('/<appname>/containers')

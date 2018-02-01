@@ -3,10 +3,20 @@
 from flask import url_for, jsonify, g, session, request, redirect, Blueprint, abort
 
 from citadel.config import OAUTH_APP_NAME
-from citadel.ext import oauth, fetch_token, update_token
+from citadel.ext import oauth, fetch_token, update_token, delete_token
+from citadel.libs.view import DEFAULT_RETURN_VALUE
+from citadel.models.user import User
 
 
 bp = Blueprint('user', __name__, url_prefix='/user')
+
+
+@bp.route('/')
+def list_users():
+    if not g.user.privileged:
+        abort(403, 'dude you are not administrator')
+
+    return jsonify([u.to_dict() for u in User.get_all()])
 
 
 @bp.route('/authorized')
@@ -33,5 +43,5 @@ def login():
 
 @bp.route('/logout')
 def logout():
-    session.pop('sso', None)
-    return redirect(url_for('index.index'))
+    delete_token(OAUTH_APP_NAME)
+    return DEFAULT_RETURN_VALUE
