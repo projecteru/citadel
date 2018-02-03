@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
+
 import pytest
 import subprocess
 import threading
 from urllib.parse import urlparse
 
-from .prepare import default_appname, default_sha, default_git, make_specs_text, default_combo_name, default_podname, default_cpu_quota, default_memory, default_network_name, default_env_name, default_env, default_extra_args
+from .prepare import make_specs, default_appname, default_sha, default_network_name, default_podname, default_cpu_quota, default_memory, default_git, make_specs_text, default_combo_name, default_env_name, default_env, core_online
 from citadel.app import create_app
+from citadel.config import BUILD_ZONE
 from citadel.ext import db, rds
 from citadel.libs.utils import logger
 from citadel.models.app import App, Release, Combo
+from citadel.rpc import core_pb2 as pb
+from citadel.rpc.client import get_core
 
 
 json_headers = {'Content-Type': 'application/json'}
@@ -51,7 +55,6 @@ def test_db(request, app):
     app.add_env_set(default_env_name, default_env)
     Release.create(app, default_sha, make_specs_text())
     Combo.create(default_appname, default_combo_name, 'web', default_podname,
-                 extra_args=default_extra_args,
                  networks=[default_network_name], cpu_quota=default_cpu_quota,
                  memory=default_memory, count=1, envname=default_env_name)
 
@@ -61,6 +64,31 @@ def test_db(request, app):
         rds.flushdb()
 
     request.addfinalizer(teardown)
+
+
+@pytest.fixture(scope='session')
+def test_app_image():
+    if not core_online:
+        pytest.skip(msg='one or more eru-core is offline, skip core-related tests')
+
+    specs = make_specs()
+    appname = default_appname
+    builds_map = {stage_name: pb.Build(**build) for stage_name, build in specs.builds.items()}
+    core_builds = pb.Builds(stages=specs.stages, builds=builds_map)
+    opts = pb.BuildImageOptions(name=appname,
+                                user=appname,
+                                uid=12345,
+                                tag=default_sha,
+                                builds=core_builds)
+    core = get_core(BUILD_ZONE)
+    build_image_messages = list(core.build_image(opts))
+    image_tag = ''
+    for m in build_image_messages:
+        assert not m.error
+
+    image_tag = m.progress
+    assert '{}:{}'.format(default_appname, default_sha) in image_tag
+    return image_tag
 
 
 @pytest.fixture

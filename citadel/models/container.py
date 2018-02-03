@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+
 from datetime import timedelta, datetime
+from numbers import Number
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
 from time import sleep
@@ -40,7 +42,7 @@ class Container(BaseModelMixin):
     initialized = db.Column(db.Integer, default=0)
 
     def __str__(self):
-        return '<{}:{}:{}:{}:{}>'.format(self.zone, self.appname, self.short_sha, self.entrypoint_name, self.short_id)
+        return '<Container {c.zone}:{c.appname}:{c.short_sha}:{c.entrypoint_name}:{c.short_id}'.format(c=self)
 
     @classmethod
     def create(cls, appname=None, sha=None, container_id=None,
@@ -169,10 +171,15 @@ class Container(BaseModelMixin):
         db.session.add(self)
         db.session.commit()
 
-    def wait_for_erection(self):
+    def wait_for_erection(self, timeout=None):
         """wait until this container is healthy, timeout can be timedelta or
-        seconds, if timeout is 0, don't even wait and just report healthy"""
-        timeout = timedelta(seconds=self.release.specs.erection_timeout)
+        seconds, timeout default to erection_timeout in specs, if timeout is 0,
+        don't even wait and just report healthy"""
+        if not timeout:
+            timeout = timedelta(seconds=self.release.specs.erection_timeout)
+        elif isinstance(timeout, Number):
+            timeout = timedelta(seconds=timeout)
+
         if not timeout:
             return True
 
