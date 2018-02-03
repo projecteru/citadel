@@ -7,7 +7,7 @@ from flask import session
 from functools import wraps, partial
 
 from citadel.config import NOTBOT_SENDMSG_URL, LOGGER_NAME, DEBUG
-from citadel.libs.jsonutils import JSONEncoder
+from citadel.libs.jsonutils import VersatileEncoder
 
 
 logger = logging.getLogger(LOGGER_NAME)
@@ -93,5 +93,5 @@ def memoize(f):
 
 
 def make_sentence_json(message):
-    msg = json.dumps({'type': 'sentence', 'message': message}, cls=JSONEncoder)
+    msg = json.dumps({'type': 'sentence', 'message': message}, cls=VersatileEncoder)
     return msg + '\n'
