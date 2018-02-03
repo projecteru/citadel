@@ -10,9 +10,6 @@ from citadel.libs.utils import memoize
 from citadel.models.base import StrictSchema
 
 
-FIVE_MINUTES = parse_timespan('5m')
-
-
 def validate_protocol(s):
     if s not in {'http', 'tcp'}:
         raise ValidationError('ELB port should talk tcp or http')
@@ -241,7 +238,7 @@ class SpecsSchema(StrictSchema):
     volumes = fields.List(fields.Str())
     base = fields.Str()
     subscribers = fields.Str(required=True)
-    erection_timeout = fields.Function(deserialize=better_parse_timespan, missing=FIVE_MINUTES)
+    erection_timeout = fields.Function(deserialize=better_parse_timespan, missing=parse_timespan('2m'))
     crontab = fields.Function(deserialize=parse_crontab, missing=[])
 
     @post_load
@@ -289,11 +286,6 @@ class SpecsSchema(StrictSchema):
 
 
 class Specs(Jsonized):
-
-    """Encapsule details regarding object creation, and backward compatibility.
-    Note that all the default arguments here should be None, and implement the
-    actual default arguments in marshmallow, except the ones with backward
-    compatibility issues"""
 
     exclude_from_dump = ['crontab']
 

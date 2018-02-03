@@ -277,7 +277,7 @@ class Release(BaseModelMixin):
     def get_by_app_and_sha(cls, name, sha):
         app = App.get_by_name(name)
         if not app:
-            return None
+            raise ValueError('app {} not found'.format(name))
 
         if len(sha) < 7:
             raise ValueError('minimum sha length is 7')
