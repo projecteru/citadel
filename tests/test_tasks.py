@@ -32,14 +32,14 @@ def test_workflow(watch_etcd, request):
                                             combo_name=default_combo_name))
     assert len(deploy_messages) == 1
     container_info = deploy_messages[0]
-    assert not container_info['error']
-    container_id = container_info['id']
+    assert not container_info.error
+    container_id = container_info.id
 
     def cleanup():
-        remove_messages = list(remove_container(container_id))
+        remove_messages = remove_container(container_id)
         assert len(remove_messages) == 1
         remove_message = remove_messages[0]
-        assert remove_message['success']
+        assert remove_message.success
 
     request.addfinalizer(cleanup)
 
