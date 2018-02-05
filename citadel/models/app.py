@@ -328,10 +328,6 @@ class Release(BaseModelMixin):
     def entrypoints(self):
         return self.specs.entrypoints
 
-    @property
-    def erection_timeout(self):
-        return self.specs.erection_timeout
-
     def update_image(self, image):
         try:
             self.image = image
