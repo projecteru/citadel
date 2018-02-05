@@ -169,23 +169,19 @@ class Container(BaseModelMixin):
         db.session.add(self)
         db.session.commit()
 
-    def wait_for_erection(self, timeout=timedelta(minutes=5), period=timedelta(seconds=2)):
+    def wait_for_erection(self):
         """wait until this container is healthy, timeout can be timedelta or
         seconds, if timeout is 0, don't even wait and just report healthy"""
+        timeout = timedelta(seconds=self.release.specs.erection_timeout)
         if not timeout:
             return True
-        if not isinstance(timeout, timedelta):
-            timeout = timedelta(seconds=timeout)
-
-        if not isinstance(period, timedelta):
-            period = timedelta(seconds=period)
 
         must_end = datetime.now() + timeout
         logger.debug('Waiting for container %s to become healthy...', self)
         while datetime.now() < must_end:
             if self.is_healthy():
                 return True
-            sleep(period.seconds)
+            sleep(2)
             # deploy_info is written by watch-etcd services, so it's very
             # important to constantly query database, without refresh we'll be
             # constantly hitting sqlalchemy cache

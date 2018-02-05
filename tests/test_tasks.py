@@ -52,7 +52,7 @@ def test_workflow(watch_etcd, request):
     assert float(container.cpu_quota) == default_cpu_quota
 
     # check etcd data at /eru-core/deploy/test-app/web
-    assert container.wait_for_erection(timeout=30)
+    assert container.wait_for_erection()
     etcd = get_etcd(DEFAULT_ZONE)
     deploy_info = json.loads(etcd.read(container.core_deploy_key).value)
 
