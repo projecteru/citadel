@@ -109,10 +109,11 @@ def make_specs(appname=default_appname,
 
 
 def fake_container(appname=default_appname, sha=default_sha, container_id=None,
-                   container_name=None, entrypoint_name='web',
-                   envname=default_env_name, cpu_quota=default_cpu_quota,
-                   memory=default_memory, zone=BUILD_ZONE,
-                   podname=default_podname, nodename='whatever',
+                   container_name=None, combo_name=default_combo_name,
+                   entrypoint_name='web', envname=default_env_name,
+                   cpu_quota=default_cpu_quota, memory=default_memory,
+                   zone=BUILD_ZONE, podname=default_podname,
+                   nodename='whatever',
                    override_status=ContainerOverrideStatus.NONE):
     if not sha:
         sha = ''.join(random.choices(string.hexdigits.lower(), k=40))

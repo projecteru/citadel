@@ -46,6 +46,7 @@ def test_workflow(watch_etcd, request):
     container = Container.get_by_container_id(container_id)
     # agent 肯定还没探测到, 所以 deploy_info 应该是默认值
     assert container.deploy_info == {}
+    assert container.combo_name == default_combo_name
     assert container.podname == default_podname
     assert container.memory == default_memory
     assert float(container.cpu_quota) == default_cpu_quota
