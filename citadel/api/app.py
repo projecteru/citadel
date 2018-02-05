@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.exc import IntegrityError
 from webargs.flaskparser import use_args
 
-from citadel.libs.validation import ComboSchema, RegisterSchema
+from citadel.libs.validation import ComboSchema, RegisterSchema, SimpleNameSchema
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
 from citadel.models.app import App, Release, Combo
 from citadel.models.user import User
@@ -152,25 +152,33 @@ def get_app_combos(appname):
     return app.get_combos()
 
 
-@bp.route('/<appname>/combo', methods=['POST'])
+@bp.route('/<appname>/combo', methods=['PUT'])
 @use_args(ComboSchema())
 def create_combo(args, appname):
-    args.update({'appname': appname})
+    app = _get_app(appname)
     try:
-        return Combo.create(**args)
+        return app.create_combo(**args)
     except IntegrityError as e:
         abort(400, str(e))
 
 
-@bp.route('/<appname>/combo', methods=['DELETE'])
-def delete_combo(appname):
-    combo_name = request.get_json()['name']
+@bp.route('/<appname>/combo', methods=['POST'])
+@use_args(ComboSchema())
+def update_combo(args, appname):
     app = _get_app(appname)
+    combo_name = args.pop('name')
     combo = app.get_combo(combo_name)
     if not combo:
-        abort(404)
+        abort(404, 'Combo {} not found'.format(combo_name))
 
-    combo.delete()
+    return combo.update(**args)
+
+
+@bp.route('/<appname>/combo', methods=['DELETE'])
+@use_args(SimpleNameSchema())
+def delete_combo(args, appname):
+    app = _get_app(appname)
+    app.delete_combo(args['name'])
     return DEFAULT_RETURN_VALUE
 
 

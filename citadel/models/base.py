@@ -50,6 +50,7 @@ class BaseModelMixin(db.Model, Jsonized):
 
         db.session.add(self)
         db.session.commit()
+        return self
 
     def delete(self):
         try:

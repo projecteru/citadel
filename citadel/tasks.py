@@ -63,14 +63,7 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
     release = Release.get_by_app_and_sha(appname, sha)
     app = release.app
     combo = app.get_combo(combo_name)
-    deploy_options = release.make_core_deploy_options(combo_name,
-                                                      podname=combo.podname,
-                                                      nodename=combo.nodename,
-                                                      extra_args=combo.extra_args,
-                                                      cpu_quota=combo.cpu_quota,
-                                                      memory=combo.memory,
-                                                      count=combo.count,
-                                                      debug=debug)
+    deploy_options = release.make_core_deploy_options(combo_name)
     ms = get_core(zone).create_container(deploy_options)
 
     bad_news = []
