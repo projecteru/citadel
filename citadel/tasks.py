@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import json
 from celery import current_app
 from grpc import RpcError, StatusCode
 from humanfriendly import parse_timespan
@@ -7,6 +8,7 @@ from humanfriendly import parse_timespan
 from citadel.config import ZONE_CONFIG, CITADEL_TACKLE_TASK_THROTTLING_KEY, ELB_APP_NAME, TASK_PUBSUB_CHANNEL, BUILD_ZONE, CITADEL_HEALTH_CHECK_STATS_KEY
 from citadel.ext import rds
 from citadel.libs.exceptions import ActionError
+from citadel.libs.jsonutils import VersatileEncoder
 from citadel.libs.utils import notbot_sendmsg, logger
 from citadel.models import Container, Release
 from citadel.models.app import App
@@ -75,8 +77,7 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
     deploy_messages = []
     for m in ms:
         self.stream_output(m, task_id=task_id)
-        content = m.to_dict()
-        deploy_messages.append(content)
+        deploy_messages.append(m)
 
         if m.success:
             logger.debug('Creating container %s:%s got grpc message %s', appname, combo.entrypoint_name, m)
@@ -96,9 +97,8 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
 
             op_content = {'entrypoint': combo.entrypoint_name,
                           'envname': combo.envname,
-                          'networks': combo.networks}
-            op_content.update(m.to_dict())
-            op_content['cpu'] = combo.cpu_quota
+                          'networks': combo.networks,
+                          'container_id': m.id}
             OPLog.create(user_id,
                          OPType.CREATE_CONTAINER,
                          appname=appname,
@@ -106,10 +106,13 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
                          zone=zone,
                          content=op_content)
         else:
-            bad_news.append(content)
+            bad_news.append(m)
 
     if bad_news:
-        msg = 'Deploy {}\n*BAD NEWS*:\n```\n{}\n```\n'.format(appname, bad_news)
+        msg = 'Deploy {}\n*BAD NEWS*:\n```\n{}\n```\n'.format(
+            appname,
+            json.dumps(bad_news, cls=VersatileEncoder),
+        )
         notbot_sendmsg(app.subscribers, msg)
 
     return deploy_messages
@@ -167,7 +170,7 @@ def remove_container(self, ids, user_id=None):
     res = []
     for m in ms:
         self.stream_output(m)
-        res.append(m.to_dict())
+        res.append(m)
 
         container = Container.get_by_container_id(m.id)
         if not container:
@@ -207,10 +210,10 @@ def deal_with_agent_etcd_change(self, key, deploy_info):
     # 只要是健康, 无论如何也做一次 ELB 更新, 一方面是反正不贵,
     # 另一方面如果之前哪里出错了没更新成功, 下一次更新还有可能修好
     if healthy:
-        logger.info('ELB: ADD [%s, %s, %s, %s, %s]', container.appname, container.podname, container.entrypoint, container_id, container.publish)
+        logger.info('ELB: ADD [%s, %s, %s, %s, %s]', container.appname, container.podname, container.entrypoint_name, container_id, container.publish)
         update_elb_for_containers(container)
     else:
-        logger.info('ELB: REMOVE [%s, %s, %s, %s, %s]', container.appname, container.podname, container.entrypoint, container_id, container.publish)
+        logger.info('ELB: REMOVE [%s, %s, %s, %s, %s]', container.appname, container.podname, container.entrypoint_name, container_id, container.publish)
         update_elb_for_containers(container, UpdateELBAction.REMOVE)
 
     # 处理完了 ELB, 再根据前后状态决定要发什么报警信息
@@ -275,7 +278,7 @@ def schedule_task(app):
             logger.debug('Crontab not due: %s:%s', appname, cmd)
             continue
         combo = specs.combos[cmd]
-        this_cronjob_containers = Container.get_by(entrypoint=combo.entrypoint, appname=appname)
+        this_cronjob_containers = Container.get_by(entrypoint=combo.entrypoint_name, appname=appname)
         if this_cronjob_containers and set(c.status() for c in this_cronjob_containers) != {'running'}:
             notbot_sendmsg(app.subscribers, '{} cronjob skipped, because last cronjob container {} did not exit cleanly'.format(app, this_cronjob_containers))
             continue
