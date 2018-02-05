@@ -64,14 +64,25 @@ def test_combo(test_db, client):
         'count': 4,
         'envname': 'prod',
     }
-    res = client.post(url_for('app.create_combo', appname=default_appname),
+
+    res = client.put(url_for('app.create_combo', appname=default_appname),
+                     data=json.dumps(data),
+                     headers=json_headers)
+    assert res.status_code == 200
+    combo = res.json
+    assert combo['cpu_quota'] == data['cpu_quota']
+    assert combo['memory'] == parse_size(data['memory'], binary=True)
+    assert combo['networks'] == data['networks']
+
+    data.update({'memory': '128MB', 'count': 3, 'networks': ['foo']})
+    res = client.post(url_for('app.update_combo', appname=default_appname),
                       data=json.dumps(data),
                       headers=json_headers)
     assert res.status_code == 200
     combo = res.json
-    assert combo['cpu_quota'] == 4.5
-    assert combo['memory'] == parse_size('512MB', binary=True)
-    assert combo['networks'] == ['release']
+    assert combo['cpu_quota'] == data['cpu_quota']
+    assert combo['memory'] == parse_size(data['memory'], binary=True)
+    assert combo['networks'] == data['networks']
 
     res = client.delete(url_for('app.delete_combo', appname=default_appname),
                         data=json.dumps({'name': combo_name}),

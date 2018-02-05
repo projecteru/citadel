@@ -51,6 +51,10 @@ def parse_memory(s):
     return parse_size(s, binary=True)
 
 
+class SimpleNameSchema(StrictSchema):
+    name = fields.Str(required=True)
+
+
 class ComboSchema(StrictSchema):
     name = fields.Str(required=True)
     entrypoint_name = fields.Str(required=True)

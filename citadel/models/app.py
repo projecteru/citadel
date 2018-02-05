@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import json
 from collections import defaultdict
 from sqlalchemy import event, DDL
@@ -73,13 +74,18 @@ class App(BaseModelMixin):
     def get_apps_with_tackle_rule(cls):
         return cls.query.filter(cls.tackle_rule != {}).all()
 
-    @classmethod
     def get_combos(self):
         return Combo.query.filter_by(appname=self.name).all()
 
-    @classmethod
+    def create_combo(self, **kwargs):
+        kwargs['appname'] = self.name
+        return Combo.create(**kwargs)
+
     def get_combo(self, combo_name):
         return Combo.query.filter_by(appname=self.name, name=combo_name).first()
+
+    def delete_combo(self, combo_name):
+        return Combo.query.filter_by(appname=self.name, name=combo_name).delete()
 
     def grant_user(self, user):
         AppUserRelation.create(self, user)
@@ -339,9 +345,7 @@ class Release(BaseModelMixin):
         except StaleDataError:
             db.session.rollback()
 
-    def make_core_deploy_options(self, combo_name, podname=None, nodename=None,
-                                 extra_args=None, cpu_quota=None, memory=None,
-                                 count=None, debug=False):
+    def make_core_deploy_options(self, combo_name):
         combo = Combo.query.filter_by(appname=self.appname, name=combo_name).first()
         entrypoint_name = combo.entrypoint_name
         specs = self.specs
@@ -367,13 +371,13 @@ class Release(BaseModelMixin):
         networks = {network_name: '' for network_name in combo.networks}
         deploy_opt = pb.DeployOptions(name=specs.name,
                                       entrypoint=entrypoint_opt,
-                                      podname=podname or combo.podname,
-                                      nodename=nodename or combo.nodename,
+                                      podname=combo.podname,
+                                      nodename=combo.nodename,
                                       image=self.image,
-                                      extra_args=extra_args,
-                                      cpu_quota=cpu_quota or combo.cpu_quota,
-                                      memory=memory or combo.memory,
-                                      count=count or combo.count,
+                                      extra_args=combo.extra_args,
+                                      cpu_quota=combo.cpu_quota,
+                                      memory=combo.memory,
+                                      count=combo.count,
                                       env=env_set.to_env_vars(),
                                       dns=specs.dns,
                                       extra_hosts=specs.hosts,
@@ -381,7 +385,7 @@ class Release(BaseModelMixin):
                                       networks=networks,
                                       networkmode=entrypoint.network_mode,
                                       user=specs.container_user,
-                                      debug=debug)
+                                      debug=combo.debug)
         return deploy_opt
 
     def make_core_build_options(self):
@@ -412,8 +416,9 @@ class Combo(BaseModelMixin):
     networks = db.Column(db.JSON)  # List of network names
     cpu_quota = db.Column(db.Float, nullable=False)
     memory = db.Column(db.Integer, nullable=False)
-    count = db.Column(db.Integer, nullable=False)
+    count = db.Column(db.Integer, default=1)
     envname = db.Column(db.CHAR(64))
+    debug = db.Column(db.Integer, default=0)
 
     def __str__(self):
         return '<{} combo:{}>'.format(self.appname, self.name)
@@ -421,13 +426,14 @@ class Combo(BaseModelMixin):
     @classmethod
     def create(cls, appname=None, name=None, entrypoint_name=None,
                podname=None, nodename=None, extra_args=None, networks=None,
-               cpu_quota=None, memory=None, count=None, envname=None):
+               cpu_quota=None, memory=None, count=None, envname=None,
+               debug=None):
         try:
             combo = cls(appname=appname, name=name,
                         entrypoint_name=entrypoint_name, podname=podname,
                         nodename=nodename, extra_args=extra_args,
                         networks=networks, cpu_quota=cpu_quota, memory=memory,
-                        count=count, envname=envname)
+                        count=count, envname=envname, debug=debug)
             db.session.add(combo)
             db.session.commit()
             return combo
