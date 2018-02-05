@@ -10,7 +10,7 @@ from werkzeug.utils import import_string
 from citadel.config import TASK_PUBSUB_CHANNEL, DEBUG, SENTRY_DSN, TASK_PUBSUB_EOF, DEFAULT_ZONE, FAKE_USER
 from citadel.ext import rds, sess, db, mako, cache, sockets, oauth
 from citadel.libs.datastructure import DateConverter
-from citadel.libs.jsonutils import JSONEncoder
+from citadel.libs.jsonutils import VersatileEncoder
 from citadel.libs.utils import notbot_sendmsg
 from citadel.models.user import get_current_user, User
 
@@ -56,7 +56,7 @@ def make_celery(app):
 
         def stream_output(self, data, task_id=None):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id or self.request.id)
-            rds.publish(channel_name, json.dumps(data, cls=JSONEncoder))
+            rds.publish(channel_name, json.dumps(data, cls=VersatileEncoder))
 
         def on_success(self, retval, task_id, args, kwargs):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
@@ -65,7 +65,7 @@ def make_celery(app):
         def on_failure(self, exc, task_id, args, kwargs, einfo):
             channel_name = TASK_PUBSUB_CHANNEL.format(task_id=task_id)
             failure_msg = {'error': str(exc), 'args': args, 'kwargs': kwargs}
-            rds.publish(channel_name, json.dumps(failure_msg, cls=JSONEncoder))
+            rds.publish(channel_name, json.dumps(failure_msg, cls=VersatileEncoder))
             rds.publish(channel_name, TASK_PUBSUB_EOF.format(task_id=task_id))
             msg = 'Citadel task {}:\nargs\n```\n{}\n```\nkwargs:\n```\n{}\n```\nerror message:\n```\n{}\n```'.format(self.name, args, kwargs, str(exc))
             notbot_sendmsg('#platform', msg)

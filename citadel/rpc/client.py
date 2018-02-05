@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import grpc
 import wrapt
 from grpc import RpcError, StatusCode
@@ -11,8 +12,6 @@ from citadel.libs.cache import cache, clean_cache, ONE_DAY
 from citadel.libs.exceptions import ActionError
 from citadel.libs.utils import memoize, logger
 from citadel.rpc import core_pb2 as pb
-from citadel.rpc.core import (Node, Network, BuildImageMessage,
-                              CreateContainerMessage, JSONMessage)
 from citadel.rpc.core_pb2 import Empty, NodeAvailable, AddPodOptions, GetPodOptions, ListNodesOptions, GetNodeOptions, AddNodeOptions, RemoveNodeOptions, ContainerID, ContainerIDs, BackupOptions
 from citadel.rpc.core_pb2_grpc import CoreRPCStub
 
@@ -62,35 +61,35 @@ class CoreRPC:
     def list_pods(self):
         stub = self._get_stub()
         r = stub.ListPods(Empty(), _UNARY_TIMEOUT)
-        return [JSONMessage(p) for p in r.pods]
+        return list(r.pods)
 
     @handle_grpc_exception(default=None)
     def create_pod(self, name, desc):
         stub = self._get_stub()
         opts = AddPodOptions(name=name, desc=desc)
         p = stub.AddPod(opts, _UNARY_TIMEOUT)
-        return p and JSONMessage(p)
+        return p
 
     @handle_grpc_exception(default=None)
     def get_pod(self, name):
         stub = self._get_stub()
         opts = GetPodOptions(name=name)
         p = stub.GetPod(opts, _UNARY_TIMEOUT)
-        return p and JSONMessage(p)
+        return p
 
     @handle_grpc_exception(default=list)
     def get_pod_nodes(self, name):
         stub = self._get_stub()
         opts = ListNodesOptions(podname=name, all=True)
         r = stub.ListPodNodes(opts, _UNARY_TIMEOUT)
-        return sorted([Node(n) for n in r.nodes], key=attrgetter('name'))
+        return sorted(list(r.nodes), key=attrgetter('name'))
 
     @handle_grpc_exception(default=list)
     def list_networks(self, podname, driver=None):
         stub = self._get_stub()
         opts = pb.ListNetworkOptions(podname=podname, driver=driver)
         r = stub.ListNetworks(opts, _UNARY_TIMEOUT)
-        return [Network(n) for n in r.networks]
+        return list(r.networks)
 
     @handle_grpc_exception(default=None)
     @cache(_GET_NODE, ttl=ONE_DAY)
@@ -98,7 +97,7 @@ class CoreRPC:
         stub = self._get_stub()
         opts = GetNodeOptions(podname=podname, nodename=nodename)
         n = stub.GetNode(opts, _UNARY_TIMEOUT)
-        return n and Node(n)
+        return n
 
     @handle_grpc_exception(default=None)
     def set_node_availability(self, podname, nodename, is_available=True):
@@ -106,7 +105,7 @@ class CoreRPC:
         logger.debug('Set node %s:%s available: %s', podname, nodename, is_available)
         opts = NodeAvailable(podname=podname, nodename=nodename, available=is_available)
         n = stub.SetNodeAvailable(opts, _UNARY_TIMEOUT)
-        return n and Node(n)
+        return n
 
     @handle_grpc_exception(default=None)
     def add_node(self, nodename, endpoint, podname, cafile, certfile, keyfile, public):
@@ -122,7 +121,7 @@ class CoreRPC:
         n = stub.AddNode(opts, _UNARY_TIMEOUT)
 
         clean_cache(_GET_NODE.format(podname=podname, nodename=nodename))
-        return n and Node(n)
+        return n
 
     @handle_grpc_exception(default=None)
     def remove_node(self, nodename, podname):
@@ -132,7 +131,7 @@ class CoreRPC:
         p = stub.RemoveNode(opts, _UNARY_TIMEOUT)
 
         clean_cache(_GET_NODE.format(podname=podname, nodename=nodename))
-        return p and JSONMessage(p)
+        return p
 
     def build_image(self, opts):
         """
@@ -141,13 +140,13 @@ class CoreRPC:
         stub = self._get_stub()
         grpc_call = self._peek_grpc(stub.BuildImage(opts, _STREAM_TIMEOUT))
         for m in grpc_call:
-            yield BuildImageMessage(m)
+            yield m
 
     def create_container(self, deploy_options):
         stub = self._get_stub()
         grpc_call = self._peek_grpc(stub.CreateContainer(deploy_options, _STREAM_TIMEOUT))
         for m in grpc_call:
-            yield CreateContainerMessage(m)
+            yield m
 
     def remove_container(self, ids, force=False):
         if isinstance(ids, str):
@@ -157,13 +156,13 @@ class CoreRPC:
         opts = pb.RemoveContainerOptions(ids=ids, force=force)
         grpc_call = self._peek_grpc(stub.RemoveContainer(opts, _STREAM_TIMEOUT))
         for m in grpc_call:
-            yield JSONMessage(m)
+            yield m
 
     def backup(self, id_, src_path):
         stub = self._get_stub()
         opts = BackupOptions(id=id_, src_path=src_path)
         msg = stub.Backup(opts, _STREAM_TIMEOUT)
-        return msg and JSONMessage(msg)
+        return msg
 
     @handle_grpc_exception(default=list)
     def get_containers(self, ids):
