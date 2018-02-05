@@ -329,10 +329,6 @@ class Release(BaseModelMixin):
         return self.specs.entrypoints
 
     @property
-    def smooth_upgrade(self):
-        return self.specs.smooth_upgrade
-
-    @property
     def erection_timeout(self):
         return self.specs.erection_timeout
 

@@ -242,8 +242,6 @@ class SpecsSchema(StrictSchema):
     base = fields.Str()
     subscribers = fields.Str(required=True)
     erection_timeout = fields.Function(deserialize=better_parse_timespan, missing=FIVE_MINUTES)
-    freeze_node = fields.Bool(missing=False)
-    smooth_upgrade = fields.Bool(missing=True)
     crontab = fields.Function(deserialize=parse_crontab, missing=[])
 
     @post_load
@@ -302,8 +300,7 @@ class Specs(Jsonized):
     def __init__(self, appname=None, name=None, entrypoints={}, dns=None,
                  hosts=None, stages=None, container_user=None, builds={},
                  volumes=None, base=None, subscribers=None,
-                 erection_timeout=None, freeze_node=None, smooth_upgrade=None,
-                 crontab=None, _raw=None):
+                 erection_timeout=None, crontab=None, _raw=None):
         self.appname = appname
         self.name = name
         self.entrypoints = {entrypoint_name: Entrypoint(_raw=data, **data) for entrypoint_name, data in entrypoints.items()}
@@ -316,8 +313,6 @@ class Specs(Jsonized):
         self.base = base
         self.subscribers = subscribers
         self.erection_timeout = erection_timeout
-        self.freeze_node = freeze_node
-        self.smooth_upgrade = smooth_upgrade
         self.crontab = crontab
         self._raw = _raw
         for field_name in self.exclude_from_dump:
