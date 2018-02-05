@@ -27,6 +27,7 @@ class Container(BaseModelMixin):
     sha = db.Column(db.CHAR(64), nullable=False)
     container_id = db.Column(db.CHAR(64), nullable=False, index=True)
     container_name = db.Column(db.CHAR(64), nullable=False, index=True)
+    combo_name = db.Column(db.CHAR(64), nullable=False)
     entrypoint_name = db.Column(db.String(50), nullable=False)
     envname = db.Column(db.String(50))
     cpu_quota = db.Column(db.Numeric(12, 3), nullable=False)
@@ -43,12 +44,13 @@ class Container(BaseModelMixin):
 
     @classmethod
     def create(cls, appname=None, sha=None, container_id=None,
-               container_name=None, entrypoint_name=None, envname=None,
-               cpu_quota=None, memory=None, zone=None, podname=None,
-               nodename=None, override_status=ContainerOverrideStatus.NONE):
+               container_name=None, combo_name=None, entrypoint_name=None,
+               envname=None, cpu_quota=None, memory=None, zone=None,
+               podname=None, nodename=None,
+               override_status=ContainerOverrideStatus.NONE):
         try:
             c = cls(appname=appname, sha=sha, container_id=container_id,
-                    container_name=container_name,
+                    container_name=container_name, combo_name=combo_name,
                     entrypoint_name=entrypoint_name, envname=envname,
                     cpu_quota=cpu_quota, memory=memory, zone=zone,
                     podname=podname, nodename=nodename,
