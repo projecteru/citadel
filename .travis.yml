@@ -36,7 +36,7 @@ before_install:
 
 script:
   - pip install -r requirements.txt -r requirements-dev.txt
-  - py.test -s
+  - py.test -s --doctest-modules
 
 after_failure:
   - docker ps -aq | xargs -n 1 -i sh -c 'docker inspect {} --format="=============={{.Name}}==============="; docker logs {}'
