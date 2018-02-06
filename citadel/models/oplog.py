@@ -2,28 +2,30 @@
 
 import enum
 import sqlalchemy
-from flask import g
+from datetime import datetime
 
 from citadel.ext import db
+from citadel.libs.datastructure import purge_none_val_from_dict
 from citadel.models.base import BaseModelMixin, Enum34
 
 
 class OPType(enum.Enum):
-    REGISTER_RELEASE = 0
-    BUILD_IMAGE = 1
-    CREATE_ENV = 2
-    DELETE_ENV = 3
-    CREATE_CONTAINER = 4
-    REMOVE_CONTAINER = 5
-    UPGRADE_CONTAINER = 6
-    CREATE_ELB_INSTANCE = 7
-    CREATE_ELB_ROUTE = 8
-    DELETE_ELB_ROUTE = 9
+    REGISTER_RELEASE = 'register_release'
+    BUILD_IMAGE = 'build_image'
+    CREATE_ENV = 'create_env'
+    DELETE_ENV = 'delete_env'
+    CREATE_CONTAINER = 'create_container'
+    REMOVE_CONTAINER = 'remove_container'
+    UPGRADE_CONTAINER = 'upgrade_container'
+    CREATE_ELB_INSTANCE = 'create_elb_instance'
+    CREATE_ELB_ROUTE = 'create_elb_route'
+    DELETE_ELB_ROUTE = 'delete_elb_route'
 
 
 class OPLog(BaseModelMixin):
 
     __tablename__ = 'operation_log'
+    container_id = db.Column(db.CHAR(64), nullable=False, default='', index=True)
     zone = db.Column(db.CHAR(64), nullable=False, default='', index=True)
     user_id = db.Column(db.Integer, nullable=False, default=0, index=True)
     appname = db.Column(db.CHAR(64), nullable=False, default='', index=True)
@@ -32,65 +34,41 @@ class OPLog(BaseModelMixin):
     content = db.Column(db.JSON)
 
     @classmethod
-    def get_by(cls, zone=None, user_id=None, appname=None, sha=None, action=None, time_window=None, start=0, limit=200):
-        """filter OPLog by user, action, or a tuple of 2 datetime as timewindow"""
-        try:
-            filters = [(cls.zone == g.zone) | (cls.zone == '')]
-        except AttributeError:
-            filters = []
+    def get_by(cls, **kwargs):
+        '''
+        query operation logs, all fields could be used as query parameters
+        '''
+        purge_none_val_from_dict(kwargs)
+        container_id = kwargs.pop('container_id', None)
+        sha = kwargs.pop('sha', None)
+        limit = kwargs.pop('limit', 200)
+        time_window = kwargs.pop('time_window', None)
 
-        if user_id:
-            filters.append(cls.user_id == user_id)
+        filters = [getattr(cls, k)==v for k, v in kwargs.items()]
 
-        if appname:
-            filters.append(cls.appname == appname)
+        if container_id:
+            if len(container_id) < 7:
+                raise ValueError('minimum container_id length is 7')
+            filters.append(cls.container_id.like('{}%'.format(container_id)))
 
         if sha:
+            if len(sha) < 7:
+                raise ValueError('minimum sha length is 7')
             filters.append(cls.sha.like('{}%'.format(sha)))
-
-        if action:
-            filters.append(cls.action == action)
 
         if time_window:
             left, right = time_window
+            left = left or datetime.min
+            right = right or datetime.now()
             filters.extend([cls.created >= left, cls.created <= right])
 
-        return cls.query.filter(sqlalchemy.and_(*filters)).order_by(cls.id.desc()).offset(start).limit(limit).all()
+        return cls.query.filter(sqlalchemy.and_(*filters)).order_by(cls.id.desc()).limit(limit).all()
 
     @classmethod
-    def generate_report(cls, type_, start=0, limit=20):
-        """
-        Sensible operation log report
-
-        Args:
-            type_ (str): choose from ('release')
-        """
-        if type_ == 'release':
-            query = '''
-            SELECT min(created) AS created, user_id, appname, sha, action
-            FROM operation_log
-            GROUP BY user_id, appname, sha, action
-            ORDER BY created DESC
-            '''
-        else:
-            raise Exception('Bad mode {}'.format(type_))
-        res = [cls(**row) for row in db.session.execute(query).fetchall()]
-        for obj in res:
-            obj.action = OPType(obj.action)
-
-        return res
-
-    @classmethod
-    def create(cls, user_id, action, appname='', sha='', zone='', content=None):
-        if content is None:
-            content = {}
-
-        op_log = cls(zone=zone,
-                     user_id=user_id,
-                     appname=appname,
-                     sha=sha,
-                     action=action,
-                     content=content)
+    def create(cls, zone=None, container_id=None, user_id=None, appname=None,
+               sha=None, action=None, content=None):
+        op_log = cls(container_id=container_id, zone=zone, user_id=user_id,
+                     appname=appname, sha=sha, action=action, content=content)
         db.session.add(op_log)
         db.session.commit()
         return op_log

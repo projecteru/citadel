@@ -93,8 +93,9 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
                           'envname': combo.envname,
                           'networks': combo.networks,
                           'container_id': m.id}
-            OPLog.create(user_id,
-                         OPType.CREATE_CONTAINER,
+            OPLog.create(container_id=m.id,
+                         user_id=user_id,
+                         action=OPType.CREATE_CONTAINER,
                          appname=appname,
                          sha=sha,
                          zone=zone,
@@ -132,8 +133,9 @@ def create_elb_instance(self, zone=None, combo_name=None, name=None, sha=None,
     ELBInstance.create(ips[0], container.container_id, name)
 
     op_content = {'elbname': name, 'container_id': container.container_id}
-    OPLog.create(user_id,
-                 OPType.CREATE_ELB_INSTANCE,
+    OPLog.create(container_id=container_id,
+                 user_id=user_id,
+                 action=OPType.CREATE_ELB_INSTANCE,
                  appname=ELB_APP_NAME,
                  sha=sha,
                  zone=container.zone,
@@ -175,8 +177,9 @@ def remove_container(self, ids, user_id=None):
             container.delete()
             # 记录oplog
             op_content = {'container_id': m.id}
-            OPLog.create(user_id,
-                         OPType.REMOVE_CONTAINER,
+            OPLog.create(container_id=m.id,
+                         user_id=user_id,
+                         action=OPType.REMOVE_CONTAINER,
                          appname=container.appname,
                          sha=container.sha,
                          zone=container.zone,

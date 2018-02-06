@@ -43,6 +43,10 @@ class AbortDict(dict):
 
 
 def purge_none_val_from_dict(dic):
+    '''
+    >>> purge_none_val_from_dict({'foo': None})
+    {}
+    '''
     return remap(dic, visit=lambda path, key, val: val is not None)
 
 

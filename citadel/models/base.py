@@ -70,7 +70,7 @@ class BaseModelMixin(db.Model, Jsonized):
 
 
 class Enum34(types.TypeDecorator):
-    impl = types.Integer
+    impl = types.CHAR(20)
 
     def __init__(self, enum_class, *args, **kwargs):
         super(Enum34, self).__init__(*args, **kwargs)
