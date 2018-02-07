@@ -94,3 +94,6 @@ def test_healthcheck():
     }
     with pytest.raises(ValidationError):
         make_specs(entrypoints=bad_entrypoints)
+
+    specs = make_specs(erection_timeout=0)
+    assert specs.erection_timeout == 0

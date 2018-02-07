@@ -57,6 +57,7 @@ class BaseModelMixin(db.Model, Jsonized):
             db.session.delete(self)
             db.session.commit()
         except sqlalchemy.orm.exc.ObjectDeletedError:
+            db.session.rollback()
             logger.warn('Error during deleting: Object %s already deleted', self)
 
     def __eq__(self, other):

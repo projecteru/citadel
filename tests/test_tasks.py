@@ -1,44 +1,40 @@
+# -*- coding: utf-8 -*-
+
 import json
 import pytest
 import requests
 
-from .prepare import core_online, default_appname, default_sha, default_ports, default_podname, default_cpu_quota, default_memory, default_combo_name, artifact_filename, artifact_content, default_env, default_entrypoints, default_extra_args
-from citadel.config import DEFAULT_ZONE
+from .prepare import fake_sha, core_online, default_appname, default_sha, default_ports, default_podname, default_cpu_quota, default_memory, default_combo_name, artifact_filename, artifact_content, default_env, default_entrypoints, default_extra_args, make_specs_text
+from citadel.config import DEFAULT_ZONE, FAKE_USER
 from citadel.ext import get_etcd
-from citadel.models.app import Release
+from citadel.models.app import App, Release
 from citadel.models.container import Container
+from citadel.models.oplog import OPLog, OPType
 from citadel.rpc.client import get_core
-from citadel.tasks import build_image, create_container, remove_container
+from citadel.tasks import create_container, remove_container, renew_container
 
 
 pytestmark = pytest.mark.skipif(not core_online, reason='one or more eru-core is offline, skip core-related tests')
 
 
-def test_workflow(watch_etcd, request):
-    """
-    test celery tasks, all called synchronously
-    build, create, upgrade, remove, and check if everything works
-    """
+def test_create_container(watch_etcd, request, test_app_image):
     release = Release.get_by_app_and_sha(default_appname, default_sha)
-    release.update_image('shit')
-    build_image(default_appname, default_sha)
-    release = Release.get_by_app_and_sha(default_appname, default_sha)
-    image_tag = release.image
-    assert '{}:{}'.format(default_appname, default_sha) in image_tag
+    release.update_image(test_app_image)
+    combo = release.app.get_combo(default_combo_name)
+    combo.update(extra_args=default_extra_args)
 
-    deploy_messages = list(create_container(zone=DEFAULT_ZONE,
-                                            appname=default_appname,
-                                            sha=default_sha,
-                                            combo_name=default_combo_name))
-    assert len(deploy_messages) == 1
-    container_info = deploy_messages[0]
-    assert not container_info.error
-    container_id = container_info.id
+    create_container_message = create_container(
+        DEFAULT_ZONE,
+        FAKE_USER['id'],
+        default_appname,
+        default_sha,
+        default_combo_name,
+    )[0]
+    assert not create_container_message.error
+    container_id = create_container_message.id
 
     def cleanup():
-        remove_messages = remove_container(container_id)
-        assert len(remove_messages) == 1
-        remove_message = remove_messages[0]
+        remove_message = remove_container(container_id)[0]
         assert remove_message.success
 
     request.addfinalizer(cleanup)
@@ -86,3 +82,103 @@ def test_workflow(watch_etcd, request):
     left_command = '{} {}'.format(default_entrypoints['web']['cmd'], default_extra_args)
     right_command = ' '.join(container_info['Config']['Cmd'])
     assert left_command == right_command
+
+
+def test_upgrade_container(watch_etcd, request, test_app_image):
+    '''
+    * upgrade old_container to container using smooth upgrade
+    * then upgrade container to new_container using non-smooth upgrade (erection_timeout == 0)
+    '''
+    release = Release.get_by_app_and_sha(default_appname, default_sha)
+    release.update_image(test_app_image)
+
+    create_container_message = create_container(
+        DEFAULT_ZONE,
+        FAKE_USER['id'],
+        default_appname,
+        default_sha,
+        default_combo_name,
+    )[0]
+    assert not create_container_message.error
+    old_container_id = create_container_message.id
+
+    op_logs = OPLog.get_all()
+    assert len(op_logs) == 1
+    assert op_logs[0].action == OPType.CREATE_CONTAINER
+    assert op_logs[0].container_id == old_container_id
+    op_logs[0].delete()
+
+    def fake_release(port=None, erection_timeout=120):
+        '''
+        start new container using current specs might cause port conflict if
+        using host network mode, must modify port before renew container
+        '''
+        sha = fake_sha(40)
+        if port:
+            entrypoints = {
+                'web': {
+                    'cmd': 'python -m http.server --bind 0.0.0.0 {}'.format(port),
+                    'ports': [str(port)],
+                    'healthcheck_http_port': int(port),
+                    'healthcheck_url': '/{}'.format(artifact_filename),
+                    'healthcheck_expected_code': 200,
+                }
+            }
+        else:
+            entrypoints = default_entrypoints
+
+        app = App.get_or_create(default_appname)
+        r = Release.create(app, sha, make_specs_text(entrypoints=entrypoints,
+                                                     erection_timeout=erection_timeout))
+        r.update_image(test_app_image)
+        return sha
+
+    new_port = 8822
+    sha = fake_release(new_port)
+    _, create_container_message = renew_container(old_container_id, sha)
+    assert not Container.get_by_container_id(old_container_id)
+    container_id = create_container_message.id
+    container = Container.get_by_container_id(container_id)
+
+    assert container.is_healthy()
+    _, address = container.publish.popitem()
+    ip = address.split(':', 1)[0]
+    artifact_url = 'http://{}:{}/{}'.format(ip, new_port, artifact_filename)
+    artifact_response = requests.get(artifact_url)
+    assert artifact_content in artifact_response.text
+
+    op_logs = OPLog.get_all()
+    assert len(op_logs) == 2
+    assert op_logs[0].action == OPType.REMOVE_CONTAINER
+    assert op_logs[0].container_id == old_container_id
+    assert op_logs[1].action == OPType.CREATE_CONTAINER
+    assert op_logs[1].container_id == container_id
+    for op in op_logs:
+        op.delete()
+
+    new_port = 8823
+    sha = fake_release(new_port, erection_timeout=0)
+    _, create_container_message = renew_container(container_id, sha)
+    new_container_id = create_container_message.id
+
+    def cleanup():
+        remove_message = remove_container(new_container_id)[0]
+        assert remove_message.success
+
+    request.addfinalizer(cleanup)
+
+    assert not Container.get_by_container_id(container_id)
+    new_container = Container.get_by_container_id(new_container_id)
+    assert new_container.wait_for_erection(timeout=30)
+    _, address = new_container.publish.popitem()
+    ip = address.split(':', 1)[0]
+    artifact_url = 'http://{}:{}/{}'.format(ip, new_port, artifact_filename)
+    artifact_response = requests.get(artifact_url)
+    assert artifact_content in artifact_response.text
+
+    op_logs = OPLog.get_all()
+    assert len(op_logs) == 2
+    assert op_logs[0].action == OPType.CREATE_CONTAINER
+    assert op_logs[0].container_id == new_container_id
+    assert op_logs[1].action == OPType.REMOVE_CONTAINER
+    assert op_logs[1].container_id == container_id

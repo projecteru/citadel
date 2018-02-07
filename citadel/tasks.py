@@ -114,6 +114,49 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
 
 
 @current_app.task(bind=True)
+def renew_container(self, old_container_id, sha, user_id=None):
+    old_container = Container.get_by_container_id(old_container_id)
+    appname = old_container.appname
+    app = App.get_by_name(appname)
+    release = app.get_release(sha)
+    task_id = self.request.id
+
+    # if erection_timeout == 0, there'll be no smooth renewal, but remove the
+    # old container first, and then start new container
+    if not release.specs.erection_timeout:
+        remove_container_message = remove_container(old_container_id, task_id=task_id)[0]
+        if not remove_container_message.success:
+            raise ActionError('Remove old container {} failed'.format(old_container))
+        create_container_message = create_container(old_container.zone,
+                                                    user_id,
+                                                    appname,
+                                                    sha,
+                                                    old_container.combo_name,
+                                                    task_id=task_id)[0]
+        if not create_container_message.success:
+            raise ActionError('Create new container failed: {}'.format(create_container_message.error))
+    else:
+        create_container_message = create_container(old_container.zone,
+                                                    user_id,
+                                                    appname,
+                                                    sha,
+                                                    old_container.combo_name,
+                                                    task_id=task_id)[0]
+        if not create_container_message.success:
+            raise ActionError('Create new container failed: {}'.format(create_container_message.error))
+        container_id = create_container_message.id
+        container = Container.get_by_container_id(container_id)
+        if not container.wait_for_erection():
+            remove_container_message = remove_container(container_id, task_id=task_id)[0]
+            raise ActionError('New container {} did\'t became healthy, remove result: {}'.format(container, remove_container_message))
+        remove_container_message = remove_container(old_container_id, task_id=task_id)[0]
+        if not remove_container_message.success:
+            raise ActionError('New container {}, but remove old container {} failed'.format(container, old_container_id))
+
+    return [remove_container_message, create_container_message]
+
+
+@current_app.task(bind=True)
 def create_elb_instance(self, zone=None, combo_name=None, name=None, sha=None,
                         nodename=None, user_id=None):
     """按照zone和combo_name创建elb, 可能可以设定node"""
@@ -143,7 +186,7 @@ def create_elb_instance(self, zone=None, combo_name=None, name=None, sha=None,
 
 
 @current_app.task(bind=True)
-def remove_container(self, ids, user_id=None):
+def remove_container(self, ids, user_id=None, task_id=None):
     if isinstance(ids, str):
         ids = [ids]
 
@@ -165,7 +208,7 @@ def remove_container(self, ids, user_id=None):
     ms = get_core(zone).remove_container(full_ids)
     res = []
     for m in ms:
-        self.stream_output(m)
+        self.stream_output(m, task_id=task_id)
         res.append(m)
 
         container = Container.get_by_container_id(m.id)
@@ -200,6 +243,8 @@ def deal_with_agent_etcd_change(self, key, deploy_info):
     appname = deploy_info['Name']
     app = App.get_by_name(appname)
     container = Container.get_by_container_id(container_id)
+    if not container:
+        return
     previous_deploy_info = container.deploy_info
     container.update_deploy_info(deploy_info)
 

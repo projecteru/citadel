@@ -96,7 +96,7 @@ combos:
 * `dns`: 有时候你可能不想用我们默认给的 DNS, 这里可以指定外部 DNS, 一行一个, 但是, 还是那句话, 不作死就不会死.
 * `meta`: 用处不大, key-value 结构, 数据会被丢到容器的 labels 里去.
 * `subscribers`: str, 用来发送 notbot 报警消息的接收方, 例如 `#platform;sa@ricebook.com`, 具体参考 notbot 文档, notbot 将于近期开源.
-* `erection_timeout`: str/int, 如果你启用了平滑升级, 那么 Citadel 在进行容器升级或者换新的时候, 会先启动新的容器, 等待新的容器健康以后, 再删除老的容器, 默认会等待5m, 这个参数就是来控制等待时间的. 写数字的话, 单位为秒, 也可以写 [humanfriendly](https://humanfriendly.readthedocs.io/en/latest/#humanfriendly.parse_timespan) 的时间.
+* `erection_timeout`: str/int, 在进行容器换新的时候, 等待容器健康的时间. 默认为2分钟, 如果设置成0, 则会禁用平滑升级, 也就是先删除旧容器, 再启动新容器. 也可以写 [humanfriendly](https://humanfriendly.readthedocs.io/en/latest/#humanfriendly.parse_timespan) 支持的时间.
 * `combos`: 套餐, 其实是一个自由的组合. citadel 上线的时候要选的东西太多太累了, 于是有了这么个东西. 可以直接选几号套餐然后按照套餐预先设定好的参数来部署. 是一个 key-value 结构, key 就是套餐的名字, value 就是套餐的详细参数.
 	* `cpu`: float, 要多少 CPU, 注意, eru 是超售 CPU 的, 但是依然建议用多少写多少.
 	* `memory`: 要多少内存, 支持单位写法, MB, GB, KB, mb, gb, kb 都可以, 但是你要是不写那个 b, 就要死了, m, g, k 都不是单位, 只是一个放大倍率而已, b 那才是单位啊, bytes 啊! 所以你要是因为没写那个 b 挂了... 不要怪我不宽容, 怪自己没文化去...
