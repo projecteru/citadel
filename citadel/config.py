@@ -54,7 +54,7 @@ CITADEL_HEALTH_CHECK_STATS_KEY = 'citadel:health'
 
 REDIS_POD_NAME = getenv('REDIS_POD_NAME', default='redis')
 
-NOTBOT_SENDMSG_URL = getenv('NOTBOT_SENDMSG_URL', default='http://notbot.intra.ricebook.net/api/sendmsg.peter')
+NOTBOT_SENDMSG_URL = getenv('NOTBOT_SENDMSG_URL')
 
 TASK_PUBSUB_CHANNEL = 'citadel:task:{task_id}:pubsub'
 # send this to mark EOF of stream message
