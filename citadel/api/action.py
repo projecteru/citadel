@@ -8,10 +8,11 @@ from flask import g
 from json.decoder import JSONDecodeError
 
 from citadel.libs.utils import logger
-from citadel.libs.validation import build_args_schema, deploy_schema, remove_container_schema, deploy_elb_schema
+from citadel.libs.validation import renew_schema, build_args_schema, deploy_schema, remove_container_schema, deploy_elb_schema
 from citadel.libs.view import create_api_blueprint
 from citadel.models.app import App
-from citadel.tasks import celery_task_stream_response, build_image, create_container, remove_container, create_elb_instance
+from citadel.models.container import Container
+from citadel.tasks import renew_container, celery_task_stream_response, build_image, create_container, remove_container, create_elb_instance
 
 
 ws = create_api_blueprint('action', __name__, url_prefix='action', jsonize=False, handle_http_error=False)
@@ -64,6 +65,40 @@ def deploy(socket):
     async_result = create_container.delay(zone=g.zone, user_id=g.user_id,
                                           combo_name=combo_name)
     for m in celery_task_stream_response(async_result.task_id):
+        logger.debug(m)
+        socket.send(json.dumps(m))
+
+
+@ws.route('/renew')
+def renew(socket):
+    payload = None
+    while not payload or payload.errors:
+        message = socket.receive()
+        try:
+            payload = renew_schema.loads(message)
+            if payload.errors:
+                socket.send(json.dumps(payload.errors))
+        except JSONDecodeError as e:
+            socket.send(json.dumps({'error': str(e)}))
+
+        args = payload.data
+        containers = [Container.get_by_container_id(id_) for id_ in args['container_ids']]
+        appnames = {c.appname for c in containers}
+        sha = args['sha']
+        if len(appnames) >1 and sha:
+            socket.send(json.dumps({'error': 'cannot provide sha when renewing containers of multiple apps: {}'.format(appnames)}))
+
+        appname = appnames.pop()
+        app = App.get_by_name(appname)
+        if not app:
+            socket.send(json.dumps({'error': 'app {} not found'.format(appname)}))
+
+    task_ids = []
+    for c in containers:
+        async_result = renew_container.delay(c.container_id, sha)
+        task_ids.append(async_result.task_id)
+
+    for m in celery_task_stream_response(task_ids):
         logger.debug(m)
         socket.send(json.dumps(m))
 

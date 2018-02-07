@@ -53,7 +53,7 @@ def shorten_sentence(s, length=88):
 
 
 def notbot_sendmsg(to, content, subject='Citadel message'):
-    if not all([to, content]):
+    if not all([to, content, NOTBOT_SENDMSG_URL]):
         return
     to = to.strip(';')
     if DEBUG:
