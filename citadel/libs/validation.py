@@ -92,6 +92,11 @@ class DeploySchema(StrictSchema):
     debug = fields.Bool(missing=False)
 
 
+class RenewSchema(StrictSchema):
+    container_ids = fields.List(fields.Str(required=True, validate=validate_full_contianer_id), required=True)
+    sha = fields.Str(validate=validate_sha)
+
+
 class DeployELBSchema(StrictSchema):
     name = fields.Str(required=True)
     sha = fields.Str(required=True, validate=validate_sha)
@@ -134,6 +139,7 @@ class CreateELBRulesSchema(StrictSchema):
 
 
 deploy_schema = DeploySchema()
+renew_schema = RenewSchema()
 deploy_elb_schema = DeployELBSchema()
 build_args_schema = BuildArgsSchema()
 remove_container_schema = RemoveContainerSchema()

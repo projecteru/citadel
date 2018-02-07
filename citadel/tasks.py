@@ -114,11 +114,18 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
 
 
 @current_app.task(bind=True)
-def renew_container(self, old_container_id, sha, user_id=None):
+def renew_container(self, old_container_id, sha=None, user_id=None):
+    """renew one container to a certain version, if no version provided, just
+    renew this container"""
     old_container = Container.get_by_container_id(old_container_id)
     appname = old_container.appname
     app = App.get_by_name(appname)
-    release = app.get_release(sha)
+    if sha:
+        release = app.get_release(sha)
+    else:
+        sha = old_container.sha
+        release = old_container.release
+
     task_id = self.request.id
 
     # if erection_timeout == 0, there'll be no smooth renewal, but remove the
