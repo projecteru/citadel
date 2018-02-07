@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
+
 import pytest
 
-from .prepare import core_online, make_specs, default_appname, default_sha, default_network_name, default_podname, default_cpu_quota, default_memory
+from .prepare import core_online, default_appname, default_network_name, default_podname, default_cpu_quota, default_memory
 from citadel.config import BUILD_ZONE
 from citadel.rpc import core_pb2 as pb
 from citadel.rpc.client import get_core
@@ -9,29 +11,12 @@ from citadel.rpc.client import get_core
 pytestmark = pytest.mark.skipif(not core_online, reason='one or more eru-core is offline, skip core-related tests')
 
 
-def test_workflow(request):
+def test_workflow(request, test_app_image):
     '''
     test core grpc here, no flask and celery stuff involved
     build, create, remove, and check if everything works
     '''
-    specs = make_specs()
-    appname = default_appname
-    builds_map = {stage_name: pb.Build(**build) for stage_name, build in specs.builds.items()}
-    core_builds = pb.Builds(stages=specs.stages, builds=builds_map)
-    opts = pb.BuildImageOptions(name=appname,
-                                user=appname,
-                                uid=12345,
-                                tag=default_sha,
-                                builds=core_builds)
     core = get_core(BUILD_ZONE)
-    build_image_messages = list(core.build_image(opts))
-    image_tag = ''
-    for m in build_image_messages:
-        assert not m.error
-
-    image_tag = m.progress
-    assert '{}:{}'.format(default_appname, default_sha) in image_tag
-
     # now create container
     entrypoint_opt = pb.EntrypointOptions(name='web',
                                           command='python -m http.server',
@@ -40,7 +25,7 @@ def test_workflow(request):
     deploy_options = pb.DeployOptions(name=default_appname,
                                       entrypoint=entrypoint_opt,
                                       podname=default_podname,
-                                      image=image_tag,
+                                      image=test_app_image,
                                       cpu_quota=default_cpu_quota,
                                       memory=default_memory,
                                       count=1,
@@ -52,9 +37,8 @@ def test_workflow(request):
 
     def cleanup():
         remove_container_messages = list(core.remove_container([container_id]))
-        assert len(remove_container_messages) == 1
         remove_container_message = remove_container_messages[0]
-        assert remove_container_message.success is True
+        assert remove_container_message.success
 
     request.addfinalizer(cleanup)
 

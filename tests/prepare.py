@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import random
 import string
 import yaml
@@ -6,9 +7,9 @@ from humanfriendly import parse_size
 from telnetlib import Telnet
 
 from citadel.config import ZONE_CONFIG, BUILD_ZONE
-from citadel.models.specs import Specs
 from citadel.models.app import EnvSet
 from citadel.models.container import ContainerOverrideStatus, Container
+from citadel.models.specs import Specs
 
 
 core_online = False
@@ -21,11 +22,15 @@ except ConnectionRefusedError:
     core_online = False
 
 
+def fake_sha(length):
+    return ''.join(random.choices(string.hexdigits.lower(), k=length))
+
+
 default_appname = 'test-app'
-default_sha = '651fe0a'
+default_sha = fake_sha(40)
 default_ports = ['6789']
 default_git = 'git@github.com:projecteru2/citadel.git'
-artifact_content = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+artifact_content = fake_sha(42)
 artifact_filename = '{}-data.txt'.format(default_appname)
 default_entrypoints = {
     'web': {
@@ -82,7 +87,7 @@ def make_specs_text(appname=default_appname,
     for k, v in kwargs.items():
         specs_dict[k] = v
 
-    specs_dict = {k: v for k, v in specs_dict.items() if v}
+    specs_dict = {k: v for k, v in specs_dict.items() if v is not None}
     specs_string = yaml.dump(specs_dict)
     return specs_string
 
@@ -102,7 +107,7 @@ def make_specs(appname=default_appname,
     for k, v in kwargs.items():
         specs_dict[k] = v
 
-    specs_dict = {k: v for k, v in specs_dict.items() if v}
+    specs_dict = {k: v for k, v in specs_dict.items() if v is not None}
     specs_string = yaml.dump(specs_dict)
     Specs.validate(specs_string)
     return Specs.from_string(specs_string)
@@ -116,12 +121,12 @@ def fake_container(appname=default_appname, sha=default_sha, container_id=None,
                    nodename='whatever',
                    override_status=ContainerOverrideStatus.NONE):
     if not sha:
-        sha = ''.join(random.choices(string.hexdigits.lower(), k=40))
+        sha = fake_sha(40)
 
     if not container_id:
-        container_id = ''.join(random.choices(string.hexdigits.lower(), k=64))
+        container_id = fake_sha(64)
 
     if not container_name:
-        container_name = ''.join(random.choices(string.hexdigits.lower(), k=16))
+        container_name = fake_sha(16)
 
     Container.create(**locals())
