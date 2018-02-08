@@ -1,6 +1,7 @@
 ## Citadel
 
 [![Build Status](https://travis-ci.org/projecteru2/citadel.svg?branch=master)](https://travis-ci.org/projecteru2/citadel)
+[![](https://dockerbuildbadges.quelltext.eu/status.svg?organization=niccokunzmann&repository=dockerhub-build-status-image)](https://hub.docker.com/r/projecteru2/citadel/builds/)
 
 这里是 Citadel 的文档, Citadel 本身是联系各个 ERU 组件的一个 WEB 项目, 开发者可以用 Citadel 管理应用, 包括上下线, 在 ELB 上绑定域名, 以及一些 ERU 的运维操作. 此外, 我们在 ENJOY 用 Citadel, eru-cli, GitLab CI 搭建了一套持续集成方案. 目前 Citadel 还在重新开发中.
 
@@ -19,68 +20,3 @@ Citadel 上所有的功能都暴露 HTTP API, 其中一个用法就是上边说�
 #### Citadel 与 eru-agent
 
 目前, Citadel 会读取 eru-agent 暴露出来的容器健康信息, 根据容器的健康状况来把容器发布到 ELB 上. 在[健康检查](docs/user-docs/healthcheck.md)这一节详细介绍.
-
-Changelog
-==========
-
-__2017-07-10__
-
-  + 还是支持 restart: always 吧
-
-__2017-07-03__
-
-  + 在 entrypoint 添加 image, 允许各个 entrypoint 用不同的镜像进行部署, 详见[app.yaml 说明](docs/user-docs/specs.md#卧槽好长啊快解释一下)
-
-__2017-07-01__
-
-  + 在 app.yaml 增加 feeze_node 选项, 详见[app.yaml 说明](docs/user-docs/specs.md#卧槽好长啊快解释一下)
-
-__2017-06-08__
-
-  + Citadel 移除 publisher 功能, 如果要用 etcd 记录 rpc 节点, 需要应用自己起线程去 etcd 上续命, 而不是由 Citadel 来管理
-
-__2017-05-26__
-
-  + 不支持 restart: always 了, 要写就写 restart: on-failure
-
-__2017-05-18__
-
-  + 增加迁移节点功能: 在 node 页面可以一键迁移所有容器到其他 node
-
-__2017-05-16__
-
-  + 用 volumes 关键字挂载目录默认给读写权限, 详见 [MR](http://gitlab.ricebook.net/platform/core/merge_requests/96)
-
-__2017-05-13__
-
-  + corecli 不再对 private repo 的 build 失败做特殊处理, 参考 [FAQ](docs/user-docs/FAQ.md#fork-项目到自己的仓库以后就无法在-citadel-上-build-了?)
-
-__2017-05-12__
-
-  + 移除部署套餐的权限, 实现粗糙, 业务也用不到
-  + hub.ricebook.net 启用 https
-
-__2017-05-08__
-
-  + Citadel 优化了 OPLog, 并且增加了[上线日志](http://citadel.ricebook.net/oplog/release)
-
-__2017-04-26__
-
-  + Citadel 迁移到 python 3, 今后只支持 python 3, 维护者请按照文档[搭建本地开发环境](docs/dev-docs/deploy.md)
-  + Citadel 增加了 GitLab CI 测试流程, 并且在[开发者文档](docs/dev-docs/deploy.md)描述了开发测试流程
-
-__2017-04-23__
-
-  + Citadel app 的 gitlab 项目必须写项目简介, 包括用途, 是否影响线上, 可否短暂下线
-
-__2017-04-08__
-
-  +  强制项目维护者使用自己的 sso auth token, 详见[安全与权限](docs/user-docs/security-and-permissions.md)
-
-__2017-04-06__
-
-  + app.yaml 不再支持 `binds`, `mount_path`, `permdir` 这几个关键字, 统一用 `volume` 来代替, 详见[app.yaml 说明](docs/user-docs/specs.md#卧槽好长啊快解释一下)
-
-__2017-04-01__
-
-  + 文档开始迁移到 gitlab pages
