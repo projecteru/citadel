@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+
 import yaml
 from crontab import CronTab
 from humanfriendly import InvalidTimespan, parse_timespan, parse_size
-from marshmallow import Schema, fields, validates_schema, ValidationError, post_load
+from marshmallow import fields, validates_schema, ValidationError, post_load
 from numbers import Number
 
 from citadel.libs.jsonutils import Jsonized
@@ -163,7 +164,7 @@ class Port(Jsonized):
         self._raw = _raw
 
 
-class BuildSchema(Schema):
+class BuildSchema(StrictSchema):
     base = fields.Str()
     repo = fields.Str()
     version = fields.Str()
@@ -179,16 +180,41 @@ class BuildSchema(Schema):
 build_schema = BuildSchema()
 
 
-class EntrypointSchema(Schema):
+class HealthCheckSchema(StrictSchema):
+    tcp_ports = fields.List(fields.Int(validate=validate_port), missing=[])
+    http_port = fields.Int(validate=validate_port, missing='')
+    http_url = fields.Str(missing='')
+    http_code = fields.Int(validate=validate_http_code)
+
+    @post_load
+    def fix_defaults(self, data):
+        if data.get('http_port') and data.get('http_url'):
+            data['http_code'] = 200
+
+    @validates_schema
+    def validate_http(self, data):
+        healthcheck_stuff = [data.get('http_port'),
+                             data.get('http_url')]
+        if any(healthcheck_stuff) and not all(healthcheck_stuff):
+            raise ValidationError('If you plan to use HTTP health check, you must define (at least) http_port, http_url')
+
+
+class HealthCheck(Jsonized):
+    def __init__(self, tcp_ports=None, http_port=None, http_url=None, http_code=None, _raw=None):
+        self.tcp_ports = tcp_ports
+        self.http_port = http_port
+        self.http_url = http_url
+        self.http_code = http_code
+        self._raw = _raw
+
+
+class EntrypointSchema(StrictSchema):
     cmd = fields.Str(attribute='command', required=True)
     image = fields.Str()
     ports = fields.Function(deserialize=parse_port_list, missing=[])
     network_mode = fields.Str()
     restart = fields.Str(validate=validate_restart)
-    healthcheck_url = fields.Str()
-    healthcheck_http_port = fields.Int(validate=validate_port)
-    healthcheck_tcp_ports = fields.List(fields.Int(validate=validate_port))
-    healthcheck_expected_code = fields.Int(validate=validate_http_code)
+    healthcheck = fields.Nested(HealthCheckSchema)
     privileged = fields.Bool(missing=False)
     log_config = fields.Str(validate=validate_log_config)
     working_dir = fields.Str(load_from='dir')
@@ -199,9 +225,7 @@ class EntrypointSchema(Schema):
 
 class Entrypoint(Jsonized):
     def __init__(self, command=None, image=None, ports=None, network_mode=None,
-                 restart=None, healthcheck_url=None,
-                 healthcheck_http_port=None, healthcheck_tcp_ports=None,
-                 healthcheck_expected_code=None, hosts=None, privileged=None,
+                 restart=None, healthcheck={}, hosts=None, privileged=None,
                  log_config=None, working_dir=None, after_start=None,
                  before_stop=None, backup_path=None, _raw=None):
         self.command = command
@@ -209,10 +233,7 @@ class Entrypoint(Jsonized):
         self.ports = [Port(_raw=data, **data) for data in ports]
         self.network_mode = network_mode
         self.restart = restart
-        self.healthcheck_url = healthcheck_url
-        self.healthcheck_http_port = healthcheck_http_port
-        self.healthcheck_tcp_ports = healthcheck_tcp_ports
-        self.healthcheck_expected_code = healthcheck_expected_code
+        self.healthcheck = HealthCheck(_raw=healthcheck, **healthcheck)
         self.hosts = hosts
         self.privileged = privileged
         self.log_config = log_config
@@ -257,11 +278,13 @@ class SpecsSchema(StrictSchema):
             if not entrypoint.get('working_dir'):
                 entrypoint['working_dir'] = '/home/{}'.format(data['appname'])
 
-            # 只要声明 ports, 就全部赠送 tcp 健康检查
+            # if there's anything to be published to ELB, give em some free tcp
+            # healthcheck, if there's no healthcheck defined at all
             publish_ports = entrypoint.get('ports')
-            healthcheck_tcp_ports = entrypoint.get('healthcheck_tcp_ports')
-            if publish_ports and not healthcheck_tcp_ports:
-                entrypoint['healthcheck_tcp_ports'] = [str(p['port']) for p in publish_ports]
+            if publish_ports and not entrypoint.get('healthcheck'):
+                entrypoint['healthcheck'] = {
+                    'tcp_ports': [str(p['port']) for p in publish_ports],
+                }
 
     @validates_schema(pass_original=True)
     def validate_misc(self, data, original_data):
@@ -276,13 +299,6 @@ class SpecsSchema(StrictSchema):
             for build in data['builds'].values():
                 if not build.get('base'):
                     raise ValidationError('either use a global base image as default build base, or specify base in each build stage')
-
-        for _, entrypoint in original_data['entrypoints'].items():
-            healthcheck_stuff = [entrypoint.get('healthcheck_url'),
-                                 entrypoint.get('healthcheck_http_port'),
-                                 entrypoint.get('healthcheck_expected_code')]
-            if any(healthcheck_stuff) and not all(healthcheck_stuff):
-                raise ValidationError('If you plan to use HTTP health check, you must define healthcheck_url, healthcheck_http_port, healthcheck_expected_code')
 
 
 class Specs(Jsonized):

@@ -22,15 +22,15 @@ def test_workflow(request, test_app_image):
                                           command='python -m http.server',
                                           dir='/home/{}'.format(default_appname))
     networks = {default_network_name: ''}
-    deploy_options = pb.DeployOptions(name=default_appname,
-                                      entrypoint=entrypoint_opt,
-                                      podname=default_podname,
-                                      image=test_app_image,
-                                      cpu_quota=default_cpu_quota,
-                                      memory=default_memory,
-                                      count=1,
-                                      networks=networks)
-    deploy_messages = list(core.create_container(deploy_options))
+    deploy_opt = pb.DeployOptions(name=default_appname,
+                                  entrypoint=entrypoint_opt,
+                                  podname=default_podname,
+                                  image=test_app_image,
+                                  cpu_quota=default_cpu_quota,
+                                  memory=default_memory,
+                                  count=1,
+                                  networks=networks)
+    deploy_messages = list(core.create_container(deploy_opt))
 
     container_info = deploy_messages[0]
     container_id = container_info.id
