@@ -2,7 +2,8 @@
 import pytest
 from marshmallow import ValidationError
 
-from .prepare import make_specs, default_appname, default_entrypoints, default_ports
+from citadel.models.app import Release
+from .prepare import make_specs, default_appname, default_entrypoints, default_ports, default_sha, default_combo_name, healthcheck_http_url
 
 
 def test_extra_fields():
@@ -59,41 +60,68 @@ def test_build():
     assert 'cannot specify container_user because this release is not raw' in str(exc)
 
 
-def test_healthcheck():
+def test_healthcheck(test_db):
     entrypoints = {
-        'web-default-healthcheck': {
+        'default-healthcheck': {
             'cmd': 'python -m http.server',
             'ports': default_ports,
         },
-        'web-http-healthcheck': {
+        'http-healthcheck': {
             'cmd': 'python -m http.server',
             'ports': default_ports,
-            'healthcheck_url': '/healthcheck',
-            'healthcheck_http_port': 8808,
-            'healthcheck_expected_code': 200,
+            'healthcheck': {
+                'http_url': healthcheck_http_url,
+                'http_port': default_ports[0],
+                'http_code': 200,
+            }
+        },
+        'http-partial-healthcheck': {
+            'cmd': 'python -m http.server',
+            'ports': default_ports,
+            'healthcheck': {
+                'http_url': healthcheck_http_url,
+                'http_port': default_ports[0],
+            }
         },
     }
     specs = make_specs(entrypoints=entrypoints)
-    web_default_healthcheck = specs.entrypoints['web-default-healthcheck']
-    assert web_default_healthcheck.healthcheck_tcp_ports == default_ports
-    assert not web_default_healthcheck.healthcheck_url
+    default_healthcheck = specs.entrypoints['default-healthcheck'].healthcheck
+    assert default_healthcheck.tcp_ports == default_ports
+    assert not default_healthcheck.http_url
+    assert not default_healthcheck.http_port
+    assert not default_healthcheck.http_code
 
-    web_http_healthcheck = specs.entrypoints['web-http-healthcheck']
-    assert web_http_healthcheck.healthcheck_http_port == 8808
-    assert web_http_healthcheck.healthcheck_expected_code == 200
+    http_healthcheck = specs.entrypoints['http-healthcheck'].healthcheck
+    assert http_healthcheck.http_port == int(default_ports[0])
+    assert http_healthcheck.http_code == 200
+
+    http_partial_healthcheck = specs.entrypoints['http-partial-healthcheck'].healthcheck
+    assert http_partial_healthcheck.http_code == 200
 
     # if use http health check, must define all three variables
     bad_entrypoints = {
-        'web-http-healthcheck': {
+        'http-healthcheck': {
             'cmd': 'python -m http.server',
             'ports': default_ports,
-            'healthcheck_url': '/healthcheck',
-            # 'healthcheck_http_port': 8808,
-            'healthcheck_expected_code': 200,
+            'healthcheck': {
+                # missing http_port and http_code
+                'http_url': '/healthcheck',
+            }
         },
     }
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as e:
         make_specs(entrypoints=bad_entrypoints)
+
+    assert 'If you plan to use HTTP health check, you must define (at least) http_port, http_url' in str(e)
 
     specs = make_specs(erection_timeout=0)
     assert specs.erection_timeout == 0
+
+    # see if grpc messages are correctly rendered
+    release = Release.get_by_app_and_sha(default_appname, default_sha)
+    deploy_opt = release.make_core_deploy_options(default_combo_name)
+    healthcheck_opt = deploy_opt.entrypoint.healthcheck
+    assert healthcheck_opt.tcp_ports == []
+    assert healthcheck_opt.http_port == str(default_ports[0])
+    assert healthcheck_opt.url == healthcheck_http_url
+    assert healthcheck_opt.code == 200

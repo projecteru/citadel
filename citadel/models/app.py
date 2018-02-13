@@ -288,11 +288,11 @@ class Release(BaseModelMixin):
         """if no builds clause in app.yaml, this release is considered raw"""
         return not self.specs.stages
 
-    @cached_property
+    @property
     def short_sha(self):
         return self.sha[:7]
 
-    @cached_property
+    @property
     def app(self):
         return App.get(self.app_id)
 
@@ -346,10 +346,11 @@ class Release(BaseModelMixin):
         # TODO: extra hosts support
         # TODO: wtf is meta
         # TODO: wtf is nodelabels
-        healthcheck_opt = pb.HealthCheckOptions(tcp_ports=[str(p) for p in entrypoint.healthcheck_tcp_ports],
-                                                http_port=str(entrypoint.healthcheck_http_port),
-                                                url=entrypoint.healthcheck_url,
-                                                code=entrypoint.healthcheck_expected_code)
+        healthcheck = entrypoint.healthcheck
+        healthcheck_opt = pb.HealthCheckOptions(tcp_ports=[str(p) for p in healthcheck.tcp_ports],
+                                                http_port=str(healthcheck.http_port),
+                                                url=healthcheck.http_url,
+                                                code=healthcheck.http_code)
         entrypoint_opt = pb.EntrypointOptions(name=entrypoint_name,
                                               command=entrypoint.command,
                                               privileged=entrypoint.privileged,
