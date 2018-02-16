@@ -56,9 +56,10 @@ def test_create_container(watch_etcd, request, test_app_image):
     assert container.deploy_info == deploy_info
 
     assert deploy_info['Healthy'] is True
-    assert deploy_info['Extend']['healthcheck_tcp'] == ','.join(default_ports)
+    assert deploy_info['Extend']['healthcheck_tcp'] == ''
     assert deploy_info['Extend']['healthcheck_http'] == str(default_ports[0])
     assert deploy_info['Extend']['healthcheck_url'] == '/{}'.format(artifact_filename)
+    assert int(deploy_info['Extend']['healthcheck_code']) == 200
     publish = deploy_info['Publish']
     assert len(publish) == 1
     network_name, address = publish.popitem()
@@ -119,9 +120,11 @@ def test_upgrade_container(watch_etcd, request, test_app_image):
                 'web': {
                     'cmd': 'python -m http.server --bind 0.0.0.0 {}'.format(port),
                     'ports': [str(port)],
-                    'healthcheck_http_port': int(port),
-                    'healthcheck_url': '/{}'.format(artifact_filename),
-                    'healthcheck_expected_code': 200,
+                    'healthcheck': {
+                        'http_url': '/{}'.format(artifact_filename),
+                        'http_port': int(port),
+                        'http_code': 200,
+                    },
                 }
             }
         else:

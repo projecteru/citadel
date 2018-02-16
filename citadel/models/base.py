@@ -94,7 +94,7 @@ class StrictSchema(Schema):
 
     @validates_schema(pass_original=True)
     def check_unknown_fields(self, data, original_data):
-        unknown = set(original_data) - set(self.fields)
+        unknown = set(original_data) - set(self.fields) - set(field.load_from for field in self.fields.values())
         if unknown:
             raise ValidationError('Unknown fields: {}, please check the docs'.format(unknown))
 
