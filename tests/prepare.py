@@ -32,13 +32,16 @@ default_ports = ['6789']
 default_git = 'git@github.com:projecteru2/citadel.git'
 artifact_content = fake_sha(42)
 artifact_filename = '{}-data.txt'.format(default_appname)
+healthcheck_http_url = '/{}'.format(artifact_filename)
 default_entrypoints = {
     'web': {
         'cmd': 'python -m http.server',
         'ports': default_ports,
-        'healthcheck_http_port': int(default_ports[0]),
-        'healthcheck_url': '/{}'.format(artifact_filename),
-        'healthcheck_expected_code': 200,
+        'healthcheck': {
+            'http_url': healthcheck_http_url,
+            'http_port': int(default_ports[0]),
+            'http_code': 200,
+        },
     },
     'web-bad-ports': {
         'cmd': 'python -m http.server',
