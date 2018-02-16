@@ -22,6 +22,7 @@ celery[redis]
 humanize
 humanfriendly
 boltons
+python-box
 blinker
 wrapt
 pyparsing

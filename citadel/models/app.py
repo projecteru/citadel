@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import json
+import yaml
 from collections import defaultdict
+from marshmallow import ValidationError
 from sqlalchemy import event, DDL
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
@@ -13,7 +15,7 @@ from citadel.libs.datastructure import SmartStatus
 from citadel.libs.exceptions import ModelDeleteError
 from citadel.libs.utils import logger
 from citadel.models.base import BaseModelMixin
-from citadel.models.specs import Specs
+from citadel.models.specs import specs_schema
 from citadel.rpc import core_pb2 as pb
 
 
@@ -153,6 +155,7 @@ class App(BaseModelMixin):
 
     @property
     def cronjob_entrypoints(self):
+        # FIXME
         specs = self.specs
         return tuple(t[1] for t in specs.crontab)
 
@@ -231,7 +234,12 @@ class Release(BaseModelMixin):
     def create(cls, app, sha, specs_text=None, branch='', git_tag='', author='', commit_message='', git=''):
         """app must be an App instance"""
         appname = app.name
-        Specs.validate(specs_text)
+
+        unmarshal_result = specs_schema.load(yaml.load(specs_text))
+        errors = unmarshal_result.errors
+        if errors:
+            raise ValidationError(str(errors))
+
         misc = {
             'git_tag': git_tag,
             'author': author,
@@ -322,7 +330,12 @@ class Release(BaseModelMixin):
 
     @cached_property
     def specs(self):
-        return Specs.from_string(self.specs_text)
+        dic = yaml.load(self.specs_text)
+        unmarshal_result = specs_schema.load(dic)
+        errors = unmarshal_result.errors
+        if errors:
+            raise ValidationError(str(errors))
+        return unmarshal_result.data
 
     @property
     def entrypoints(self):
@@ -342,10 +355,17 @@ class Release(BaseModelMixin):
         entrypoint_name = combo.entrypoint_name
         specs = self.specs
         entrypoint = specs.entrypoints[entrypoint_name]
-        # TODO: hook support
         # TODO: extra hosts support
         # TODO: wtf is meta
         # TODO: wtf is nodelabels
+        hook = entrypoint.hook
+        if hook:
+            hook_opt = pb.HookOptions(after_start=hook.after_start,
+                                      before_stop=hook.before_stop,
+                                      force=hook.force)
+        else:
+            hook_opt = None
+
         healthcheck = entrypoint.healthcheck
         healthcheck_opt = pb.HealthCheckOptions(tcp_ports=[str(p) for p in healthcheck.tcp_ports],
                                                 http_port=str(healthcheck.http_port),
@@ -356,8 +376,9 @@ class Release(BaseModelMixin):
                                               privileged=entrypoint.privileged,
                                               dir=entrypoint.working_dir,
                                               log_config=entrypoint.log_config,
-                                              publish=[str(p.port) for p in entrypoint.ports],
+                                              publish=entrypoint.publish,
                                               healthcheck=healthcheck_opt,
+                                              hook=hook_opt,
                                               restart_policy=entrypoint.restart)
         app = self.app
         env_set = app.get_env_set(combo.envname)
