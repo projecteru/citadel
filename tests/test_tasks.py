@@ -4,7 +4,7 @@ import json
 import pytest
 import requests
 
-from .prepare import fake_sha, core_online, default_appname, default_sha, default_publish, default_podname, default_cpu_quota, default_memory, default_combo_name, artifact_filename, artifact_content, default_env, default_entrypoints, default_extra_args, make_specs_text
+from .prepare import fake_sha, core_online, default_appname, default_sha, default_publish, default_podname, default_cpu_quota, default_memory, default_combo_name, artifact_filename, artifact_content, hook_proof, default_env, default_entrypoints, default_extra_args, make_specs_text
 from citadel.config import DEFAULT_ZONE, FAKE_USER
 from citadel.ext import get_etcd
 from citadel.models.app import App, Release
@@ -31,11 +31,17 @@ def test_create_container(watch_etcd, request, test_app_image):
         default_combo_name,
     )[0]
     assert not create_container_message.error
+
+    # test if hook is executed
+    assert hook_proof in create_container_message.hook.decode('utf-8')
+
     container_id = create_container_message.id
 
     def cleanup():
         remove_message = remove_container(container_id)[0]
         assert remove_message.success
+        # test if hook is executed
+        assert hook_proof in remove_message.message
 
     request.addfinalizer(cleanup)
 
@@ -65,6 +71,7 @@ def test_create_container(watch_etcd, request, test_app_image):
     network_name, address = publish.popitem()
     ip = address.split(':', 1)[0]
 
+    # test if web entrypoint is up
     artifact_url = 'http://{}:{}/{}'.format(ip, default_publish[0], artifact_filename)
     artifact_response = requests.get(artifact_url)
     assert artifact_content in artifact_response.text
