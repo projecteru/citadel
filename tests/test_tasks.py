@@ -4,7 +4,7 @@ import json
 import pytest
 import requests
 
-from .prepare import fake_sha, core_online, default_appname, default_sha, default_ports, default_podname, default_cpu_quota, default_memory, default_combo_name, artifact_filename, artifact_content, default_env, default_entrypoints, default_extra_args, make_specs_text
+from .prepare import fake_sha, core_online, default_appname, default_sha, default_publish, default_podname, default_cpu_quota, default_memory, default_combo_name, artifact_filename, artifact_content, default_env, default_entrypoints, default_extra_args, make_specs_text
 from citadel.config import DEFAULT_ZONE, FAKE_USER
 from citadel.ext import get_etcd
 from citadel.models.app import App, Release
@@ -57,7 +57,7 @@ def test_create_container(watch_etcd, request, test_app_image):
 
     assert deploy_info['Healthy'] is True
     assert deploy_info['Extend']['healthcheck_tcp'] == ''
-    assert deploy_info['Extend']['healthcheck_http'] == str(default_ports[0])
+    assert deploy_info['Extend']['healthcheck_http'] == str(default_publish[0])
     assert deploy_info['Extend']['healthcheck_url'] == '/{}'.format(artifact_filename)
     assert int(deploy_info['Extend']['healthcheck_code']) == 200
     publish = deploy_info['Publish']
@@ -65,7 +65,7 @@ def test_create_container(watch_etcd, request, test_app_image):
     network_name, address = publish.popitem()
     ip = address.split(':', 1)[0]
 
-    artifact_url = 'http://{}:{}/{}'.format(ip, default_ports[0], artifact_filename)
+    artifact_url = 'http://{}:{}/{}'.format(ip, default_publish[0], artifact_filename)
     artifact_response = requests.get(artifact_url)
     assert artifact_content in artifact_response.text
 

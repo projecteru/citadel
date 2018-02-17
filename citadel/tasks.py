@@ -63,8 +63,8 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
     release = Release.get_by_app_and_sha(appname, sha)
     app = release.app
     combo = app.get_combo(combo_name)
-    deploy_options = release.make_core_deploy_options(combo_name)
-    ms = get_core(zone).create_container(deploy_options)
+    deploy_opt = release.make_core_deploy_options(combo_name)
+    ms = get_core(zone).create_container(deploy_opt)
 
     bad_news = []
     deploy_messages = []
@@ -204,7 +204,7 @@ def remove_container(self, ids, user_id=None, task_id=None):
     full_ids = [c.container_id for c in containers]
     zones = set(c.zone for c in containers)
     if len(zones) != 1:
-        raise ActionError(400, 'Cannot remove containers across zone')
+        raise ActionError('Cannot remove containers across zone')
     zone = zones.pop()
 
     for c in containers:
@@ -315,40 +315,39 @@ def trigger_tackle_routine(self):
         tackle_single_app.delay(app.name)
 
 
-def schedule_task(app):
-    appname = app.name
-    release = app.latest_release
-    if not release.image:
-        logger.debug('Crontab skipped, %s not built yet', release)
-        return
-    specs = app.specs
-    for crontab, cmd in specs.crontab:
-        if not crontab.next(default_utc=False) < 60:
-            logger.debug('Crontab not due: %s:%s', appname, cmd)
-            continue
-        combo = specs.combos[cmd]
-        this_cronjob_containers = Container.get_by(entrypoint=combo.entrypoint_name, appname=appname)
-        if this_cronjob_containers and set(c.status() for c in this_cronjob_containers) != {'running'}:
-            notbot_sendmsg(app.subscribers, '{} cronjob skipped, because last cronjob container {} did not exit cleanly'.format(app, this_cronjob_containers))
-            continue
-        # FIXME:
-        # deploy_options = make_deploy_options(
-        #     release, combo_name=cmd,
-        # )
-        # create_container.delay(deploy_options=deploy_options,
-        #                        sha=release.sha,
-        #                        envname=combo.envname)
+# def schedule_task(app):
+#     appname = app.name
+#     release = app.latest_release
+#     if not release.image:
+#         logger.debug('Crontab skipped, %s not built yet', release)
+#         return
+#     specs = app.specs
+#     for crontab, cmd in specs.crontab:
+#         if not crontab.next(default_utc=False) < 60:
+#             logger.debug('Crontab not due: %s:%s', appname, cmd)
+#             continue
+#         combo = specs.combos[cmd]
+#         this_cronjob_containers = Container.get_by(entrypoint=combo.entrypoint_name, appname=appname)
+#         if this_cronjob_containers and set(c.status() for c in this_cronjob_containers) != {'running'}:
+#             notbot_sendmsg(app.subscribers, '{} cronjob skipped, because last cronjob container {} did not exit cleanly'.format(app, this_cronjob_containers))
+#             continue
+#         deploy_options = make_deploy_options(
+#             release, combo_name=cmd,
+#         )
+#         create_container.delay(deploy_options=deploy_options,
+#                                sha=release.sha,
+#                                envname=combo.envname)
 
 
-@current_app.task
-def trigger_scheduled_task():
-    for app in App.get_all(limit=None):
-        specs = app.specs
-        cron_settings = specs and specs.crontab
-        if not cron_settings:
-            continue
-        logger.debug('Scheduling task for app %s', app.name)
-        schedule_task(app)
+# @current_app.task
+# def trigger_scheduled_task():
+#     for app in App.get_all(limit=None):
+#         specs = app.specs
+#         cron_settings = specs and specs.crontab
+#         if not cron_settings:
+#             continue
+#         logger.debug('Scheduling task for app %s', app.name)
+#         schedule_task(app)
 
 
 @current_app.task

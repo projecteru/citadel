@@ -6,7 +6,7 @@ from flask import url_for
 from humanfriendly import parse_size
 
 from .conftest import json_headers
-from .prepare import default_appname, make_specs_text, default_ports, make_specs, core_online, default_podname, default_env_name, default_env, fake_container
+from .prepare import default_appname, make_specs_text, default_publish, make_specs, core_online, default_podname, default_env_name, default_env, fake_container
 from citadel.config import FAKE_USER
 from citadel.models.app import Release, AppUserRelation
 from citadel.models.user import User
@@ -19,7 +19,7 @@ def test_register_app(test_db, client):
     entrypoints = {
         'web': {
             'cmd': 'python -m http.server',
-            'ports': default_ports,
+            'ports': default_publish,
         },
         'hello': {
             'cmd': 'python helloworld.py',
@@ -43,7 +43,7 @@ def test_register_app(test_db, client):
     release = Release.get_by_app_and_sha(appname, sha[:7])
     assert release.app.git == git
     assert release.commit_message == '我一定行'
-    assert release.specs._raw == specs._raw
+    assert release.specs == specs
 
     # test duplicate, and test POST using HTTP form BTW
     res = client.post(url_for('app.register_release'),
