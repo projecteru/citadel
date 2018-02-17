@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 
+import copy
 import random
 import string
 import yaml
 from humanfriendly import parse_size
+from marshmallow import ValidationError
 from telnetlib import Telnet
 
 from citadel.config import ZONE_CONFIG, BUILD_ZONE
 from citadel.models.app import EnvSet
 from citadel.models.container import ContainerOverrideStatus, Container
-from citadel.models.specs import Specs
+from citadel.models.specs import specs_schema
 
 
 core_online = False
@@ -28,7 +30,7 @@ def fake_sha(length):
 
 default_appname = 'test-app'
 default_sha = fake_sha(40)
-default_ports = ['6789']
+default_publish = ['6789']
 default_git = 'git@github.com:projecteru2/citadel.git'
 artifact_content = fake_sha(42)
 artifact_filename = '{}-data.txt'.format(default_appname)
@@ -36,19 +38,19 @@ healthcheck_http_url = '/{}'.format(artifact_filename)
 default_entrypoints = {
     'web': {
         'cmd': 'python -m http.server',
-        'ports': default_ports,
+        'publish': default_publish,
         'healthcheck': {
             'http_url': healthcheck_http_url,
-            'http_port': int(default_ports[0]),
+            'http_port': int(default_publish[0]),
             'http_code': 200,
         },
     },
     'web-bad-ports': {
         'cmd': 'python -m http.server',
-        'ports': ['8000', '8001'],
+        'publish': ['8000', '8001'],
     },
     'test-working-dir': {
-        'cmd': 'echo pass',
+        'command': 'echo pass',
         'dir': '/tmp',
     },
 }
@@ -70,7 +72,7 @@ default_env = EnvSet(**{'foo': 'some-env-content'})
 # test core config
 default_network_name = 'bridge'
 default_podname = 'eru'
-default_extra_args = '--bind 0.0.0.0 {}'.format(default_ports[0])
+default_extra_args = '--bind 0.0.0.0 {}'.format(default_publish[0])
 default_cpu_quota = 0.2
 default_memory = parse_size('128MB', binary=True)
 
@@ -90,7 +92,8 @@ def make_specs_text(appname=default_appname,
     for k, v in kwargs.items():
         specs_dict[k] = v
 
-    specs_dict = {k: v for k, v in specs_dict.items() if v is not None}
+    specs_dict = {k: copy.deepcopy(v) for k, v in specs_dict.items()
+                  if v is not None}
     specs_string = yaml.dump(specs_dict)
     return specs_string
 
@@ -110,10 +113,15 @@ def make_specs(appname=default_appname,
     for k, v in kwargs.items():
         specs_dict[k] = v
 
-    specs_dict = {k: v for k, v in specs_dict.items() if v is not None}
+    specs_dict = {k: copy.deepcopy(v) for k, v in specs_dict.items()
+                  if v is not None}
     specs_string = yaml.dump(specs_dict)
-    Specs.validate(specs_string)
-    return Specs.from_string(specs_string)
+    unmarshal_result = specs_schema.load(specs_dict)
+    errors = unmarshal_result.errors
+    if errors:
+        raise ValidationError(str(errors))
+
+    return unmarshal_result.data
 
 
 def fake_container(appname=default_appname, sha=default_sha, container_id=None,

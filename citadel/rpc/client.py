@@ -52,9 +52,9 @@ class CoreRPC:
             ms = peekable(call)
             ms.peek()
         except (face.RemoteError, face.RemoteShutdownError) as e:
-            raise ActionError(500, e.details)
+            raise ActionError(e.details)
         except face.AbortionError as e:
-            raise ActionError(500, 'gRPC remote server not available')
+            raise ActionError('gRPC remote server not available')
         return ms
 
     @handle_grpc_exception(default=list)
@@ -142,9 +142,9 @@ class CoreRPC:
         for m in grpc_call:
             yield m
 
-    def create_container(self, deploy_options):
+    def create_container(self, deploy_opt):
         stub = self._get_stub()
-        grpc_call = self._peek_grpc(stub.CreateContainer(deploy_options, _STREAM_TIMEOUT))
+        grpc_call = self._peek_grpc(stub.CreateContainer(deploy_opt, _STREAM_TIMEOUT))
         for m in grpc_call:
             yield m
 
