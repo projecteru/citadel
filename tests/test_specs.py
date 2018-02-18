@@ -3,7 +3,7 @@
 import pytest
 from marshmallow import ValidationError
 
-from .prepare import default_builds, make_specs, default_appname, default_entrypoints, default_publish, default_sha, default_combo_name, healthcheck_http_url
+from .prepare import default_builds, default_hook, make_specs, default_appname, default_entrypoints, default_publish, default_sha, default_combo_name, healthcheck_http_url
 from citadel.models.app import Release
 
 
@@ -130,6 +130,11 @@ def test_grpc_message(test_db):
     """see if grpc messages are correctly rendered"""
     release = Release.get_by_app_and_sha(default_appname, default_sha)
     deploy_opt = release.make_core_deploy_options(default_combo_name)
+
+    hook_opt = deploy_opt.entrypoint.hook
+    assert hook_opt.after_start == default_hook
+    assert hook_opt.before_stop == default_hook
+
     healthcheck_opt = deploy_opt.entrypoint.healthcheck
     assert healthcheck_opt.tcp_ports == []
     assert healthcheck_opt.http_port == str(default_publish[0])
