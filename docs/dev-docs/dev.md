@@ -11,7 +11,9 @@ pip install -r requirements.txt -r requirements-dev.txt
 py.test --pdb -s
 ```
 
-但是因为本地没有 core 可以集成测试, 如果你的开发涉及到 core, 那么请用以下步骤进行集成测试:
+## 给 ENJOY 平台团队看的
+
+本地要搞起一个 core 可能会有点繁琐, 所以在内网机器上做好了测试机群, 可以直接用脚本进行部署:
 
 ```
 tools/deploy.sh test origin feature/next-gen
