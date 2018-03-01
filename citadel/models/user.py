@@ -67,8 +67,8 @@ class User(BaseModelMixin):
         access_token = token.get('access_token')
         if not user:
             user = cls.create(authlib_user.id, authlib_user.name,
-                              authlib_user.email, authlib_user.data,
-                              access_token)
+                              authlib_user.email, access_token,
+                              data=authlib_user.data)
         else:
             user.update(name=authlib_user.name, email=authlib_user.email,
                         data=authlib_user.data, access_token=access_token)
