@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import redis
 from celery.schedules import crontab
 from datetime import timedelta
@@ -17,6 +18,7 @@ FAKE_USER = {
 }
 
 PROJECT_NAME = LOGGER_NAME = 'citadel'
+ERU_CONFIG_PATH = getenv('ERU_CONFIG_PATH', default=['citadel/local_config.py', '/etc/eru/citadel.py'])
 SERVER_NAME = getenv('SERVER_NAME', default='citadel.ricebook.net')
 SENTRY_DSN = getenv('SENTRY_DSN', default='')
 SECRET_KEY = getenv('SECRET_KEY', default='testsecretkey')
@@ -99,10 +101,14 @@ beat_schedule = {
     },
 }
 
-try:
-    from .local_config import *
-except ImportError:
-    pass
+if isinstance(ERU_CONFIG_PATH, str):
+    ERU_CONFIG_PATH = [ERU_CONFIG_PATH]
+
+for path in ERU_CONFIG_PATH:
+    print(path)
+    if os.path.isfile(path):
+        exec(open(path, encoding='utf-8').read())
+        break
 
 # flask-session settings
 SESSION_USE_SIGNER = True
