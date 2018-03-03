@@ -1,0 +1,18 @@
+appname: "eru"
+entrypoints:
+  web:
+    cmd: "gunicorn citadel.app:app -c gunicorn_config.py"
+    restart: always
+    publish:
+      - "5000"
+    privileged: true
+  watcher:
+    cmd: "celery -A citadel.app:celery worker --autoscale=4,1 -B"
+    restart: always
+    privileged: true
+  worker:
+    cmd: "bin/run-etcd-watcher --zone test-zone"
+    restart: always
+    privileged: true
+volumes:
+  - "/etc/eru:/etc/eru/"
