@@ -19,33 +19,35 @@ FAKE_USER = {
 
 PROJECT_NAME = LOGGER_NAME = 'citadel'
 ERU_CONFIG_PATH = getenv('ERU_CONFIG_PATH', default=['citadel/local_config.py', '/etc/eru/citadel.py'])
-SERVER_NAME = getenv('SERVER_NAME', default='citadel.ricebook.net')
+SERVER_NAME = getenv('SERVER_NAME', default='citadel.test.ricebook.net')
 SENTRY_DSN = getenv('SENTRY_DSN', default='')
 SECRET_KEY = getenv('SECRET_KEY', default='testsecretkey')
 
-MAKO_DEFAULT_FILTERS = ['unicode', 'h']
-MAKO_TRANSLATE_EXCEPTIONS = False
-
-AGENT_PORT = getenv('AGENT_PORT', default=12345, type=int)
 REDIS_URL = getenv('REDIS_URL', default='redis://127.0.0.1:6379/0')
 
 CORE_DEPLOY_INFO_PATH = '/eru-core/deploy'
-DEFAULT_ZONE = 'test-zone'
-BUILD_ZONE = 'test-zone'
-ZONE_CONFIG = {
-    'test-zone': {
-        'ETCD_CLUSTER': (('127.0.0.1', 2379), ),
-        'CORE_URL': '127.0.0.1:5001',
-        'ELB_DB': 'redis://127.0.0.1:6379',
+DEFAULT_ZONE = getenv('DEFAULT_ZONE', default='test-zone')
+BUILD_ZONE = getenv('BUILD_ZONE', default='test-zone')
+ZONE_CONFIG = getenv(
+    'ZONE_CONFIG',
+    type=dict,
+    default={
+        'test-zone': {
+            'ETCD_CLUSTER': (('127.0.0.1', 2379), ),
+            'CORE_URL': '127.0.0.1:5001',
+            'ELB_DB': 'redis://127.0.0.1:6379',
+        },
     },
-}
+)
 
-SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', default='mysql+pymysql://root:@localhost:3306/citadeltest')
+SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', default='mysql+pymysql://root:@localhost:3306/citadeltest?charset=utf8mb4')
 SQLALCHEMY_TRACK_MODIFICATIONS = getenv('SQLALCHEMY_TRACK_MODIFICATIONS', default=True, type=bool)
 
 OAUTH_APP_NAME = 'github'
-GITHUB_CLIENT_KEY = '***REMOVED***'
-GITHUB_CLIENT_SECRET = '***REMOVED***'
+# I registered a test app on github that redirect to
+# http://citadel.test.ricebook.net/user/authorized as callback url
+GITHUB_CLIENT_ID = getenv('GITHUB_CLIENT_KEY', default='***REMOVED***')
+GITHUB_CLIENT_SECRET = getenv('GITHUB_CLIENT_SECRET', default='***REMOVED***')
 GITHUB_CLIENT_KWARGS = {'scope': 'user:email'}
 OAUTH_CLIENT_CACHE_TYPE = 'redis'
 
@@ -64,7 +66,7 @@ TASK_PUBSUB_CHANNEL = 'citadel:task:{task_id}:pubsub'
 TASK_PUBSUB_EOF = 'CELERY_TASK_DONE:{task_id}'
 
 # celery config
-timezone = 'Asia/Shanghai'
+timezone = getenv('TIMEZONE', default='Asia/Shanghai')
 broker_url = getenv('CELERY_BROKER_URL', default='redis://127.0.0.1:6379/0')
 result_backend = getenv('CELERY_RESULT_BACKEND', default='redis://127.0.0.1:6379/0')
 broker_transport_options = {'visibility_timeout': 10}
