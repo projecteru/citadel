@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from authlib.client.apps import github
+from flask import abort
+from requests.exceptions import RequestException
 from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
@@ -14,7 +16,11 @@ def get_current_user():
     if token:
         user = User.get_by_access_token(token['access_token'])
         if not user:
-            authlib_user = github.fetch_user()
+            try:
+                authlib_user = github.profile()
+            except RequestException as e:
+                abort(500, 'fetch github profile failed: {}'.format(e))
+
             return User.from_authlib_user(authlib_user)
         return user
     return None
