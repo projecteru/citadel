@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
+
 import operator
 import time
-from datetime import datetime, timedelta
-from numbers import Number
-from pprint import pformat
-
 import wrapt
 from boltons.iterutils import remap
-from flask import abort
+from datetime import datetime, timedelta
 from humanfriendly import parse_timespan
+from numbers import Number
+from pprint import pformat
 from pyparsing import Literal, Word, ZeroOrMore, Forward, nums, oneOf, Group, alphanums, Regex, alphas
 from werkzeug.routing import BaseConverter, ValidationError
 
@@ -30,16 +29,6 @@ class DateConverter(BaseConverter):
 
     def to_url(self, value):
         return value.strftime('%Y-%m-%d')
-
-
-class AbortDict(dict):
-    """类似request.form[key], 但是用来封装request.get_json()"""
-
-    def __getitem__(self, key):
-        try:
-            return dict.__getitem__(self, key)
-        except KeyError:
-            abort(400, 'Missing argument %s' % key)
 
 
 def purge_none_val_from_dict(dic):
