@@ -49,7 +49,8 @@ OAUTH_APP_NAME = 'github'
 GITHUB_CLIENT_ID = getenv('GITHUB_CLIENT_KEY', default='***REMOVED***')
 GITHUB_CLIENT_SECRET = getenv('GITHUB_CLIENT_SECRET', default='***REMOVED***')
 GITHUB_CLIENT_KWARGS = {'scope': 'user:email'}
-OAUTH_CLIENT_CACHE_TYPE = 'redis'
+# AUTHLIB not support cache any more
+# OAUTH_CLIENT_CACHE_TYPE = 'redis'
 
 ELB_APP_NAME = getenv('ELB_APP_NAME', default='erulb3')
 ELB_BACKEND_NAME_DELIMITER = getenv('ELB_BACKEND_NAME_DELIMITER', default='___')
@@ -107,10 +108,11 @@ if isinstance(ERU_CONFIG_PATH, str):
     ERU_CONFIG_PATH = [ERU_CONFIG_PATH]
 
 for path in ERU_CONFIG_PATH:
-    print(path)
-    if os.path.isfile(path):
-        exec(open(path, encoding='utf-8').read())
-        break
+    if not os.path.isfile(path):
+        continue
+    print('load from {0}'.format(path))
+    exec(open(path, encoding='utf-8').read())
+    break
 
 # flask-session settings
 SESSION_USE_SIGNER = True

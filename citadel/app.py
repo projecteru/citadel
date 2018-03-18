@@ -36,6 +36,7 @@ api_blueprints = [
 ANONYMOUS_PATHS = [
     '/user',
     '/health-check',
+    '/favicon.ico'
 ]
 
 
@@ -133,6 +134,10 @@ def create_app():
         return jsonify({
             'messages': messages,
         }), 422
+
+    @app.route('/')
+    def hello_world():
+        return 'Hello world'
 
     return app
 
