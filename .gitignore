@@ -1,3 +1,4 @@
+.vscode
 tests/core.yaml
 .pytest_cache/
 *.py[co]

@@ -4,6 +4,9 @@ from authlib.client.apps import github
 from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
+from flask import abort	
+from requests.exceptions import RequestException
+
 from citadel.config import OAUTH_APP_NAME
 from citadel.ext import db, fetch_token
 from citadel.models.base import BaseModelMixin
@@ -14,8 +17,13 @@ def get_current_user():
     if token:
         user = User.get_by_access_token(token['access_token'])
         if not user:
-            authlib_user = github.fetch_user()
-            return User.from_authlib_user(authlib_user)
+            try:
+                # better for other oauth provider
+                authlib_user = github.profile()
+                return User.set_authlib_user(authlib_user.sub, 
+                    authlib_user.name, authlib_user.email, dict(authlib_user))
+            except RequestException as e:
+                abort(500, 'fetch github profile failed: {}'.format(e))
         return user
     return None
 
@@ -61,17 +69,16 @@ class User(BaseModelMixin):
         return cls.query.filter_by(name=name).first()
 
     @classmethod
-    def from_authlib_user(cls, authlib_user):
-        user = cls.query.filter_by(id=authlib_user.id).first()
+    def set_authlib_user(cls, id, name, email, profile):
+        user = cls.query.filter_by(id=id).first()
         token = fetch_token(OAUTH_APP_NAME)
         access_token = token.get('access_token')
         if not user:
-            user = cls.create(authlib_user.id, authlib_user.name,
-                              authlib_user.email, access_token,
-                              data=authlib_user.data)
+            user = cls.create(id, name, email, access_token,
+                              data=profile)
         else:
-            user.update(name=authlib_user.name, email=authlib_user.email,
-                        data=authlib_user.data, access_token=access_token)
+            user.update(name=name, email=email,
+                        data=profile, access_token=access_token)
 
         return user
 
