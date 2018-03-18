@@ -27,6 +27,10 @@ def authorized():
     params = request.values.to_dict()
     token = oauth.github.fetch_access_token(url_for('user.authorized', _external=True), **params)
     update_token(OAUTH_APP_NAME, token)
+    next_url = session['next']
+    del session['next']
+    if next_url:
+        return redirect(next_url)
     return redirect(url_for('user.login'))
 
 
@@ -37,6 +41,7 @@ def login():
     url, state = oauth.github.generate_authorize_redirect(
         url_for('user.authorized', _external=True)
     )
+    session['next'] = request.args.get('next', None)
     session['state'] = state
     return redirect(url)
 

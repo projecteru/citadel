@@ -4,7 +4,7 @@ from authlib.client.apps import github
 from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
-from flask import abort	
+from flask import abort
 from requests.exceptions import RequestException
 
 from citadel.config import OAUTH_APP_NAME
@@ -20,7 +20,7 @@ def get_current_user():
             try:
                 # better for other oauth provider
                 authlib_user = github.profile()
-                return User.set_authlib_user(authlib_user.sub, 
+                return User.set_authlib_user(authlib_user.sub,
                     authlib_user.name, authlib_user.email, dict(authlib_user))
             except RequestException as e:
                 abort(500, 'fetch github profile failed: {}'.format(e))
@@ -69,12 +69,12 @@ class User(BaseModelMixin):
         return cls.query.filter_by(name=name).first()
 
     @classmethod
-    def set_authlib_user(cls, id, name, email, profile):
-        user = cls.query.filter_by(id=id).first()
+    def set_authlib_user(cls, sub, name, email, profile):
+        user = cls.query.filter_by(id=sub).first()
         token = fetch_token(OAUTH_APP_NAME)
         access_token = token.get('access_token')
         if not user:
-            user = cls.create(id, name, email, access_token,
+            user = cls.create(sub, name, email, access_token,
                               data=profile)
         else:
             user.update(name=name, email=email,
