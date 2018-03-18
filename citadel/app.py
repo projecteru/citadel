@@ -120,7 +120,7 @@ def create_app():
             g.user = get_current_user()
 
         if not g.user and not anonymous_path(request.path):
-            return redirect(url_for('user.login'))
+            return redirect(url_for('user.login', next=request.url))
 
     @app.errorhandler(422)
     def handle_unprocessable_entity(err):
