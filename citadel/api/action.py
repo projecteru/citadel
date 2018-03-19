@@ -9,7 +9,7 @@ from json.decoder import JSONDecodeError
 
 from citadel.libs.utils import logger
 from citadel.libs.validation import renew_schema, build_args_schema, deploy_schema, remove_container_schema, deploy_elb_schema
-from citadel.libs.view import create_api_blueprint
+from citadel.libs.view import create_api_blueprint, user_require
 from citadel.models.app import App
 from citadel.models.container import Container
 from citadel.tasks import renew_container, celery_task_stream_response, build_image, create_container, remove_container, create_elb_instance
@@ -19,6 +19,7 @@ ws = create_api_blueprint('action', __name__, url_prefix='action', jsonize=False
 
 
 @ws.route('/build')
+@user_require(False)
 def build(socket):
     payload = None
     while not payload or payload.errors:
@@ -38,6 +39,7 @@ def build(socket):
 
 
 @ws.route('/deploy')
+@user_require(False)
 def deploy(socket):
     payload = None
     while not payload or payload.errors:
@@ -70,6 +72,7 @@ def deploy(socket):
 
 
 @ws.route('/renew')
+@user_require(False)
 def renew(socket):
     payload = None
     while not payload or payload.errors:
@@ -104,6 +107,7 @@ def renew(socket):
 
 
 @ws.route('/remove')
+@user_require(False)
 def remove(socket):
     payload = None
     while not payload or payload.errors:
@@ -123,6 +127,7 @@ def remove(socket):
 
 
 @ws.route('/deploy-elb')
+@user_require(True)
 def deploy_elb(socket):
     payload = None
     while not payload or payload.errors:

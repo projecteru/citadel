@@ -90,7 +90,7 @@ def user_require(privileged=False):
             if not g.user:
                 return redirect(url_for('user.login', next=request.url))
             elif privileged and g.user.privileged != 1:
-                abort(403)
+                abort(403, 'dude you are not administrator')
             else:
                 return func(*args, **kwargs)
         return _

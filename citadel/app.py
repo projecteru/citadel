@@ -12,7 +12,6 @@ from citadel.ext import rds, sess, db, mako, cache, sockets, oauth
 from citadel.libs.datastructure import DateConverter
 from citadel.libs.jsonutils import VersatileEncoder
 from citadel.libs.utils import notbot_sendmsg
-from citadel.libs.view import user_require
 
 
 if DEBUG:
@@ -115,7 +114,6 @@ def create_app():
         }), 422
 
     @app.route('/')
-    @user_require(False)
     def hello_world():
         return 'Hello world'
 
