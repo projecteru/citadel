@@ -20,8 +20,7 @@ def get_current_user():
             try:
                 # better for other oauth provider
                 authlib_user = github.profile()
-                return User.set_authlib_user(authlib_user.sub,
-                    authlib_user.name, authlib_user.email, dict(authlib_user))
+                return User.set_authlib_user(authlib_user)
             except RequestException as e:
                 abort(500, 'fetch github profile failed: {}'.format(e))
         return user
@@ -69,16 +68,16 @@ class User(BaseModelMixin):
         return cls.query.filter_by(name=name).first()
 
     @classmethod
-    def set_authlib_user(cls, sub, name, email, profile):
-        user = cls.query.filter_by(id=sub).first()
+    def set_authlib_user(cls, auth_user):
+        user = cls.query.filter_by(id=auth_user.sub).first()
         token = fetch_token(OAUTH_APP_NAME)
         access_token = token.get('access_token')
         if not user:
-            user = cls.create(sub, name, email, access_token,
-                              data=profile)
+            user = cls.create(auth_user.sub, auth_user.name,
+                        auth_user.email, access_token, data=dict(auth_user))
         else:
-            user.update(name=name, email=email,
-                        data=profile, access_token=access_token)
+            user.update(name=auth_user.name, email=auth_user.email,
+                        data=dict(auth_user), access_token=access_token)
 
         return user
 
