@@ -123,10 +123,6 @@ def make_specs(appname=default_appname,
                   if v is not None}
     specs_string = yaml.dump(specs_dict)
     unmarshal_result = specs_schema.load(specs_dict)
-    errors = unmarshal_result.errors
-    if errors:
-        raise ValidationError(str(errors))
-
     return unmarshal_result.data
 
 

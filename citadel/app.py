@@ -111,7 +111,7 @@ def create_app():
     def init_global_vars():
         g.start = request.args.get('start', type=int, default=0)
         g.limit = request.args.get('limit', type=int, default=20)
-        g.zone = session.get('zone') or request.values.get('zone') or DEFAULT_ZONE
+        g.zone = request.values.get('zone') or session.get('zone') or DEFAULT_ZONE
 
         if current_app.config['DEBUG']:
             g.user = User(**FAKE_USER)

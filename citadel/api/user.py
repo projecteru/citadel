@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from citadel.config import TASK_PUBSUB_CHANNEL, DEBUG, SENTRY_DSN, TASK_PUBSUB_EOF, DEFAULT_ZONE, FAKE_USER
 from flask import url_for, jsonify, g, session, request, redirect, Blueprint, abort
 
 from citadel.config import OAUTH_APP_NAME
@@ -27,6 +28,10 @@ def authorized():
     params = request.values.to_dict()
     token = oauth.github.fetch_access_token(url_for('user.authorized', _external=True), **params)
     update_token(OAUTH_APP_NAME, token)
+    session['user_id'] = g.user.id
+    if not session.get('zone'):
+        session['zone'] = DEFAULT_ZONE
+
     return redirect(url_for('user.login'))
 
 

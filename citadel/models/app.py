@@ -236,10 +236,6 @@ class Release(BaseModelMixin):
         appname = app.name
 
         unmarshal_result = specs_schema.load(yaml.load(specs_text))
-        errors = unmarshal_result.errors
-        if errors:
-            raise ValidationError(str(errors))
-
         misc = {
             'git_tag': git_tag,
             'author': author,
@@ -332,9 +328,6 @@ class Release(BaseModelMixin):
     def specs(self):
         dic = yaml.load(self.specs_text)
         unmarshal_result = specs_schema.load(dic)
-        errors = unmarshal_result.errors
-        if errors:
-            raise ValidationError(str(errors))
         return unmarshal_result.data
 
     @property
