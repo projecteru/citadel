@@ -6,16 +6,15 @@ from citadel.config import OAUTH_APP_NAME
 from citadel.ext import oauth, fetch_token, update_token, delete_token
 from citadel.libs.view import DEFAULT_RETURN_VALUE
 from citadel.models.user import User
+from citadel.libs.view import user_require
 
 
 bp = Blueprint('user', __name__, url_prefix='/user')
 
 
 @bp.route('/')
+@user_require(True)
 def list_users():
-    if not g.user.privileged:
-        abort(403, 'dude you are not administrator')
-
     return jsonify([u.to_dict() for u in User.get_all()])
 
 

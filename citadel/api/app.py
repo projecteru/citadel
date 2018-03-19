@@ -12,6 +12,7 @@ from citadel.models.app import App, Release, Combo
 from citadel.models.user import User
 from citadel.models.container import Container
 from citadel.libs.validation import UserSchema
+from citadel.libs.view import user_require
 
 
 bp = create_api_blueprint('app', __name__, 'app')
@@ -40,16 +41,19 @@ def _get_release(appname, sha):
 
 
 @bp.route('/')
+@user_require(False)
 def list_app():
     return g.user.list_app()
 
 
 @bp.route('/<appname>')
+@user_require(False)
 def get_app(appname):
     return _get_app(appname)
 
 
 @bp.route('/<appname>/users')
+@user_require(False)
 def get_app_users(appname):
     app = _get_app(appname)
     return app.list_users()
@@ -57,6 +61,7 @@ def get_app_users(appname):
 
 @bp.route('/<appname>/users', methods=['PUT'])
 @use_args(UserSchema())
+@user_require(False)
 def grant_user(args, appname):
     app = _get_app(appname)
     if args['username']:
@@ -74,6 +79,7 @@ def grant_user(args, appname):
 
 @bp.route('/<appname>/users', methods=['DELETE'])
 @use_args(UserSchema())
+@user_require(False)
 def revoke_user(args, appname):
     app = _get_app(appname)
     if args['username']:
@@ -85,24 +91,28 @@ def revoke_user(args, appname):
 
 
 @bp.route('/<appname>/containers')
+@user_require(False)
 def get_app_containers(appname):
     app = _get_app(appname)
     return Container.get_by(appname=app.name)
 
 
 @bp.route('/<appname>/releases')
+@user_require(False)
 def get_app_releases(appname):
     app = _get_app(appname)
     return Release.get_by_app(app.name)
 
 
 @bp.route('/<appname>/env')
+@user_require(False)
 def get_app_envs(appname):
     app = _get_app(appname)
     return app.get_env_sets()
 
 
 @bp.route('/<appname>/env/<envname>', methods=['PUT'])
+@user_require(False)
 def create_app_env(appname, envname):
     app = _get_app(appname)
     data = request.get_json()
@@ -115,6 +125,7 @@ def create_app_env(appname, envname):
 
 
 @bp.route('/<appname>/env/<envname>', methods=['POST'])
+@user_require(False)
 def update_app_env(appname, envname):
     app = _get_app(appname)
     data = request.get_json()
@@ -127,6 +138,7 @@ def update_app_env(appname, envname):
 
 
 @bp.route('/<appname>/env/<envname>')
+@user_require(False)
 def get_app_env(appname, envname):
     app = _get_app(appname)
     env = app.get_env_set(envname)
@@ -137,6 +149,7 @@ def get_app_env(appname, envname):
 
 
 @bp.route('/<appname>/env/<envname>', methods=['DELETE'])
+@user_require(False)
 def delete_app_env(appname, envname):
     app = _get_app(appname)
     deleted = app.remove_env_set(envname)
@@ -147,6 +160,7 @@ def delete_app_env(appname, envname):
 
 
 @bp.route('/<appname>/combo')
+@user_require(False)
 def get_app_combos(appname):
     app = _get_app(appname)
     return app.get_combos()
@@ -154,6 +168,7 @@ def get_app_combos(appname):
 
 @bp.route('/<appname>/combo', methods=['PUT'])
 @use_args(ComboSchema())
+@user_require(False)
 def create_combo(args, appname):
     app = _get_app(appname)
     try:
@@ -164,6 +179,7 @@ def create_combo(args, appname):
 
 @bp.route('/<appname>/combo', methods=['POST'])
 @use_args(ComboSchema())
+@user_require(False)
 def update_combo(args, appname):
     app = _get_app(appname)
     combo_name = args.pop('name')
@@ -176,6 +192,7 @@ def update_combo(args, appname):
 
 @bp.route('/<appname>/combo', methods=['DELETE'])
 @use_args(SimpleNameSchema())
+@user_require(False)
 def delete_combo(args, appname):
     app = _get_app(appname)
     app.delete_combo(args['name'])
@@ -183,11 +200,13 @@ def delete_combo(args, appname):
 
 
 @bp.route('/<appname>/version/<sha>')
+@user_require(False)
 def get_release(appname, sha):
     return _get_release(appname, sha)
 
 
 @bp.route('/<appname>/version/<sha>/containers')
+@user_require(False)
 def get_release_containers(appname, sha):
     release = _get_release(appname, sha)
     return Container.get_by(appname=appname, sha=release.sha)
@@ -195,6 +214,7 @@ def get_release_containers(appname, sha):
 
 @bp.route('/register', methods=['POST'])
 @use_args(RegisterSchema())
+@user_require(False)
 def register_release(args):
     appname = args['appname']
     git = args['git']
