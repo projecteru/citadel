@@ -24,6 +24,11 @@ def validate_sha(s):
         raise ValidationError('minimum sha length is 7')
 
 
+def validate_full_sha(s):
+    if len(s) < 40:
+        raise ValidationError('must be length 40')
+
+
 def validate_zone(s):
     if s not in ZONE_CONFIG:
         raise ValidationError('Bad zone: {}'.format(s))
@@ -36,7 +41,7 @@ def validate_full_contianer_id(s):
 
 class RegisterSchema(StrictSchema):
     appname = fields.Str(required=True)
-    sha = fields.Str(required=True, validate=validate_sha)
+    sha = fields.Str(required=True, validate=validate_full_sha)
     git = fields.Str(required=True)
     specs_text = fields.Str(required=True)
     branch = fields.Str()
@@ -80,12 +85,14 @@ class UserSchema(StrictSchema):
 
 class DeploySchema(StrictSchema):
     appname = fields.Str(required=True)
+    zone = fields.Str(required=True)
     sha = fields.Str(required=True, validate=validate_sha)
     combo_name = fields.Str(required=True)
     entrypoint_name = fields.Str()
     podname = fields.Str()
     nodename = fields.Str()
     extra_args = fields.Str()
+    networks = fields.List(fields.Str())
     cpu_quota = fields.Float()
     memory = fields.Function(deserialize=parse_memory)
     count = fields.Int()
@@ -99,6 +106,7 @@ class RenewSchema(StrictSchema):
 
 class DeployELBSchema(StrictSchema):
     name = fields.Str(required=True)
+    zone = fields.Str(required=True)
     sha = fields.Str(required=True, validate=validate_sha)
     combo_name = fields.Str(required=True)
     nodename = fields.Str()

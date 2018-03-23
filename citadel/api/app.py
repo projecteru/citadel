@@ -3,15 +3,13 @@
 from flask import abort, request, g
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.exc import IntegrityError
 from webargs.flaskparser import use_args
 
-from citadel.libs.validation import ComboSchema, RegisterSchema, SimpleNameSchema
+from citadel.libs.validation import ComboSchema, RegisterSchema, SimpleNameSchema, UserSchema
 from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
-from citadel.models.app import App, Release, Combo
-from citadel.models.user import User
+from citadel.models.app import App, Release
 from citadel.models.container import Container
-from citadel.libs.validation import UserSchema
+from citadel.models.user import User
 
 
 bp = create_api_blueprint('app', __name__, 'app')
@@ -41,16 +39,64 @@ def _get_release(appname, sha):
 
 @bp.route('/')
 def list_app():
+    """List all the apps associated with the current logged in user, for
+    administrators, list all apps
+
+    **Example response**:
+
+    .. sourcecode:: http
+
+        HTTP/1.1 200 OK
+        Content-Type: application/json
+
+        [
+            {
+                "id": 10001,
+                "created": "2018-03-21 14:54:06",
+                "updated": "2018-03-21 14:54:07",
+                "name": "test-app",
+                "git": "git@github.com:projecteru2/citadel.git",
+                "tackle_rule": {},
+                "env_sets": {"prodenv": {"foo": "some-env-content"}}
+            }
+        ]
+    """
     return g.user.list_app()
 
 
 @bp.route('/<appname>')
 def get_app(appname):
+    """Get a single app
+
+    **Example response**:
+
+    .. sourcecode:: http
+
+        HTTP/1.1 200 OK
+        Content-Type: application/json
+
+        {
+            "id": 10001,
+            "created": "2018-03-21 14:54:06",
+            "updated": "2018-03-21 14:54:07",
+            "name": "test-app",
+            "git": "git@github.com:projecteru2/citadel.git",
+            "tackle_rule": {},
+            "env_sets": {"prodenv": {"foo": "some-env-content"}}
+        }
+    """
     return _get_app(appname)
 
 
 @bp.route('/<appname>/users')
 def get_app_users(appname):
+    """List users who has permissions to the specified app
+
+    .. todo::
+
+        * write tests for this API
+        * add example response
+    """
     app = _get_app(appname)
     return app.list_users()
 
@@ -58,6 +104,11 @@ def get_app_users(appname):
 @bp.route('/<appname>/users', methods=['PUT'])
 @use_args(UserSchema())
 def grant_user(args, appname):
+    """Grant permission to a user
+
+    :<json string username: you know what this is
+    :<json int user_id: must provide either username or user_id
+    """
     app = _get_app(appname)
     if args['username']:
         user = User.get_by_name(args['username'])
@@ -75,6 +126,11 @@ def grant_user(args, appname):
 @bp.route('/<appname>/users', methods=['DELETE'])
 @use_args(UserSchema())
 def revoke_user(args, appname):
+    """Revoke someone's permission to a app
+
+    :<json string username: you know what this is
+    :<json int user_id: must provide either username or user_id
+    """
     app = _get_app(appname)
     if args['username']:
         user = User.get_by_name(args['username'])
@@ -86,24 +142,68 @@ def revoke_user(args, appname):
 
 @bp.route('/<appname>/containers')
 def get_app_containers(appname):
+    """Get all containers of the specified app
+
+    .. todo::
+
+        * add example response
+        * test this API
+    """
     app = _get_app(appname)
     return Container.get_by(appname=app.name)
 
 
 @bp.route('/<appname>/releases')
 def get_app_releases(appname):
+    """List every release of the specified app
+
+    .. todo::
+
+        * add example response
+        * test this API
+    """
     app = _get_app(appname)
     return Release.get_by_app(app.name)
 
 
 @bp.route('/<appname>/env')
 def get_app_envs(appname):
+    """List all env sets for the specified app
+
+    **Example response**:
+
+    .. sourcecode:: http
+
+        HTTP/1.1 200 OK
+        Content-Type: application/json
+
+        {
+            "prodenv": {
+                "password": "secret"
+            },
+            "testenv": {
+                "password": "not-so-secret"
+            }
+        }
+    """
     app = _get_app(appname)
     return app.get_env_sets()
 
 
 @bp.route('/<appname>/env/<envname>', methods=['PUT'])
 def create_app_env(appname, envname):
+    """Create a environmental variable set
+
+    ..  http:example:: curl wget httpie python-requests
+
+        GET /<appname>/env/<envname> HTTP/1.1
+        Accept: application/json
+
+        {
+            "HTTP_PROXY": "whatever",
+            "HTTPS_PROXY": "whatever"
+        }
+    """
     app = _get_app(appname)
     data = request.get_json()
     try:
@@ -116,6 +216,7 @@ def create_app_env(appname, envname):
 
 @bp.route('/<appname>/env/<envname>', methods=['POST'])
 def update_app_env(appname, envname):
+    """Edit the specified env set, usage is the same as :http:get:`/api/app/(appname)/env/(envname)`"""
     app = _get_app(appname)
     data = request.get_json()
     try:
@@ -128,6 +229,21 @@ def update_app_env(appname, envname):
 
 @bp.route('/<appname>/env/<envname>')
 def get_app_env(appname, envname):
+    """Get the content of the specified environmental variable set
+
+    **Example response**:
+
+    .. sourcecode:: http
+
+        HTTP/1.1 200 OK
+        Content-Type: application/json
+
+        {
+            "bar": "whatever",
+            "FOO": "\\"",
+            "foo": "\'"
+        }
+    """
     app = _get_app(appname)
     env = app.get_env_set(envname)
     if not env:
@@ -138,6 +254,7 @@ def get_app_env(appname, envname):
 
 @bp.route('/<appname>/env/<envname>', methods=['DELETE'])
 def delete_app_env(appname, envname):
+    """Delete the specified environmental variable set"""
     app = _get_app(appname)
     deleted = app.remove_env_set(envname)
     if not deleted:
@@ -148,6 +265,13 @@ def delete_app_env(appname, envname):
 
 @bp.route('/<appname>/combo')
 def get_app_combos(appname):
+    """Get all the combos for the specified app
+
+    .. todo::
+
+        * write tests for this API
+        * add example response
+    """
     app = _get_app(appname)
     return app.get_combos()
 
@@ -155,6 +279,19 @@ def get_app_combos(appname):
 @bp.route('/<appname>/combo', methods=['PUT'])
 @use_args(ComboSchema())
 def create_combo(args, appname):
+    """Create a combo for the specified app
+
+    :<json string name: required, the combo name
+    :<json string entrypoint_name: required
+    :<json string podname: required
+    :<json string nodename: optional, provide this only when your app can only be deployed in one machine
+    :<json string extra_args: optional, extra arguments to the entrypoint command, e.g. :code:`[python -m http.server] --bind 0.0.0.0`
+    :<json list networks: required, list of network names, which can be obtained using :http:get:`/api/pod/(name)/networks`
+    :<json float cpu_quota: required
+    :<json memory: required, can provide int (in bytes) or string values, like :code:`"128MB"` or :code:`134217728`, when the provided value is string, it'll be parsed by :py:func:`humanfriendly.parse_size(binary=True) <humanfriendly.parse_size>`
+    :<json string count: number of containers, default to 1
+    :<json string envname: optional, name of the environment variable set to use
+    """
     app = _get_app(appname)
     try:
         return app.create_combo(**args)
@@ -165,6 +302,19 @@ def create_combo(args, appname):
 @bp.route('/<appname>/combo', methods=['POST'])
 @use_args(ComboSchema())
 def update_combo(args, appname):
+    """Edit the combo value for the specified app
+
+    :<json string name: required, the combo name
+    :<json string entrypoint_name: required
+    :<json string podname: required
+    :<json string nodename: optional, provide this only when your app can only be deployed in one machine
+    :<json string extra_args: optional, extra arguments to the entrypoint command, e.g. :code:`[python -m http.server] --bind 0.0.0.0`
+    :<json list networks: required, list of network names, which can be obtained using :http:get:`/api/pod/(name)/networks`
+    :<json float cpu_quota: required
+    :<json memory: required, can provide int (in bytes) or string values, like :code:`"128MB"` or :code:`134217728`, when the provided value is string, it'll be parsed by :py:func:`humanfriendly.parse_size(binary=True) <humanfriendly.parse_size>`
+    :<json string count: number of containers, default to 1
+    :<json string envname: optional, name of the environment variable set to use
+    """
     app = _get_app(appname)
     combo_name = args.pop('name')
     combo = app.get_combo(combo_name)
@@ -177,6 +327,10 @@ def update_combo(args, appname):
 @bp.route('/<appname>/combo', methods=['DELETE'])
 @use_args(SimpleNameSchema())
 def delete_combo(args, appname):
+    """Delete one combo for the specified app
+
+    :<json string name: the combo name
+    """
     app = _get_app(appname)
     app.delete_combo(args['name'])
     return DEFAULT_RETURN_VALUE
@@ -184,11 +338,25 @@ def delete_combo(args, appname):
 
 @bp.route('/<appname>/version/<sha>')
 def get_release(appname, sha):
+    """Get one release of the specified app
+
+    .. todo::
+
+        * add example response
+        * test this API
+    """
     return _get_release(appname, sha)
 
 
 @bp.route('/<appname>/version/<sha>/containers')
 def get_release_containers(appname, sha):
+    """Get all containers of the specified release
+
+    .. todo::
+
+        * add example response
+        * test this API
+    """
     release = _get_release(appname, sha)
     return Container.get_by(appname=appname, sha=release.sha)
 
@@ -196,6 +364,17 @@ def get_release_containers(appname, sha):
 @bp.route('/register', methods=['POST'])
 @use_args(RegisterSchema())
 def register_release(args):
+    """Register a release of the specified app
+
+    :<json string appname: required
+    :<json string sha: required, must be length 40
+    :<json string git: required, the repo address using git protocol, e.g. :code:`git@github.com:projecteru2/citadel.git`
+    :<json string specs_text: required, the yaml specs for this app
+    :<json string branch: optional git branch
+    :<json string git_tag: optional git tag
+    :<json string commit_message: optional commit message
+    :<json string author: optional author
+    """
     appname = args['appname']
     git = args['git']
     sha = args['sha']

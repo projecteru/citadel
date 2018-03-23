@@ -51,9 +51,6 @@ def parse_builds(dic):
     '''
     for stage_name, build in dic.items():
         unmarshal_result = build_schema.load(build)
-        errors = unmarshal_result.errors
-        if errors:
-            raise ValidationError(str(errors))
         dic[stage_name] = unmarshal_result.data
 
     return dic
@@ -80,9 +77,6 @@ def parse_entrypoints(dic):
     for entrypoint_name, entrypoint_dic in dic.items():
         validate_entrypoint_name(entrypoint_name)
         unmarshal_result = entrypoint_schema.load(entrypoint_dic)
-        errors = unmarshal_result.errors
-        if errors:
-            raise ValidationError(str(errors))
         dic[entrypoint_name] = unmarshal_result.data
 
     return dic
