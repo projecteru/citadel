@@ -110,7 +110,13 @@ def create_container(self, zone=None, user_id=None, appname=None, sha=None,
         )
         notbot_sendmsg(app.subscribers, msg)
 
-    return deploy_messages
+    # if called synchronously, the caller will not be able to receive the task
+    # output by redis pubsub, so the task function will return the
+    # deploy_messages
+    # if called asynchronously, grpc message cannot be pickled easily, that's
+    # why this task only return when called synchronously
+    if not self.request.id:
+        return deploy_messages
 
 
 @current_app.task(bind=True)
@@ -160,7 +166,9 @@ def renew_container(self, old_container_id, sha=None, user_id=None):
         if not remove_container_message.success:
             raise ActionError('New container {}, but remove old container {} failed'.format(container, old_container_id))
 
-    return [remove_container_message, create_container_message]
+    # reason see the end of create_container definition
+    if not task_id:
+        return [remove_container_message, create_container_message]
 
 
 @current_app.task(bind=True)
@@ -193,11 +201,11 @@ def create_elb_instance(self, zone=None, combo_name=None, name=None, sha=None,
 
 
 @current_app.task(bind=True)
-def remove_container(self, ids, user_id=None, task_id=None):
-    if isinstance(ids, str):
-        ids = [ids]
+def remove_container(self, container_ids, user_id=None, task_id=None):
+    if isinstance(container_ids, str):
+        container_ids = [container_ids]
 
-    containers = [Container.get_by_container_id(i) for i in ids]
+    containers = [Container.get_by_container_id(i) for i in container_ids]
     containers = [c for c in containers if c]
     if not containers:
         return
@@ -213,10 +221,10 @@ def remove_container(self, ids, user_id=None, task_id=None):
     update_elb_for_containers(containers, UpdateELBAction.REMOVE)
 
     ms = get_core(zone).remove_container(full_ids)
-    res = []
+    remove_container_messages = []
     for m in ms:
         self.stream_output(m, task_id=task_id)
-        res.append(m)
+        remove_container_messages.append(m)
 
         container = Container.get_by_container_id(m.id)
         if not container:
@@ -240,7 +248,9 @@ def remove_container(self, ids, user_id=None, task_id=None):
             logger.error('Remove container %s got error: %s', m.id, m.message)
             notbot_sendmsg('#platform', 'Error removing container {}: {}\n@timfeirg'.format(m.id, m.message))
 
-    return res
+    # reason see the end of create_container definition
+    if not self.request.id:
+        return remove_container_messages
 
 
 @current_app.task(bind=True)
@@ -408,7 +418,7 @@ def celery_task_stream_response(celery_task_ids):
         if content.startswith('CELERY_TASK_DONE'):
             finished_task_id = content[content.find(':') + 1:]
             finished_task_channel = TASK_PUBSUB_CHANNEL.format(task_id=finished_task_id)
-            logger.debug('Task {} finished, break celery_task_stream_response'.format(finished_task_id))
+            logger.debug('Task %s finished, break celery_task_stream_response', finished_task_id)
             pubsub.unsubscribe(finished_task_channel)
         else:
             yield content

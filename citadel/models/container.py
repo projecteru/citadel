@@ -42,7 +42,7 @@ class Container(BaseModelMixin):
     initialized = db.Column(db.Integer, default=0)
 
     def __str__(self):
-        return '<Container {c.zone}:{c.appname}:{c.short_sha}:{c.entrypoint_name}:{c.short_id}'.format(c=self)
+        return '<Container {c.zone}:{c.appname}:{c.short_sha}:{c.entrypoint_name}:{c.short_id}>'.format(c=self)
 
     @classmethod
     def create(cls, appname=None, sha=None, container_id=None,
