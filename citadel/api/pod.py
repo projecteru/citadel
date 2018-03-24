@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """Pod / Node management API"""
 
-from citadel.libs.view import create_api_blueprint
+from flask import g, abort
+
+from citadel.libs.view import create_api_blueprint, user_require
 from citadel.models.container import Container
 from citadel.rpc.client import get_core
-from flask import g, abort
 
 
 bp = create_api_blueprint('pod', __name__, 'pod')
@@ -19,6 +20,7 @@ def _get_pod(name):
 
 
 @bp.route('/')
+@user_require(False)
 def get_all_pods():
     """List all pods
 
@@ -41,6 +43,7 @@ def get_all_pods():
 
 
 @bp.route('/<name>')
+@user_require(False)
 def get_pod(name):
     """Get a single pod by name
 
@@ -61,6 +64,7 @@ def get_pod(name):
 
 
 @bp.route('/<name>/nodes')
+@user_require(False)
 def get_pod_nodes(name):
     """List nodes under a pod
 
@@ -90,12 +94,14 @@ def get_pod_nodes(name):
 
 
 @bp.route('/<name>/containers')
+@user_require(False)
 def get_pod_containers(name):
     pod = _get_pod(name)
     return Container.get_by(zone=g.zone, podname=pod.name)
 
 
 @bp.route('/<name>/networks')
+@user_require(False)
 def list_networks(name):
     """List networks under a pod
 
