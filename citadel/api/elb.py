@@ -7,7 +7,7 @@ from webargs.flaskparser import use_args
 
 from citadel.config import ELB_BACKEND_NAME_DELIMITER
 from citadel.libs.validation import CreateELBRulesSchema
-from citadel.libs.view import DEFAULT_RETURN_VALUE, create_api_blueprint
+from citadel.libs.view import DEFAULT_RETURN_VALUE, create_api_blueprint, user_require
 from citadel.models.elb import ELBInstance, ELBRuleSet
 
 
@@ -15,6 +15,7 @@ bp = create_api_blueprint('elb', __name__, url_prefix='elb')
 
 
 @bp.route('/')
+@user_require(True)
 def get_elbs():
     return ELBInstance.get_by_zone(g.zone)
 
@@ -28,6 +29,7 @@ def get_elb(elb_id):
 
 # 获取和删除用id, 因为删除可能只删除其中一个.
 @bp.route('/<elb_id>', methods=['GET', 'DELETE'])
+@user_require(True)
 def elb_instance(elb_id):
     elb = get_elb(elb_id)
 
@@ -39,6 +41,7 @@ def elb_instance(elb_id):
 
 
 @bp.route('/<elbname>/rules')
+@user_require(True)
 def get_elb_rules(elbname):
     elbs = ELBInstance.get_by(name=elbname, zone=g.zone)
     if not elbs:
@@ -49,6 +52,7 @@ def get_elb_rules(elbname):
 
 @bp.route('/<elbname>/rules', methods=['POST'])
 @use_args(CreateELBRulesSchema())
+@user_require(True)
 def create_elb_rules(args, elbname):
     elbs = ELBInstance.get_by(name=elbname, zone=g.zone)
     if not elbs:
@@ -97,6 +101,7 @@ def create_elb_rules(args, elbname):
 
 
 @bp.route('/rule/<ruleset_id>')
+@user_require(True)
 def elb_ruleset(ruleset_id):
     ruleset = ELBRuleSet.get(ruleset_id)
     if not ruleset:
