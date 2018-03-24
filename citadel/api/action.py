@@ -11,7 +11,7 @@ from marshmallow import ValidationError
 
 from citadel.libs.utils import logger
 from citadel.libs.validation import renew_schema, build_args_schema, deploy_schema, remove_container_schema, deploy_elb_schema
-from citadel.libs.view import create_api_blueprint
+from citadel.libs.view import create_api_blueprint, user_require
 from citadel.models.app import App
 from citadel.models.container import Container
 from citadel.tasks import renew_container, celery_task_stream_response, build_image, create_container, remove_container, create_elb_instance
@@ -21,6 +21,7 @@ ws = create_api_blueprint('action', __name__, url_prefix='action', jsonize=False
 
 
 @ws.route('/build')
+@user_require(False)
 def build(socket):
     """Build an image for the specified release, the API will return all docker
     build messages, key frames as shown in the example responses
@@ -97,6 +98,7 @@ def build(socket):
 
 
 @ws.route('/deploy')
+@user_require(False)
 def deploy(socket):
     """Create containers for the specified release
 
@@ -164,6 +166,7 @@ def deploy(socket):
 
 
 @ws.route('/renew')
+@user_require(False)
 def renew(socket):
     """Create a new container to substitute the old one, this API can be used
     to upgrade a app to a specified version, or simply re-create a container
@@ -250,6 +253,7 @@ def renew(socket):
 
 
 @ws.route('/remove')
+@user_require(False)
 def remove(socket):
     """Remove the specified containers
 
@@ -289,6 +293,7 @@ def remove(socket):
 
 
 @ws.route('/deploy-elb')
+@user_require(True)
 def deploy_elb(socket):
     """Remove the specified containers
 

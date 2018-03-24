@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from citadel.config import TASK_PUBSUB_CHANNEL, DEBUG, SENTRY_DSN, TASK_PUBSUB_EOF, DEFAULT_ZONE, FAKE_USER
 from flask import url_for, jsonify, g, session, request, redirect, Blueprint, abort
 
-from citadel.config import OAUTH_APP_NAME
+from citadel.config import DEFAULT_ZONE, OAUTH_APP_NAME
 from citadel.ext import oauth, fetch_token, update_token, delete_token
-from citadel.libs.view import DEFAULT_RETURN_VALUE
+from citadel.libs.view import DEFAULT_RETURN_VALUE, user_require
 from citadel.models.user import User
 
 
@@ -13,10 +12,8 @@ bp = Blueprint('user', __name__, url_prefix='/user')
 
 
 @bp.route('/')
+@user_require(True)
 def list_users():
-    if not g.user.privileged:
-        abort(403, 'dude you are not administrator')
-
     return jsonify([u.to_dict() for u in User.get_all()])
 
 
@@ -32,6 +29,10 @@ def authorized():
     if not session.get('zone'):
         session['zone'] = DEFAULT_ZONE
 
+    next_url = session['next']
+    del session['next']
+    if next_url:
+        return redirect(next_url)
     return redirect(url_for('user.login'))
 
 
@@ -42,6 +43,7 @@ def login():
     url, state = oauth.github.generate_authorize_redirect(
         url_for('user.authorized', _external=True)
     )
+    session['next'] = request.args.get('next', None)
     session['state'] = state
     return redirect(url)
 
