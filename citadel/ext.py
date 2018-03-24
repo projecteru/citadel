@@ -11,7 +11,7 @@ from flask_sockets import Sockets
 from flask_sqlalchemy import SQLAlchemy
 from redis import Redis
 
-from citadel.config import ZONE_CONFIG, REDIS_URL
+from citadel.config import ZONE_CONFIG, REDIS_URL, OAUTH_APP_NAME
 from citadel.libs.utils import memoize
 
 
@@ -27,22 +27,22 @@ sockets = Sockets()
 rds = Redis.from_url(REDIS_URL)
 
 
-def fetch_token(oauth_app_name):
-    token_session_key = '{}-token'.format(oauth_app_name.lower())
+def fetch_token(name=OAUTH_APP_NAME):
+    token_session_key = '{}-token'.format(name.lower())
     return session.get(token_session_key, {})
 
 
-def update_token(oauth_app_name, token):
-    token_session_key = '{}-token'.format(oauth_app_name.lower())
+def update_token(token, name=OAUTH_APP_NAME):
+    token_session_key = '{}-token'.format(name.lower())
     session[token_session_key] = token
     # I don't think return token was necessary, but that's what the example
     # does in the docs: https://docs.authlib.org/en/latest/client/frameworks.html#cache-database
     return token
 
 
-def delete_token(oauth_app_name):
-    token_session_key = '{}-token'.format(oauth_app_name.lower())
-    session.pop[token_session_key]
+def delete_token(name=OAUTH_APP_NAME):
+    token_session_key = '{}-token'.format(name.lower())
+    session.pop(token_session_key)
 
 
 oauth = OAuth(fetch_token=fetch_token, update_token=update_token)
