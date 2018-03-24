@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from webargs.flaskparser import use_args
 
 from citadel.libs.validation import ComboSchema, RegisterSchema, SimpleNameSchema, UserSchema
-from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE
+from citadel.libs.view import create_api_blueprint, DEFAULT_RETURN_VALUE, user_require
 from citadel.models.app import App, Release
 from citadel.models.container import Container
 from citadel.models.user import User
@@ -38,6 +38,7 @@ def _get_release(appname, sha):
 
 
 @bp.route('/')
+@user_require(False)
 def list_app():
     """List all the apps associated with the current logged in user, for
     administrators, list all apps
@@ -65,6 +66,7 @@ def list_app():
 
 
 @bp.route('/<appname>')
+@user_require(False)
 def get_app(appname):
     """Get a single app
 
@@ -89,6 +91,7 @@ def get_app(appname):
 
 
 @bp.route('/<appname>/users')
+@user_require(False)
 def get_app_users(appname):
     """List users who has permissions to the specified app
 
@@ -103,6 +106,7 @@ def get_app_users(appname):
 
 @bp.route('/<appname>/users', methods=['PUT'])
 @use_args(UserSchema())
+@user_require(False)
 def grant_user(args, appname):
     """Grant permission to a user
 
@@ -125,6 +129,7 @@ def grant_user(args, appname):
 
 @bp.route('/<appname>/users', methods=['DELETE'])
 @use_args(UserSchema())
+@user_require(False)
 def revoke_user(args, appname):
     """Revoke someone's permission to a app
 
@@ -141,6 +146,7 @@ def revoke_user(args, appname):
 
 
 @bp.route('/<appname>/containers')
+@user_require(False)
 def get_app_containers(appname):
     """Get all containers of the specified app
 
@@ -154,6 +160,7 @@ def get_app_containers(appname):
 
 
 @bp.route('/<appname>/releases')
+@user_require(False)
 def get_app_releases(appname):
     """List every release of the specified app
 
@@ -167,6 +174,7 @@ def get_app_releases(appname):
 
 
 @bp.route('/<appname>/env')
+@user_require(False)
 def get_app_envs(appname):
     """List all env sets for the specified app
 
@@ -191,6 +199,7 @@ def get_app_envs(appname):
 
 
 @bp.route('/<appname>/env/<envname>', methods=['PUT'])
+@user_require(False)
 def create_app_env(appname, envname):
     """Create a environmental variable set
 
@@ -215,6 +224,7 @@ def create_app_env(appname, envname):
 
 
 @bp.route('/<appname>/env/<envname>', methods=['POST'])
+@user_require(False)
 def update_app_env(appname, envname):
     """Edit the specified env set, usage is the same as :http:get:`/api/app/(appname)/env/(envname)`"""
     app = _get_app(appname)
@@ -228,6 +238,7 @@ def update_app_env(appname, envname):
 
 
 @bp.route('/<appname>/env/<envname>')
+@user_require(False)
 def get_app_env(appname, envname):
     """Get the content of the specified environmental variable set
 
@@ -253,6 +264,7 @@ def get_app_env(appname, envname):
 
 
 @bp.route('/<appname>/env/<envname>', methods=['DELETE'])
+@user_require(False)
 def delete_app_env(appname, envname):
     """Delete the specified environmental variable set"""
     app = _get_app(appname)
@@ -264,6 +276,7 @@ def delete_app_env(appname, envname):
 
 
 @bp.route('/<appname>/combo')
+@user_require(False)
 def get_app_combos(appname):
     """Get all the combos for the specified app
 
@@ -278,6 +291,7 @@ def get_app_combos(appname):
 
 @bp.route('/<appname>/combo', methods=['PUT'])
 @use_args(ComboSchema())
+@user_require(False)
 def create_combo(args, appname):
     """Create a combo for the specified app
 
@@ -301,6 +315,7 @@ def create_combo(args, appname):
 
 @bp.route('/<appname>/combo', methods=['POST'])
 @use_args(ComboSchema())
+@user_require(False)
 def update_combo(args, appname):
     """Edit the combo value for the specified app
 
@@ -326,6 +341,7 @@ def update_combo(args, appname):
 
 @bp.route('/<appname>/combo', methods=['DELETE'])
 @use_args(SimpleNameSchema())
+@user_require(False)
 def delete_combo(args, appname):
     """Delete one combo for the specified app
 
@@ -337,6 +353,7 @@ def delete_combo(args, appname):
 
 
 @bp.route('/<appname>/version/<sha>')
+@user_require(False)
 def get_release(appname, sha):
     """Get one release of the specified app
 
@@ -349,6 +366,7 @@ def get_release(appname, sha):
 
 
 @bp.route('/<appname>/version/<sha>/containers')
+@user_require(False)
 def get_release_containers(appname, sha):
     """Get all containers of the specified release
 
@@ -363,6 +381,7 @@ def get_release_containers(appname, sha):
 
 @bp.route('/register', methods=['POST'])
 @use_args(RegisterSchema())
+@user_require(False)
 def register_release(args):
     """Register a release of the specified app
 
