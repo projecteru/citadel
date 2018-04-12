@@ -46,8 +46,8 @@ SQLALCHEMY_TRACK_MODIFICATIONS = getenv('SQLALCHEMY_TRACK_MODIFICATIONS', defaul
 OAUTH_APP_NAME = 'github'
 # I registered a test app on github that redirect to
 # http://citadel.test.ricebook.net/user/authorized as callback url
-GITHUB_CLIENT_ID = getenv('GITHUB_CLIENT_KEY', default='***REMOVED***')
-GITHUB_CLIENT_SECRET = getenv('GITHUB_CLIENT_SECRET', default='***REMOVED***')
+GITHUB_CLIENT_ID = getenv('GITHUB_CLIENT_ID', default='shush')
+GITHUB_CLIENT_SECRET = getenv('GITHUB_CLIENT_SECRET', default='shush')
 GITHUB_CLIENT_KWARGS = {'scope': 'user:email'}
 # AUTHLIB not support cache any more
 # OAUTH_CLIENT_CACHE_TYPE = 'redis'
@@ -110,7 +110,7 @@ if isinstance(ERU_CONFIG_PATH, str):
 for path in ERU_CONFIG_PATH:
     if not os.path.isfile(path):
         continue
-    print('load from {0}'.format(path))
+    print('load from {}'.format(path))
     exec(open(path, encoding='utf-8').read())
     break
 

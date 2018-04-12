@@ -19,9 +19,6 @@ def list_users():
 
 @bp.route('/authorized')
 def authorized():
-    if session['state'] != request.values.get('state'):
-        abort(404, 'Incorrect oauth state')
-
     params = request.values.to_dict()
     token = oauth.github.fetch_access_token(url_for('user.authorized', _external=True), **params)
     update_token(OAUTH_APP_NAME, token)
@@ -47,7 +44,6 @@ def login():
         url_for('user.authorized', _external=True)
     )
     session['next'] = next_url
-    session['state'] = state
     return redirect(url)
 
 
