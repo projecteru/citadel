@@ -27,16 +27,14 @@ sockets = Sockets()
 rds = Redis.from_url(REDIS_URL)
 
 
-def fetch_token(name=OAUTH_APP_NAME):
+def fetch_token(name):
     token_session_key = '{}-token'.format(name.lower())
     return session.get(token_session_key, {})
 
 
-def update_token(token, name=OAUTH_APP_NAME):
+def update_token(name, token):
     token_session_key = '{}-token'.format(name.lower())
     session[token_session_key] = token
-    # I don't think return token was necessary, but that's what the example
-    # does in the docs: https://docs.authlib.org/en/latest/client/frameworks.html#cache-database
     return token
 
 
