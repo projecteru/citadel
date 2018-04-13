@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import url_for, jsonify, session, request, redirect, Blueprint, abort
+from flask import url_for, jsonify, session, request, redirect, Blueprint
 
 from citadel.config import DEFAULT_ZONE, OAUTH_APP_NAME
 from citadel.ext import oauth, update_token, delete_token
@@ -19,8 +19,7 @@ def list_users():
 
 @bp.route('/authorized')
 def authorized():
-    params = request.values.to_dict()
-    token = oauth.github.fetch_access_token(url_for('user.authorized', _external=True), **params)
+    token = oauth.github.authorize_access_token()
     update_token(OAUTH_APP_NAME, token)
     if not session.get('zone'):
         session['zone'] = DEFAULT_ZONE
@@ -34,17 +33,14 @@ def authorized():
 @bp.route('/login')
 def login():
     user = get_current_user()
-    next_url = request.args.get('next', None)
-    # access_token in session, no user
+    next_url = request.args.get('next')
     if user:
         if next_url:
             return redirect(next_url)
         return jsonify(user.to_dict())
-    url, state = oauth.github.generate_authorize_redirect(
-        url_for('user.authorized', _external=True)
-    )
+    redirect_uri = url_for('user.authorized', _external=True)
     session['next'] = next_url
-    return redirect(url)
+    return oauth.github.authorize_redirect(redirect_uri)
 
 
 @bp.route('/logout')
