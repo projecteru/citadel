@@ -1,7 +1,7 @@
 Citadel
 =======
 
-|build-status| |docker| |docs|
+|coverage-status| |build-status| |docker| |docs|
 
 Citadel 本身是联系各个 ERU 组件的一个 WEB 项目, 开发者可以用 Citadel 管理应用, 包括上下线, 在 ELB 上绑定域名, 以及一些 ERU 的运维操作. 此外, 我们在 ENJOY 用 Citadel, eru-cli, GitLab CI 搭建了一套持续集成方案.
 
@@ -39,3 +39,8 @@ Citadel 与 eru-agent
     :alt: Documentation Status
     :scale: 100%
     :target: https://projecteru2citadel.readthedocs.io/en/latest/?badge=latest
+
+.. |coverage-status| image:: https://codecov.io/gh/projecteru2/citadel/branch/master/graph/badge.svg
+    :alt: Coverage Status
+    :scale: 100%
+    :target: https://codecov.io/gh/projecteru2/citadel?branch=feature/next-gen
