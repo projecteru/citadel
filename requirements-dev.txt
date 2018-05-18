@@ -3,6 +3,8 @@ mock
 pytest
 pytest-flask
 pytest-mock
+pytest-cov
+codecov
 ipython
 pdbpp
 # for commandline testing
